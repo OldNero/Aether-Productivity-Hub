@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Aether Productivity Hub — manage tasks, track investments, and time your coding sessions." />
+  <title>Aether — Productivity Hub</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Favicon (inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════════ -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar__logo">
+      <span class="sidebar__logo-icon">✦</span>
+      <span class="sidebar__logo-text">Aether</span>
+    </div>
+
+    <nav class="sidebar__nav" id="sidebar-nav">
+      <button class="sidebar__link active" data-view="dashboard" id="nav-dashboard">
+        <!-- Dashboard icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>Dashboard</span>
+      </button>
+
+      <button class="sidebar__link" data-view="tasks" id="nav-tasks">
+        <!-- Tasks icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span>Tasks</span>
+      </button>
+
+      <button class="sidebar__link" data-view="investments" id="nav-investments">
+        <!-- Investments icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+          <polyline points="16 7 22 7 22 13"/>
+        </svg>
+        <span>Investments</span>
+      </button>
+
+      <button class="sidebar__link" data-view="timer" id="nav-timer">
+        <!-- Timer icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span>Timer</span>
+      </button>
+
+      <div class="sidebar__spacer"></div>
+
+      <button class="sidebar__link" data-view="settings" id="nav-settings">
+        <!-- Settings icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <div class="sidebar__shortcuts">
+      <kbd>Ctrl</kbd><span>+</span><kbd>K</kbd>
+      <span class="sidebar__shortcut-label">Search</span>
+    </div>
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════════════ -->
+  <main id="main-content" class="main">
+
+    <!-- ─── HEADER ─── -->
+    <header class="header" id="header">
+      <div class="header__left">
+        <button class="header__menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+        </button>
+        <div>
+          <h1 class="header__greeting" id="greeting-text">Good Morning</h1>
+          <p class="header__name" id="user-name-display">User</p>
+        </div>
+      </div>
+      <div class="header__right">
+        <button class="header__search-btn" id="open-search-btn" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Search…</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+      </div>
+    </header>
+
+
+    <!-- ═══════════════════════════════════════════
+         VIEW: DASHBOARD
+    ═══════════════════════════════════════════ -->
+    <section class="view active" id="view-dashboard">
+
+      <!-- Quote Card -->
+      <div class="quote-card" id="quote-card">
+        <div class="quote-card__icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" opacity="0.5"><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg>
+        </div>
+        <blockquote class="quote-card__text" id="quote-text">
+          "The only way to do great work is to love what you do."
+        </blockquote>
+        <cite class="quote-card__author" id="quote-author">— Steve Jobs</cite>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-row" id="dashboard-stats">
+        <div class="stat-card" id="stat-total-tasks">
+          <div class="stat-card__icon stat-card__icon--indigo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div class="stat-card__info">
+            <span class="stat-card__value" id="stat-total-val">0</span>
+            <span class="stat-card__label">Total Tasks</span>
+          </div>
+        </div>
+
+        <div class="stat-card" id="stat-active-tasks">
+          <div class="stat-card__icon stat-card__icon--amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-card__info">
+            <span class="stat-card__value" id="stat-active-val">0</span>
+            <span class="stat-card__label">Active</span>
+          </div>
+        </div>
+
+        <div class="stat-card" id="stat-completed-tasks">
+          <div class="stat-card__icon stat-card__icon--emerald">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="stat-card__info">
+            <span class="stat-card__value" id="stat-completed-val">0</span>
+            <span class="stat-card__label">Completed</span>
+          </div>
+        </div>
+
+        <div class="stat-card" id="stat-portfolio">
+          <div class="stat-card__icon stat-card__icon--violet">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-card__info">
+            <span class="stat-card__value" id="stat-portfolio-val">﷼ 0</span>
+            <span class="stat-card__label">Portfolio</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Grid: Recent Tasks + Quick Timer -->
+      <div class="dashboard-grid">
+
+        <!-- Recent Tasks -->
+        <div class="card" id="dashboard-recent-tasks">
+          <div class="card__header">
+            <h2 class="card__title">Recent Tasks</h2>
+            <button class="btn btn--ghost btn--sm" id="dash-view-all-tasks" data-view="tasks">View All →</button>
+          </div>
+          <div class="card__body" id="dashboard-task-list">
+            <!-- Placeholder tasks — JS will replace these -->
+            <div class="task-item">
+              <label class="task-item__checkbox">
+                <input type="checkbox" />
+                <span class="task-item__checkmark"></span>
+              </label>
+              <div class="task-item__content">
+                <span class="task-item__title">Build Aether Dashboard</span>
+                <span class="task-item__meta">2h ago</span>
+              </div>
+              <span class="badge badge--high">High</span>
+            </div>
+            <div class="task-item">
+              <label class="task-item__checkbox">
+                <input type="checkbox" />
+                <span class="task-item__checkmark"></span>
+              </label>
+              <div class="task-item__content">
+                <span class="task-item__title">Research ETF funds</span>
+                <span class="task-item__meta">5h ago</span>
+              </div>
+              <span class="badge badge--medium">Med</span>
+            </div>
+            <div class="task-item task-item--completed">
+              <label class="task-item__checkbox">
+                <input type="checkbox" checked />
+                <span class="task-item__checkmark"></span>
+              </label>
+              <div class="task-item__content">
+                <span class="task-item__title">Set up project structure</span>
+                <span class="task-item__meta">1d ago</span>
+              </div>
+              <span class="badge badge--low">Low</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Timer -->
+        <div class="card" id="dashboard-quick-timer">
+          <div class="card__header">
+            <h2 class="card__title">Coding Session</h2>
+            <span class="badge badge--idle" id="dash-timer-status">Idle</span>
+          </div>
+          <div class="card__body card__body--center">
+            <div class="mini-timer">
+              <svg class="mini-timer__ring" viewBox="0 0 120 120">
+                <circle class="mini-timer__track" cx="60" cy="60" r="52" />
+                <circle class="mini-timer__progress" cx="60" cy="60" r="52" id="dash-timer-ring" />
+              </svg>
+              <span class="mini-timer__display" id="dash-timer-display">00:00:00</span>
+            </div>
+            <button class="btn btn--primary btn--sm" id="dash-timer-start">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Start
+            </button>
+          </div>
+        </div>
+
+        <!-- Exchange Rate Card -->
+        <div class="card" id="dashboard-exchange">
+          <div class="card__header">
+            <h2 class="card__title">Exchange Rate</h2>
+            <button class="btn btn--ghost btn--sm btn--icon" id="refresh-rate-btn" aria-label="Refresh rate">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+          </div>
+          <div class="card__body">
+            <div class="exchange-display">
+              <div class="exchange-display__row">
+                <span class="exchange-display__currency">SAR</span>
+                <span class="exchange-display__flag">🇸🇦</span>
+                <span class="exchange-display__value" id="exchange-sar-val">1.00</span>
+              </div>
+              <div class="exchange-display__divider">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </div>
+              <div class="exchange-display__row">
+                <span class="exchange-display__currency">USD</span>
+                <span class="exchange-display__flag">🇺🇸</span>
+                <span class="exchange-display__value" id="exchange-usd-val">0.27</span>
+              </div>
+            </div>
+            <p class="exchange-display__updated" id="exchange-updated">Last updated: just now</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════
+         VIEW: TASKS
+    ═══════════════════════════════════════════ -->
+    <section class="view" id="view-tasks">
+      <div class="view__toolbar">
+        <h2 class="view__title">Tasks</h2>
+        <div class="view__actions">
+          <div class="filter-group" id="task-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="active">Active</button>
+            <button class="filter-btn" data-filter="completed">Completed</button>
+          </div>
+          <button class="btn btn--primary" id="add-task-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Task
+          </button>
+        </div>
+      </div>
+
+      <!-- Search bar -->
+      <div class="search-bar" id="task-search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="search-bar__input" id="task-search-input" placeholder="Search tasks…" />
+      </div>
+
+      <!-- Task list container -->
+      <div class="task-list" id="task-list">
+        <!-- JS will render task items here -->
+
+        <!-- Placeholder tasks for visual reference -->
+        <div class="task-item" data-id="demo-1">
+          <label class="task-item__checkbox">
+            <input type="checkbox" />
+            <span class="task-item__checkmark"></span>
+          </label>
+          <div class="task-item__content">
+            <span class="task-item__title">Build Aether Dashboard</span>
+            <span class="task-item__meta">Created 2h ago</span>
+          </div>
+          <span class="badge badge--high">High</span>
+          <div class="task-item__actions">
+            <button class="btn btn--ghost btn--icon btn--sm" aria-label="Edit task">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn btn--ghost btn--icon btn--sm btn--danger" aria-label="Delete task">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="task-item" data-id="demo-2">
+          <label class="task-item__checkbox">
+            <input type="checkbox" />
+            <span class="task-item__checkmark"></span>
+          </label>
+          <div class="task-item__content">
+            <span class="task-item__title">Research ETF investment options</span>
+            <span class="task-item__meta">Created 5h ago</span>
+          </div>
+          <span class="badge badge--medium">Med</span>
+          <div class="task-item__actions">
+            <button class="btn btn--ghost btn--icon btn--sm" aria-label="Edit task">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn btn--ghost btn--icon btn--sm btn--danger" aria-label="Delete task">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="task-item task-item--completed" data-id="demo-3">
+          <label class="task-item__checkbox">
+            <input type="checkbox" checked />
+            <span class="task-item__checkmark"></span>
+          </label>
+          <div class="task-item__content">
+            <span class="task-item__title">Set up project file structure</span>
+            <span class="task-item__meta">Completed 1d ago</span>
+          </div>
+          <span class="badge badge--low">Low</span>
+          <div class="task-item__actions">
+            <button class="btn btn--ghost btn--icon btn--sm" aria-label="Edit task">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn btn--ghost btn--icon btn--sm btn--danger" aria-label="Delete task">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state (hidden when tasks exist) -->
+      <div class="empty-state hidden" id="tasks-empty-state">
+        <div class="empty-state__icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <h3>No tasks yet</h3>
+        <p>Click "Add Task" to create your first task</p>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════
+         VIEW: INVESTMENTS
+    ═══════════════════════════════════════════ -->
+    <section class="view" id="view-investments">
+      <div class="view__toolbar">
+        <h2 class="view__title">Investment Tracker</h2>
+        <div class="view__actions">
+          <button class="btn btn--primary" id="add-investment-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Investment
+          </button>
+        </div>
+      </div>
+
+      <!-- Portfolio Summary -->
+      <div class="portfolio-summary" id="portfolio-summary">
+        <div class="portfolio-summary__card portfolio-summary__card--primary">
+          <span class="portfolio-summary__label">Total Portfolio (SAR)</span>
+          <span class="portfolio-summary__value" id="portfolio-sar">﷼ 0.00</span>
+        </div>
+        <div class="portfolio-summary__card">
+          <span class="portfolio-summary__label">Total Portfolio (USD)</span>
+          <span class="portfolio-summary__value" id="portfolio-usd">$ 0.00</span>
+        </div>
+        <div class="portfolio-summary__card">
+          <span class="portfolio-summary__label">Exchange Rate</span>
+          <span class="portfolio-summary__value" id="portfolio-rate">1 SAR = $0.2667</span>
+        </div>
+        <div class="portfolio-summary__card">
+          <span class="portfolio-summary__label">Holdings</span>
+          <span class="portfolio-summary__value" id="portfolio-holdings-count">0</span>
+        </div>
+      </div>
+
+      <!-- Currency Converter -->
+      <div class="card converter-card" id="currency-converter">
+        <div class="card__header">
+          <h2 class="card__title">Currency Converter</h2>
+        </div>
+        <div class="card__body">
+          <div class="converter">
+            <div class="converter__field">
+              <label class="converter__label" for="converter-sar">SAR 🇸🇦</label>
+              <input type="number" class="converter__input" id="converter-sar" placeholder="0.00" min="0" step="0.01" />
+            </div>
+            <div class="converter__swap">
+              <button class="btn btn--ghost btn--icon" id="converter-swap-btn" aria-label="Swap currencies">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              </button>
+            </div>
+            <div class="converter__field">
+              <label class="converter__label" for="converter-usd">USD 🇺🇸</label>
+              <input type="number" class="converter__input" id="converter-usd" placeholder="0.00" min="0" step="0.01" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Investment list -->
+      <div class="investment-list" id="investment-list">
+        <!-- JS renders investment cards here -->
+
+        <!-- Placeholder investment cards -->
+        <div class="investment-card" data-id="inv-demo-1">
+          <div class="investment-card__header">
+            <h3 class="investment-card__name">S&P 500 ETF</h3>
+            <button class="btn btn--ghost btn--icon btn--sm btn--danger" aria-label="Remove investment">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+          <div class="investment-card__amounts">
+            <div class="investment-card__amount">
+              <span class="investment-card__label">SAR</span>
+              <span class="investment-card__value">﷼ 5,000.00</span>
+            </div>
+            <span class="investment-card__arrow">→</span>
+            <div class="investment-card__amount">
+              <span class="investment-card__label">USD</span>
+              <span class="investment-card__value investment-card__value--usd">$ 1,333.33</span>
+            </div>
+          </div>
+          <span class="investment-card__date">Added 2 days ago</span>
+        </div>
+
+        <div class="investment-card" data-id="inv-demo-2">
+          <div class="investment-card__header">
+            <h3 class="investment-card__name">MSCI Emerging Markets</h3>
+            <button class="btn btn--ghost btn--icon btn--sm btn--danger" aria-label="Remove investment">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+          <div class="investment-card__amounts">
+            <div class="investment-card__amount">
+              <span class="investment-card__label">SAR</span>
+              <span class="investment-card__value">﷼ 3,200.00</span>
+            </div>
+            <span class="investment-card__arrow">→</span>
+            <div class="investment-card__amount">
+              <span class="investment-card__label">USD</span>
+              <span class="investment-card__value investment-card__value--usd">$ 853.33</span>
+            </div>
+          </div>
+          <span class="investment-card__date">Added 5 days ago</span>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state hidden" id="investments-empty-state">
+        <div class="empty-state__icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <h3>No investments tracked</h3>
+        <p>Click "Add Investment" to start tracking your portfolio</p>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════
+         VIEW: TIMER
+    ═══════════════════════════════════════════ -->
+    <section class="view" id="view-timer">
+      <div class="view__toolbar">
+        <h2 class="view__title">Coding Timer</h2>
+      </div>
+
+      <div class="timer-container">
+        <!-- Main Timer Display -->
+        <div class="timer-display" id="timer-display">
+          <svg class="timer-ring" viewBox="0 0 240 240">
+            <defs>
+              <linearGradient id="timer-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--accent)" />
+                <stop offset="100%" stop-color="var(--accent-alt)" />
+              </linearGradient>
+            </defs>
+            <circle class="timer-ring__track" cx="120" cy="120" r="105" />
+            <circle class="timer-ring__progress" cx="120" cy="120" r="105" id="timer-progress-ring" />
+          </svg>
+          <div class="timer-display__time" id="timer-time">
+            <span class="timer-display__hours" id="timer-hours">00</span>
+            <span class="timer-display__sep">:</span>
+            <span class="timer-display__minutes" id="timer-minutes">00</span>
+            <span class="timer-display__sep">:</span>
+            <span class="timer-display__seconds" id="timer-seconds">00</span>
+          </div>
+          <span class="timer-display__label" id="timer-label">Ready to code</span>
+        </div>
+
+        <!-- Timer Controls -->
+        <div class="timer-controls" id="timer-controls">
+          <button class="btn btn--ghost btn--icon timer-btn" id="timer-reset-btn" aria-label="Reset timer" disabled>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </button>
+          <button class="btn btn--primary timer-btn timer-btn--main" id="timer-start-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <button class="btn btn--ghost btn--icon timer-btn" id="timer-lap-btn" aria-label="Lap / session" disabled>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          </button>
+        </div>
+
+        <!-- Session History -->
+        <div class="card timer-sessions" id="timer-sessions-card">
+          <div class="card__header">
+            <h2 class="card__title">Session History</h2>
+            <button class="btn btn--ghost btn--sm" id="clear-sessions-btn">Clear All</button>
+          </div>
+          <div class="card__body" id="session-list">
+            <!-- Placeholder sessions -->
+            <div class="session-item">
+              <div class="session-item__info">
+                <span class="session-item__label">Session #1</span>
+                <span class="session-item__date">Today, 08:30 AM</span>
+              </div>
+              <span class="session-item__duration">01:23:45</span>
+            </div>
+            <div class="session-item">
+              <div class="session-item__info">
+                <span class="session-item__label">Session #2</span>
+                <span class="session-item__date">Yesterday, 02:15 PM</span>
+              </div>
+              <span class="session-item__duration">00:45:12</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════
+         VIEW: SETTINGS
+    ═══════════════════════════════════════════ -->
+    <section class="view" id="view-settings">
+      <div class="view__toolbar">
+        <h2 class="view__title">Settings</h2>
+      </div>
+
+      <div class="settings-grid">
+        <!-- Profile -->
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Profile</h2>
+          </div>
+          <div class="card__body">
+            <div class="form-group">
+              <label class="form-label" for="settings-name">Display Name</label>
+              <input type="text" class="form-input" id="settings-name" placeholder="Your name" value="User" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Preferences -->
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Preferences</h2>
+          </div>
+          <div class="card__body">
+            <div class="form-group">
+              <label class="form-label" for="settings-currency">Preferred Currency</label>
+              <select class="form-select" id="settings-currency">
+                <option value="SAR" selected>SAR — Saudi Riyal</option>
+                <option value="USD">USD — US Dollar</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-theme">Theme</label>
+              <select class="form-select" id="settings-theme">
+                <option value="dark" selected>Dark</option>
+                <option value="light">Light (coming soon)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data -->
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Data Management</h2>
+          </div>
+          <div class="card__body">
+            <p class="form-hint">Manage your locally stored data. All data is stored in your browser's LocalStorage.</p>
+            <div class="settings-actions">
+              <button class="btn btn--outline" id="export-data-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export Data
+              </button>
+              <button class="btn btn--outline btn--danger" id="clear-data-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Clear All Data
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Keyboard Shortcuts -->
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Keyboard Shortcuts</h2>
+          </div>
+          <div class="card__body">
+            <div class="shortcut-list">
+              <div class="shortcut-item">
+                <span class="shortcut-item__desc">Search / Command Palette</span>
+                <span class="shortcut-item__keys"><kbd>Ctrl</kbd> + <kbd>K</kbd></span>
+              </div>
+              <div class="shortcut-item">
+                <span class="shortcut-item__desc">New Task</span>
+                <span class="shortcut-item__keys"><kbd>Ctrl</kbd> + <kbd>N</kbd></span>
+              </div>
+              <div class="shortcut-item">
+                <span class="shortcut-item__desc">Close Modal</span>
+                <span class="shortcut-item__keys"><kbd>Esc</kbd></span>
+              </div>
+              <div class="shortcut-item">
+                <span class="shortcut-item__desc">Go to Dashboard</span>
+                <span class="shortcut-item__keys"><kbd>Alt</kbd> + <kbd>1</kbd></span>
+              </div>
+              <div class="shortcut-item">
+                <span class="shortcut-item__desc">Go to Tasks</span>
+                <span class="shortcut-item__keys"><kbd>Alt</kbd> + <kbd>2</kbd></span>
+              </div>
+              <div class="shortcut-item">
+                <span class="shortcut-item__desc">Go to Investments</span>
+                <span class="shortcut-item__keys"><kbd>Alt</kbd> + <kbd>3</kbd></span>
+              </div>
+              <div class="shortcut-item">
+                <span class="shortcut-item__desc">Go to Timer</span>
+                <span class="shortcut-item__keys"><kbd>Alt</kbd> + <kbd>4</kbd></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-save-bar">
+        <button class="btn btn--primary" id="save-settings-btn">Save Settings</button>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════════════
+       MODALS
+  ═══════════════════════════════════════════════ -->
+
+  <!-- Modal: Add / Edit Task -->
+  <div class="modal-overlay" id="modal-task" role="dialog" aria-modal="true" aria-labelledby="modal-task-title">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title" id="modal-task-title">Add New Task</h2>
+        <button class="modal__close" id="modal-task-close" aria-label="Close modal">&times;</button>
+      </div>
+      <form class="modal__body" id="task-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="task-title-input">Title <span class="form-required">*</span></label>
+          <input type="text" class="form-input" id="task-title-input" placeholder="What needs to be done?" required maxlength="120" />
+          <span class="form-error" id="task-title-error">Please enter a task title</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="task-desc-input">Description</label>
+          <textarea class="form-textarea" id="task-desc-input" placeholder="Optional notes…" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="task-priority-input">Priority</label>
+          <select class="form-select" id="task-priority-input">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" id="modal-task-cancel">Cancel</button>
+          <button type="submit" class="btn btn--primary" id="modal-task-submit">Add Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Investment -->
+  <div class="modal-overlay" id="modal-investment" role="dialog" aria-modal="true" aria-labelledby="modal-investment-title">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title" id="modal-investment-title">Add Investment</h2>
+        <button class="modal__close" id="modal-investment-close" aria-label="Close modal">&times;</button>
+      </div>
+      <form class="modal__body" id="investment-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="investment-name-input">Investment Name <span class="form-required">*</span></label>
+          <input type="text" class="form-input" id="investment-name-input" placeholder='e.g. "S&P 500 ETF"' required maxlength="80" />
+          <span class="form-error" id="investment-name-error">Please enter an investment name</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="investment-amount-input">Amount (SAR) <span class="form-required">*</span></label>
+          <input type="number" class="form-input" id="investment-amount-input" placeholder="0.00" required min="0.01" step="0.01" />
+          <span class="form-error" id="investment-amount-error">Please enter a valid positive amount</span>
+        </div>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" id="modal-investment-cancel">Cancel</button>
+          <button type="submit" class="btn btn--primary" id="modal-investment-submit">Add Investment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Confirm Delete -->
+  <div class="modal-overlay" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
+    <div class="modal modal--sm">
+      <div class="modal__header">
+        <h2 class="modal__title" id="modal-confirm-title">Confirm</h2>
+        <button class="modal__close" id="modal-confirm-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal__body">
+        <p class="modal__message" id="modal-confirm-message">Are you sure you want to delete this item? This action cannot be undone.</p>
+      </div>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" id="modal-confirm-cancel">Cancel</button>
+        <button class="btn btn--danger" id="modal-confirm-ok">Delete</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════
+       COMMAND PALETTE (Ctrl+K)
+  ═══════════════════════════════════════════════ -->
+  <div class="command-palette-overlay" id="command-palette">
+    <div class="command-palette">
+      <div class="command-palette__search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="command-palette__input" id="command-input" placeholder="Search tasks, navigate, or run commands…" />
+        <kbd>Esc</kbd>
+      </div>
+      <div class="command-palette__results" id="command-results">
+        <div class="command-palette__group">
+          <span class="command-palette__group-label">Navigation</span>
+          <button class="command-palette__item" data-action="navigate" data-view="dashboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span>Go to Dashboard</span>
+            <kbd>Alt 1</kbd>
+          </button>
+          <button class="command-palette__item" data-action="navigate" data-view="tasks">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span>Go to Tasks</span>
+            <kbd>Alt 2</kbd>
+          </button>
+          <button class="command-palette__item" data-action="navigate" data-view="investments">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            <span>Go to Investments</span>
+            <kbd>Alt 3</kbd>
+          </button>
+          <button class="command-palette__item" data-action="navigate" data-view="timer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Go to Timer</span>
+            <kbd>Alt 4</kbd>
+          </button>
+        </div>
+        <div class="command-palette__group">
+          <span class="command-palette__group-label">Actions</span>
+          <button class="command-palette__item" data-action="new-task">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>New Task</span>
+            <kbd>Ctrl N</kbd>
+          </button>
+          <button class="command-palette__item" data-action="new-investment">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>New Investment</span>
+          </button>
+          <button class="command-palette__item" data-action="toggle-timer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Start / Stop Timer</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════
+       TOAST NOTIFICATIONS
+  ═══════════════════════════════════════════════ -->
+  <div class="toast-container" id="toast-container">
+    <!-- JS will inject toast elements here. Example structure:
+    <div class="toast toast--success">
+      <svg>…</svg>
+      <span class="toast__message">Task added successfully</span>
+      <button class="toast__close">&times;</button>
+    </div>
+    -->
+  </div>
+
+
+  <!-- JS files (user will add later) -->
+  <!--
+  <script src="js/utils.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/investments.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/app.js"></script>
+  -->
+</body>
+</html>
