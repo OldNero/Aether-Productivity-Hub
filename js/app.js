@@ -14,7 +14,7 @@ saveBtn.addEventListener("click", () => {
     saveBtn.textContent = "Saved ✓";
 
     setTimeout(() => saveBtn.textContent = "Save Settings", 1500)
-})
+});
 
 // list all sidebar links
 const currentSection = document.querySelectorAll(".sidebar__link");
@@ -31,4 +31,17 @@ currentSection.forEach(button => {
         document.getElementById("view-" + viewName).classList.add("active");
 
     })
+});
+
+document.addEventListener("keydown", (e) => {
+
+    if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault();
+
+        console.log("search...");
+    }
+
+    if (e.key === 'Escape') {
+        document.getElementById("modal-overlay").classList.remove("active");
+    }
 });
