@@ -7,49 +7,49 @@
 
 /* ─── DESIGN TOKENS ─── */
 :root {
-  /* Backgrounds */
-  --bg-body:      #090b10;
-  --bg-primary:   #0f1219;
-  --bg-secondary: #161b27;
-  --bg-card:      rgba(22, 27, 39, 0.65);
-  --bg-card-solid:#161b27;
-  --bg-elevated:  rgba(30, 36, 52, 0.7);
-  --bg-hover:     rgba(99, 102, 241, 0.08);
-  --bg-active:    rgba(99, 102, 241, 0.14);
+  /* Backgrounds (Shadcn Zinc 950 & 900) */
+  --bg-body:      #09090b;
+  --bg-primary:   #09090b;
+  --bg-secondary: #09090b; /* Shadcn keeps things very mono-colored */
+  --bg-card:      #09090b;
+  --bg-card-solid:#09090b;
+  --bg-elevated:  #18181b; /* Zinc 900 */
+  --bg-hover:     #27272a; /* Zinc 800 */
+  --bg-active:    #27272a;
 
-  /* Borders */
-  --border:       rgba(255, 255, 255, 0.06);
-  --border-light: rgba(255, 255, 255, 0.10);
-  --border-focus: rgba(99, 102, 241, 0.5);
+  /* Borders (Zinc 800) */
+  --border:       #27272a;
+  --border-light: #27272a;
+  --border-focus: #fafafa;
 
-  /* Text */
-  --text-primary:   rgba(255, 255, 255, 0.92);
-  --text-secondary: rgba(255, 255, 255, 0.55);
-  --text-tertiary:  rgba(255, 255, 255, 0.35);
-  --text-inverse:   #0f1219;
+  /* Text (Zinc 50 & Zinc 400) */
+  --text-primary:   #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary:  #71717a;
+  --text-inverse:   #09090b;
 
-  /* Accent Colors */
-  --accent:       #6366f1;
-  --accent-hover: #818cf8;
-  --accent-alt:   #8b5cf6;
-  --accent-glow:  rgba(99, 102, 241, 0.25);
+  /* Accent Colors (Shadcn default uses White for primary buttons) */
+  --accent:       #fafafa;
+  --accent-hover: #e4e4e7;
+  --accent-alt:   #fafafa;
+  --accent-glow:  rgba(255, 255, 255, 0.1);
 
   /* Semantic */
   --danger:       #ef4444;
   --danger-hover: #f87171;
-  --danger-bg:    rgba(239, 68, 68, 0.12);
-  --success:      #10b981;
-  --success-bg:   rgba(16, 185, 129, 0.12);
+  --danger-bg:    rgba(239, 68, 68, 0.1);
+  --success:      #22c55e;
+  --success-bg:   rgba(34, 197, 94, 0.1);
   --warning:      #f59e0b;
-  --warning-bg:   rgba(245, 158, 11, 0.12);
+  --warning-bg:   rgba(245, 158, 11, 0.1);
 
   /* Priority Colors */
-  --priority-high:   #f97066;
-  --priority-high-bg: rgba(249, 112, 102, 0.12);
-  --priority-med:    #fbbf24;
-  --priority-med-bg: rgba(251, 191, 36, 0.12);
-  --priority-low:    #34d399;
-  --priority-low-bg: rgba(52, 211, 153, 0.12);
+  --priority-high:   #ef4444;
+  --priority-high-bg: rgba(239, 68, 68, 0.1);
+  --priority-med:    #f59e0b;
+  --priority-med-bg: rgba(245, 158, 11, 0.1);
+  --priority-low:    #22c55e;
+  --priority-low-bg: rgba(34, 197, 94, 0.1);
 
   /* Spacing */
   --space-xs:  0.25rem;
@@ -59,29 +59,29 @@
   --space-xl:  2rem;
   --space-2xl: 3rem;
 
-  /* Radius */
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-xl:   20px;
+  /* Radius (Shadcn uses tighter, stiffer radiuses) */
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
-  --shadow-md:  0 4px 14px rgba(0,0,0,0.35);
-  --shadow-lg:  0 10px 40px rgba(0,0,0,0.4);
-  --shadow-glow: 0 0 30px var(--accent-glow);
+  /* Shadows (Removed glow, kept minimalist drops) */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md:  0 4px 6px rgba(0,0,0,0.5);
+  --shadow-lg:  0 10px 15px rgba(0,0,0,0.6);
+  --shadow-glow: none;
 
   /* Transitions */
   --ease:         cubic-bezier(0.4, 0, 0.2, 1);
-  --duration:     200ms;
-  --duration-md:  300ms;
-  --duration-lg:  400ms;
+  --duration:     150ms;
+  --duration-md:  200ms;
+  --duration-lg:  300ms;
 
   /* Layout */
-  --sidebar-width:   260px;
-  --sidebar-collapsed: 72px;
-  --header-height:   72px;
+  --sidebar-width:   240px;
+  --sidebar-collapsed: 68px;
+  --header-height:   64px;
 
   /* Fonts  */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -96,6 +96,11 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+::selection {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 html {
@@ -650,7 +655,7 @@ img { display: block; max-width: 100%; }
 }
 
 .task-item__checkbox input:checked ~ .task-item__checkmark {
-  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+  background: var(--accent);
   border-color: transparent;
 }
 
@@ -659,7 +664,7 @@ img { display: block; max-width: 100%; }
   display: none;
   width: 5px;
   height: 9px;
-  border: solid #fff;
+  border: solid var(--text-inverse);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
   margin-top: -1px;
@@ -775,13 +780,12 @@ img { display: block; max-width: 100%; }
 
 /* Primary */
 .btn--primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
-  color: #fff;
-  box-shadow: 0 2px 10px var(--accent-glow);
+  background: var(--accent);
+  color: var(--text-inverse);
 }
 
 .btn--primary:hover:not(:disabled) {
-  box-shadow: 0 4px 20px var(--accent-glow);
+  background: var(--accent-hover);
   transform: translateY(-1px);
 }
 
@@ -883,8 +887,8 @@ img { display: block; max-width: 100%; }
 }
 
 .filter-btn.active {
-  color: #fff;
-  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+  color: var(--text-inverse);
+  background: var(--accent);
 }
 
 
