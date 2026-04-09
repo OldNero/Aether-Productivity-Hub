@@ -2,3 +2,11 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# Tooling & Formatter
+.eslintrc.json
+.prettierrc
+
+# Node/NPM 
+package.json
+package-lock.json
