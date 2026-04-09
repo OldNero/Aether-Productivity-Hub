@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("greeting-text").textContent = getGreeting();
 });
 
+// calls save fn to save settings
 const saveBtn = document.getElementById("save-settings-btn");
 saveBtn.addEventListener("click", () => {
     save();
@@ -33,6 +34,7 @@ currentSection.forEach(button => {
     })
 });
 
+// listen for ctrl+k and focus on the search bar
 document.addEventListener("keydown", (e) => {
 
     if (e.ctrlKey && e.key === 'k') {
@@ -44,4 +46,9 @@ document.addEventListener("keydown", (e) => {
     if (e.key === 'Escape') {
         document.getElementById("modal-overlay").classList.remove("active");
     }
+});
+
+document.getElementById("dash-view-all-tasks").addEventListener("click", () => {
+   // Find the actual sidebar button for tasks, and programmatically click it!
+   document.querySelector('.sidebar__link[data-view="tasks"]').click();
 });
