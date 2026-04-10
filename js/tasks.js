@@ -1,221 +1,281 @@
-"use strict";
+'use strict';
+
+// fetch quote from api-ninjas
+const apiKey = 'F1ZUIGi9ZMtPfKZknSizD9VgaKORsCZjNoDmds3e';
+const category = 'wisdom%2Cphilosophy%2Cinspirational%2Csuccess%2Cleadership'; // Example for the "Quotes" API
+const url = `https://api.api-ninjas.com/v2/quotes?categories=${category}`;
+
+async function getData() {
+  const cooldown = 10000; // 10 seconds in milliseconds
+  const lastFetch = localStorage.getItem('last_api_fetch');
+  const now = Date.now();
+
+  let quoteText = document.getElementById('quote-text');
+  let quoteAuthor = document.getElementById('quote-author');
+
+  // 1. Check if we are still in the cooldown period
+  if (lastFetch && now - lastFetch < cooldown) {
+    const remaining = Math.ceil((cooldown - (now - Number(lastFetch))) / 1000);
+    console.warn(`Throttled: Try again in ${remaining}s`);
+    return null;
+  }
+
+  try {
+    let response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status} ${response.statusText}`);
+    }
+
+    let data = await response.json();
+
+    quoteText.textContent = data[0].quote;
+    quoteAuthor.textContent = data[0].author;
+
+    localStorage.setItem('last_api_fetch', Date.now());
+
+    return data;
+  } catch (error) {
+    console.error('Request failed:', error);
+  }
+}
+
+getData();
 
 // create a new task
-function createTask(title, priority = "medium") {
-    return {
-        id: generateId(),
-        title: title,
-        priority: priority,
-        status: "active",
-        createdAt: Date.now()
-    };
-
+function createTask(title, priority = 'medium') {
+  return {
+    id: generateId(),
+    title: title,
+    priority: priority,
+    status: 'active',
+    createdAt: Date.now(),
+  };
 }
 
 // retrieve tasks
 function getTasks() {
-    return (Store.get('tasks') || []);
+  return Store.get('tasks') || [];
 }
 
 // save the task
 function saveTask(taskArray) {
-    Store.set('tasks', taskArray);
+  Store.set('tasks', taskArray);
 }
 
 // add a task
 function addTask(title, priority) {
-    let tasks = getTasks();
+  let tasks = getTasks();
 
-    let newTask = createTask(title, priority);
+  let newTask = createTask(title, priority);
 
-    tasks.push(newTask);
+  tasks.push(newTask);
 
-    saveTask(tasks);
+  saveTask(tasks);
 
-    return newTask;
+  return newTask;
 }
 
 // deleting a task
 function deleteTask(id) {
-    let tasks = getTasks();
+  let tasks = getTasks();
 
-    // filter non-matching ids and save it to localStorage
-    tasks = tasks.filter(task => task.id !== id);
-    saveTask(tasks);
+  // filter non-matching ids and save it to localStorage
+  tasks = tasks.filter((task) => task.id !== id);
+  saveTask(tasks);
 }
 
 // toggle task state
 function toggletask(id) {
-    let tasks = getTasks();
+  let tasks = getTasks();
 
-    let myTask = tasks.find(task => task.id === id);
+  let myTask = tasks.find((task) => task.id === id);
 
-    if (myTask.status === "active") {
-        myTask.status = "completed";
-    } else {
-        myTask.status = "active";
-    }
+  if (myTask.status === 'active') {
+    myTask.status = 'completed';
+  } else {
+    myTask.status = 'active';
+  }
 
-    saveTask(tasks);
+  saveTask(tasks);
 }
 
-function renderTasks(filterType = "all") {
-    let container  = document.getElementById("task-list");
-    container.innerHTML = "";
+function renderTasks(filterType = 'all') {
+  let container = document.getElementById('task-list');
+  container.innerHTML = '';
 
-    let tasks = getTasks();
+  let tasks = getTasks();
 
-    if (filterType === "active") {
-        tasks = tasks.filter(task => task.status === "active");
-    } else if (filterType === "completed") {
-        tasks = tasks.filter(task => task.status === "completed");
+  if (filterType === 'active') {
+    tasks = tasks.filter((task) => task.status === 'active');
+  } else if (filterType === 'completed') {
+    tasks = tasks.filter((task) => task.status === 'completed');
+  }
+
+  tasks.forEach((task) => {
+    let div = document.createElement('div');
+    div.className = 'task-item';
+
+    if (task.status === 'completed') {
+      div.classList.add('task-item--completed');
     }
 
-    tasks.forEach(task => {
-        let div = document.createElement("div");
-        div.className = "task-item";
-
-        if(task.status === "completed") {
-            div.classList.add("task-item--completed")
-        }
-
-        div.dataset.id = task.id;
-        div.innerHTML = `
+    div.dataset.id = task.id;
+    div.innerHTML = `
               <label class="task-item__checkbox">
-                <input type="checkbox" ${task.status === "completed" ? "checked" : ""} />
+                <input type="checkbox" ${
+                  task.status === 'completed' ? 'checked' : ''
+                } />
                 <span class="task-item__checkmark"></span>
               </label>
               <div class="task-item__content">
                 <span class="task-item__title">${task.title}</span>
-                <span class="task-item__meta">${timeElapsed(task.createdAt)}</span>
+                <span class="task-item__meta">${timeElapsed(
+                  task.createdAt
+                )}</span>
               </div>
-              <span class="badge badge--${task.priority}">${task.priority}</span>
+              <span class="badge badge--${task.priority}">${
+      task.priority
+    }</span>
               <div class="task-item__actions">
                 <button class="btn btn--ghost btn--icon btn--sm btn--danger" aria-label="Delete task">
                   ❌ <!-- Using an emoji for now to keep it simple! -->
                 </button>
               </div>
-           `
+           `;
 
-        container.appendChild(div);
-    });
+    container.appendChild(div);
+  });
 
-    updateTaskStatus();
-    renderDashboardTasks();
-
+  updateTaskStatus();
+  renderDashboardTasks();
 }
 
 function updateTaskStatus() {
-    let tasks = getTasks();
+  let tasks = getTasks();
 
-    let total = tasks.length;
+  let total = tasks.length;
 
-    let activeCount = tasks.filter(task => task.status === "active").length;
-    let completedCount = tasks.filter(task => task.status === "completed").length;
+  let activeCount = tasks.filter((task) => task.status === 'active').length;
+  let completedCount = tasks.filter(
+    (task) => task.status === 'completed'
+  ).length;
 
-    document.getElementById("stat-total-val").textContent = total;
-    document.getElementById("stat-active-val").textContent = activeCount;
-    document.getElementById("stat-completed-val").textContent = completedCount;
+  document.getElementById('stat-total-val').textContent = total;
+  document.getElementById('stat-active-val').textContent = activeCount;
+  document.getElementById('stat-completed-val').textContent = completedCount;
 }
 
-document.getElementById("task-list").addEventListener("click", (event) => {
-    let taskDiv = event.target.closest(".task-item");
+document.getElementById('task-list').addEventListener('click', (event) => {
+  let taskDiv = event.target.closest('.task-item');
 
-    if (taskDiv == null) return;
+  if (taskDiv == null) return;
 
-    let id = taskDiv.dataset.id;
+  let id = taskDiv.dataset.id;
 
-    if(event.target.type == "checkbox") {
-        toggletask(id);
-        renderTasks();
-    } else if (event.target.closest(".btn--danger")) {
-        deleteTask(id);
-        renderTasks();
-    }
+  if (event.target.type == 'checkbox') {
+    toggletask(id);
+    renderTasks();
+  } else if (event.target.closest('.btn--danger')) {
+    deleteTask(id);
+    renderTasks();
+  }
 });
 
-document.getElementById("add-task-btn").addEventListener("click", () => {
-    let modalTask = document.getElementById("modal-task");
-    modalTask.classList.add("open");
+document.getElementById('add-task-btn').addEventListener('click', () => {
+  let modalTask = document.getElementById('modal-task');
+  modalTask.classList.add('open');
 });
 
 // Close modal when X is clicked
-document.getElementById("modal-task-close").addEventListener("click", () => {
-    document.getElementById("modal-task").classList.remove("open");
+document.getElementById('modal-task-close').addEventListener('click', () => {
+  document.getElementById('modal-task').classList.remove('open');
 });
 
-// Close modal when Cancel is clicked 
-document.getElementById("modal-task-cancel").addEventListener("click", () => {
-    document.getElementById("modal-task").classList.remove("open");
+// Close modal when Cancel is clicked
+document.getElementById('modal-task-cancel').addEventListener('click', () => {
+  document.getElementById('modal-task').classList.remove('open');
 });
 
-document.getElementById("task-form").addEventListener("submit", (event) => {
-    event.preventDefault();
+document.getElementById('task-form').addEventListener('submit', (event) => {
+  event.preventDefault();
 
-    let title = document.getElementById("task-title-input").value;
-    let priority = document.getElementById("task-priority-input").value;
+  let title = document.getElementById('task-title-input').value;
+  let priority = document.getElementById('task-priority-input').value;
 
-    if (title.trim() === "") {
-        return ;
-    } 
+  if (title.trim() === '') {
+    return;
+  }
 
-    addTask(title,priority);
+  addTask(title, priority);
 
-    renderTasks();
+  renderTasks();
 
-    document.getElementById("task-form").reset();
+  document.getElementById('task-form').reset();
 
-    document.getElementById("modal-task").classList.remove("open");
+  document.getElementById('modal-task').classList.remove('open');
+});
 
-})
+document.getElementById('task-filters').addEventListener('click', (event) => {
+  if (!event.target.closest('.filter-btn')) {
+    return;
+  }
 
-document.getElementById("task-filters").addEventListener("click", (event) => {
-    if (!event.target.closest(".filter-btn")){
-        return;
-    }
+  let filterType = event.target.dataset.filter;
 
-    let filterType = event.target.dataset.filter
+  document
+    .querySelectorAll('.filter-btn')
+    .forEach((btn) => btn.classList.remove('active'));
 
-    document.querySelectorAll(".filter-btn").forEach(btn => btn.classList.remove("active"));
+  event.target.classList.add('active');
 
-    event.target.classList.add("active");
-
-    renderTasks(filterType);
-})
+  renderTasks(filterType);
+});
 
 function renderDashboardTasks() {
-    let dashboardContainer = document.getElementById("dashboard-task-list");
-    dashboardContainer.innerHTML = "";
+  let dashboardContainer = document.getElementById('dashboard-task-list');
+  dashboardContainer.innerHTML = '';
 
-    let tasks = getTasks();
+  let tasks = getTasks();
 
-    let recentTasks = tasks.slice(0,3);
+  let recentTasks = tasks.slice(0, 3);
 
-    recentTasks.forEach(task=> {
-        let taskItemDiv = document.createElement("div");
-        taskItemDiv.classList.add("task-item");
+  recentTasks.forEach((task) => {
+    let taskItemDiv = document.createElement('div');
+    taskItemDiv.classList.add('task-item');
 
-        if(task.status === "completed"){
-            taskItemDiv.classList.add("task-item--completed");
-        }
+    if (task.status === 'completed') {
+      taskItemDiv.classList.add('task-item--completed');
+    }
 
-        taskItemDiv.dataset.id = task.id;
+    taskItemDiv.dataset.id = task.id;
 
-        taskItemDiv.innerHTML = `
+    taskItemDiv.innerHTML = `
               <label class="task-item__checkbox">
-                <input type="checkbox" ${task.status === "completed" ? "checked" : ""} />
+                <input type="checkbox" ${
+                  task.status === 'completed' ? 'checked' : ''
+                } />
                 <span class="task-item__checkmark"></span>
               </label>
               <div class="task-item__content">
                 <span class="task-item__title">${task.title}</span>
-                <span class="task-item__meta">${timeElapsed(task.createdAt)}</span>
+                <span class="task-item__meta">${timeElapsed(
+                  task.createdAt
+                )}</span>
               </div>
-              <span class="badge badge--${task.priority}">${task.priority}</span>
+              <span class="badge badge--${task.priority}">${
+      task.priority
+    }</span>
         `;
-        
-        dashboardContainer.appendChild(taskItemDiv);
-    })
 
+    dashboardContainer.appendChild(taskItemDiv);
+  });
 }
 
 renderTasks();
