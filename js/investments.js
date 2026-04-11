@@ -1,20 +1,13 @@
 'use strict';
 
-/**
- * Investment Management Module
- */
-
 let editingInvestmentId = null;
+let marketDataCache = {};
 
-window.initInvestments = function() {
-  console.log("Aether: Initializing Investments Module...");
-
-  // --- DOM Selectors (Scoped inside init) ---
+window.initInvestments = function () {
   const investmentForm = document.getElementById('investment-form');
   const investmentTypeArr = document.getElementById('investment-type');
   const btnTypeBuy = document.getElementById('btn-type-buy');
   const btnTypeSell = document.getElementById('btn-type-sell');
-
   const symbolInput = document.getElementById('investment-symbol');
   const priceInput = document.getElementById('investment-price');
   const quantityInput = document.getElementById('investment-quantity');
@@ -22,17 +15,13 @@ window.initInvestments = function() {
   const dateInput = document.getElementById('investment-date');
   const notesInput = document.getElementById('investment-notes');
   const symbolSuggestions = document.getElementById('symbol-suggestions');
-
   const totalDisplay = document.getElementById('investment-total-display');
   const investmentList = document.getElementById('investment-list');
   const emptyState = document.getElementById('investments-empty-state');
-
   const addInvestmentBtn = document.getElementById('add-investment-btn');
   const investmentModal = document.getElementById('modal-investment');
 
-  if (!investmentForm) return; // Fragment not loaded yet
-
-  // --- Helper Functions (Scoped) ---
+  if (!investmentForm) return;
 
   const calculateTransactionTotal = () => {
     let priceValue = Number(priceInput.value) || 0;
@@ -61,13 +50,9 @@ window.initInvestments = function() {
     symbolSuggestions.innerHTML = '';
     matches.forEach((match) => {
       const item = document.createElement('div');
-      item.className = 'px-4 py-2 hover:bg-zinc-800 cursor-pointer transition-colors border-b border-white/5 last:border-0';
-      item.innerHTML = `
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-bold text-zinc-100">${match.s}</span>
-          <span class="text-[10px] text-muted truncate ml-2">${match.n}</span>
-        </div>
-      `;
+      item.className =
+        'px-4 py-2 hover:bg-zinc-800 cursor-pointer transition-colors border-b border-white/5 last:border-0';
+      item.innerHTML = `<div class="flex items-center justify-between"><span class="text-sm font-bold text-zinc-100">${match.s}</span><span class="text-[10px] text-muted truncate ml-2">${match.n}</span></div>`;
       item.onmousedown = () => {
         symbolInput.value = match.s;
         symbolSuggestions.classList.add('hidden');
@@ -78,17 +63,26 @@ window.initInvestments = function() {
     symbolSuggestions.classList.remove('hidden');
   };
 
-  // --- Listeners ---
-
   if (addInvestmentBtn) {
     addInvestmentBtn.onclick = () => {
       editingInvestmentId = null;
       investmentForm.reset();
-      document.getElementById('modal-investment-title').textContent = 'Add New Position';
+      document.getElementById('modal-investment-title').textContent =
+        'Add New Position';
       calculateTransactionTotal();
       investmentModal.classList.add('open');
     };
   }
+
+  // Add close handlers for investment modal
+  const investmentModalCloseButtons = document.querySelectorAll(
+    '[data-modal="modal-investment"]'
+  );
+  investmentModalCloseButtons.forEach((button) => {
+    button.onclick = () => {
+      document.getElementById('modal-investment').classList.remove('open');
+    };
+  });
 
   [priceInput, quantityInput, commissionInput].forEach((input) => {
     if (input) input.oninput = calculateTransactionTotal;
@@ -125,17 +119,19 @@ window.initInvestments = function() {
       commission: Number(commissionInput.value),
       date: dateInput.value || new Date().toISOString().split('T')[0],
       notes: notesInput.value,
-      total: Number(priceInput.value) * Number(quantityInput.value) + Number(commissionInput.value),
+      total:
+        Number(priceInput.value) * Number(quantityInput.value) +
+        Number(commissionInput.value),
     };
-
     if (editingInvestmentId) {
       investments = investments.map((inv) =>
-        inv.id === editingInvestmentId ? { ...transactionData, id: inv.id } : inv
+        inv.id === editingInvestmentId
+          ? { ...transactionData, id: inv.id }
+          : inv
       );
     } else {
       investments.unshift({ ...transactionData, id: Date.now() });
     }
-
     Store.set('investments', investments);
     investmentForm.reset();
     investmentModal.classList.remove('open');
@@ -154,75 +150,74 @@ window.initInvestments = function() {
         return;
       }
       debounceTimeout = setTimeout(() => {
-        const matches = STOCK_SYMBOLS.filter(s => s.s.startsWith(query) || s.n.toUpperCase().includes(query)).slice(0, 10);
+        const matches = STOCK_SYMBOLS.filter(
+          (s) => s.s.startsWith(query) || s.n.toUpperCase().includes(query)
+        ).slice(0, 10);
         renderSuggestions(matches);
       }, 150);
     };
     symbolInput.onblur = () => {
       setTimeout(() => {
         symbolSuggestions.classList.add('hidden');
-        if (symbolInput.value) autoFetchPrice(symbolInput.value.trim().toUpperCase());
+        if (symbolInput.value)
+          autoFetchPrice(symbolInput.value.trim().toUpperCase());
       }, 200);
     };
   }
 
-  // Initial Run
   renderInvestments();
   updateSummary();
   initMarketMovers();
+  startLivePriceUpdates();
 };
+
+function startLivePriceUpdates() {
+  updateLivePrices();
+  setInterval(updateLivePrices, 30000);
+}
+
+async function updateLivePrices() {
+  const investments = Store.get('investments') || [];
+  const symbols = [...new Set(investments.map((i) => i.symbol))];
+  for (const symbol of symbols) {
+    if (!marketDataCache[symbol]) {
+      const data = await API.fetchStockPrice(symbol);
+      if (data) marketDataCache[symbol] = data;
+    }
+  }
+  renderInvestments();
+  updateSummary();
+}
 
 function renderInvestments() {
   const investmentList = document.getElementById('investment-list');
   const emptyState = document.getElementById('investments-empty-state');
   if (!investmentList) return;
-
   const investments = Store.get('investments') || [];
   investmentList.innerHTML = '';
-
   if (investments.length === 0) {
     if (emptyState) emptyState.classList.remove('hidden');
   } else {
     if (emptyState) emptyState.classList.add('hidden');
     investments.forEach((asset) => {
-      const card = `
-        <div class="card flex items-center justify-between group">
-          <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs 
-              ${asset.type === 'buy' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
-              ${asset.symbol}
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-zinc-200">${asset.symbol}</p>
-              <p class="text-[11px] text-muted uppercase tracking-wider">${asset.type} • ${asset.quantity} shares</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-4">
-            <div class="text-right">
-              <p class="text-sm font-bold text-zinc-100">$ ${asset.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-              <p class="text-[10px] text-muted">${asset.date}</p>
-            </div>
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button class="btn-edit-inv p-1.5 hover:bg-zinc-800 rounded text-muted hover:text-zinc-100 transition-colors" data-id="${asset.id}">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                </svg>
-              </button>
-              <button class="btn-delete-inv p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors" data-id="${asset.id}">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
+      const currentData = marketDataCache[asset.symbol];
+      const currentPrice = currentData ? currentData.price : asset.price;
+      const currentValue = currentPrice * asset.quantity;
+      const costBasis = asset.total;
+      const gainLoss =
+        asset.type === 'buy'
+          ? currentValue - costBasis
+          : costBasis - currentValue;
+      const isGain = gainLoss >= 0;
+      const gainPct = costBasis > 0 ? (gainLoss / costBasis) * 100 : 0;
+      const card = `<div class="card flex items-center justify-between group"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs ${asset.type === 'buy' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">${asset.symbol}</div><div><p class="text-sm font-semibold text-zinc-200">${asset.symbol}</p><p class="text-[11px] text-muted uppercase tracking-wider">${asset.type} • ${asset.quantity} shares @ $${asset.price.toFixed(2)}</p></div></div><div class="flex items-center gap-4"><div class="text-right"><p class="text-sm font-bold text-zinc-100">$ ${currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p><p class="text-[10px] ${isGain ? 'text-emerald-400' : 'text-rose-400'}">${isGain ? '+' : ''}$${gainLoss.toFixed(2)} (${gainPct.toFixed(2)}%)</p></div><div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button class="btn-edit-inv p-1.5 hover:bg-zinc-800 rounded text-muted hover:text-zinc-100 transition-colors" data-id="${asset.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button class="btn-delete-inv p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors" data-id="${asset.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div></div>`;
       const div = document.createElement('div');
       div.innerHTML = card.trim();
       const finalCard = div.firstChild;
-
-      finalCard.querySelector('.btn-edit-inv').onclick = () => editTransaction(asset.id);
-      finalCard.querySelector('.btn-delete-inv').onclick = () => deleteTransaction(asset.id);
+      finalCard.querySelector('.btn-edit-inv').onclick = () =>
+        editTransaction(asset.id);
+      finalCard.querySelector('.btn-delete-inv').onclick = () =>
+        deleteTransaction(asset.id);
       investmentList.appendChild(finalCard);
     });
   }
@@ -230,23 +225,106 @@ function renderInvestments() {
 
 function updateSummary() {
   const investments = Store.get('investments') || [];
-  const totalNetWorth = investments.reduce((sum, asset) => sum + asset.total, 0);
-  const formattedTotal = '$ ' + totalNetWorth.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
+  const positions = {};
+  let realizedGain = 0;
+
+  // Step 1: Aggregate transactions by symbol
+  investments.forEach((asset) => {
+    const symbol = asset.symbol;
+    if (!positions[symbol]) {
+      positions[symbol] = { shares: 0, costBasis: 0 };
+    }
+
+    if (asset.type === 'buy') {
+      positions[symbol].shares += asset.quantity;
+      positions[symbol].costBasis += asset.total;
+    } else {
+      // Sell: calculate realized gain/loss using average cost
+      const sellQuantity = asset.quantity;
+      const sellProceeds = asset.total;
+
+      if (positions[symbol].shares > 0) {
+        const avgCostPerShare =
+          positions[symbol].costBasis / positions[symbol].shares;
+        const sharesToSell = Math.min(positions[symbol].shares, sellQuantity);
+        const costOfSharesSold = avgCostPerShare * sharesToSell;
+
+        positions[symbol].shares -= sharesToSell;
+        positions[symbol].costBasis -= costOfSharesSold;
+
+        realizedGain += sellProceeds - costOfSharesSold;
+      }
+    }
+  });
+
+  // Step 2: Calculate current value and unrealized gain
+  let totalCurrent = 0;
+  let totalUnrealized = 0;
+
+  Object.keys(positions).forEach((symbol) => {
+    const pos = positions[symbol];
+    if (pos.shares > 0) {
+      const currentData = marketDataCache[symbol];
+      const currentPrice = currentData ? currentData.price : 0;
+      const currentValue = currentPrice * pos.shares;
+
+      totalCurrent += currentValue;
+      totalUnrealized += currentValue - pos.costBasis;
+    }
+  });
+
+  // Step 3: Update UI elements
+  const netWorth = totalCurrent;
+  const totalReturn = realizedGain + totalUnrealized;
   const portfolioUsd = document.getElementById('portfolio-usd');
-  if (portfolioUsd) portfolioUsd.textContent = formattedTotal;
-
+  if (portfolioUsd)
+    portfolioUsd.textContent =
+      '$ ' + netWorth.toLocaleString(undefined, { minimumFractionDigits: 2 });
+  const portfolioRealized = document.getElementById('portfolio-realized');
+  if (portfolioRealized) {
+    portfolioRealized.textContent =
+      '$ ' +
+      realizedGain.toLocaleString(undefined, { minimumFractionDigits: 2 });
+    portfolioRealized.className =
+      'text-2xl font-bold font-mono ' +
+      (realizedGain >= 0 ? 'text-emerald-400' : 'text-rose-400');
+  }
+  const portfolioUnrealized = document.getElementById('portfolio-unrealized');
+  if (portfolioUnrealized) {
+    portfolioUnrealized.textContent =
+      '$ ' +
+      totalUnrealized.toLocaleString(undefined, { minimumFractionDigits: 2 });
+    portfolioUnrealized.className =
+      'text-2xl font-bold font-mono ' +
+      (totalUnrealized >= 0 ? 'text-emerald-400' : 'text-rose-400');
+  }
+  const portfolioPerf = document.getElementById('portfolio-performance');
+  if (portfolioPerf) {
+    portfolioPerf.textContent =
+      '$ ' +
+      totalReturn.toLocaleString(undefined, { minimumFractionDigits: 2 });
+    portfolioPerf.className =
+      'text-2xl font-bold font-mono ' +
+      (totalReturn >= 0 ? 'text-emerald-400' : 'text-rose-400');
+  }
   const dashVal = document.getElementById('stat-portfolio-val');
-  if (dashVal) dashVal.textContent = formattedTotal;
-
+  if (dashVal)
+    dashVal.textContent =
+      '$ ' + netWorth.toLocaleString(undefined, { minimumFractionDigits: 2 });
   const countEl = document.getElementById('portfolio-holdings-count');
-  if (countEl) countEl.textContent = investments.length;
+  if (countEl) {
+    const positionCount = Object.keys(positions).filter(
+      (s) => positions[s].shares > 0
+    ).length;
+    countEl.textContent = positionCount;
+  }
 }
 
 function deleteTransaction(id) {
   if (confirm('Are you sure you want to delete this transaction?')) {
     let invs = Store.get('investments') || [];
-    invs = invs.filter(i => i.id !== id);
+    invs = invs.filter((i) => i.id !== id);
     Store.set('investments', invs);
     renderInvestments();
     updateSummary();
@@ -255,54 +333,56 @@ function deleteTransaction(id) {
 
 function editTransaction(id) {
   const invs = Store.get('investments') || [];
-  const asset = invs.find(i => i.id === id);
+  const asset = invs.find((i) => i.id === id);
   if (!asset) return;
-
   editingInvestmentId = id;
-  const symbolInput = document.getElementById('investment-symbol');
-  const priceInput = document.getElementById('investment-price');
-  const quantityInput = document.getElementById('investment-quantity');
-  const commissionInput = document.getElementById('investment-commission');
-  const dateInput = document.getElementById('investment-date');
-  const notesInput = document.getElementById('investment-notes');
-
-  symbolInput.value = asset.symbol;
-  priceInput.value = asset.price;
-  quantityInput.value = asset.quantity;
-  commissionInput.value = asset.commission;
-  dateInput.value = asset.date;
-  notesInput.value = asset.notes;
-
-  document.getElementById('modal-investment-title').textContent = 'Edit Position';
+  document.getElementById('investment-symbol').value = asset.symbol;
+  document.getElementById('investment-price').value = asset.price;
+  document.getElementById('investment-quantity').value = asset.quantity;
+  document.getElementById('investment-commission').value = asset.commission;
+  document.getElementById('investment-date').value = asset.date;
+  document.getElementById('investment-notes').value = asset.notes;
+  document.getElementById('modal-investment-title').textContent =
+    'Edit Position';
   document.getElementById('modal-investment').classList.add('open');
 }
 
 async function initMarketMovers() {
   const list = document.getElementById('market-movers-list');
   if (!list) return;
-  const tickers = ['NVDA', 'AAPL', 'TSLA', 'NFLX'];
+  const allTickers = [
+    'NVDA',
+    'AAPL',
+    'MSFT',
+    'GOOGL',
+    'AMZN',
+    'META',
+    'TSLA',
+    'NFLX',
+    'AMD',
+    'INTC',
+    'ORCL',
+    'IBM',
+  ];
   const data = [];
-  for (const t of tickers) {
+  for (const t of allTickers) {
     const res = await API.fetchStockPrice(t);
     if (res) data.push(res);
   }
-  
+  data.sort((a, b) => b.changesPercentage - a.changesPercentage);
+  const gainers = data.slice(0, 5);
+  const losers = data.slice(-5).reverse();
   list.innerHTML = '';
-  data.forEach(stock => {
-    const isPos = stock.change >= 0;
-    const item = `
-      <div class="flex items-center justify-between group">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded bg-${isPos?'emerald':'rose'}-500/10 flex items-center justify-center text-${isPos?'emerald':'rose'}-400">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="${isPos?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/>
-            </svg>
-          </div>
-          <div><p class="text-sm font-bold text-zinc-200">${stock.ticker}</p><p class="text-[10px] text-muted uppercase">${stock.name||'Stock'}</p></div>
-        </div>
-        <div class="text-right"><p class="text-sm font-bold text-${isPos?'emerald':'rose'}-400">${isPos?'+':''}$${stock.change.toFixed(2)}</p><p class="text-[10px] font-mono text-${isPos?'emerald':'rose'}-500/70">${isPos?'+':''}${stock.changesPercentage.toFixed(2)}%</p></div>
-      </div>
-    `;
-    list.insertAdjacentHTML('beforeend', item);
+  gainers.forEach((stock) => {
+    list.insertAdjacentHTML(
+      'beforeend',
+      `<div class="flex items-center justify-between group"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></div><div><p class="text-sm font-bold text-zinc-200">${stock.ticker}</p><p class="text-[10px] text-muted uppercase">Stock</p></div></div><div class="text-right"><p class="text-sm font-bold text-emerald-400">+$${stock.change.toFixed(2)}</p><p class="text-[10px] font-mono text-emerald-500/70">+${stock.changesPercentage.toFixed(2)}%</p></div></div>`
+    );
+  });
+  losers.forEach((stock) => {
+    list.insertAdjacentHTML(
+      'beforeend',
+      `<div class="flex items-center justify-between group pt-2"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div><div><p class="text-sm font-bold text-zinc-200">${stock.ticker}</p><p class="text-[10px] text-muted uppercase">Stock</p></div></div><div class="text-right"><p class="text-sm font-bold text-rose-400">-$${Math.abs(stock.change).toFixed(2)}</p><p class="text-[10px] font-mono text-rose-500/70">${stock.changesPercentage.toFixed(2)}%</p></div></div>`
+    );
   });
 }

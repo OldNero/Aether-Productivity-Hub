@@ -154,15 +154,73 @@ document.getElementById('task-list').addEventListener('click', (event) => {
  */
 
 window.initTasks = function() {
-    console.log("Aether: Initializing Tasks Module...");
-    renderTasks();
+     console.log("Aether: Initializing Tasks Module...");
+     renderTasks();
 
-    const addBtn = document.getElementById('add-task-btn');
-    if (addBtn) {
-        addBtn.onclick = () => {
-            document.getElementById('modal-task').classList.add('open');
-        };
-    }
+     const addBtn = document.getElementById('add-task-btn');
+     if (addBtn) {
+         addBtn.onclick = () => {
+             document.getElementById('modal-task').classList.add('open');
+         };
+     }
+
+     const closeBtn = document.getElementById('modal-task-close');
+     if (closeBtn) {
+         closeBtn.onclick = () => {
+             document.getElementById('modal-task').classList.remove('open');
+         };
+     }
+
+     const cancelBtn = document.getElementById('modal-task-cancel');
+     if (cancelBtn) {
+         cancelBtn.onclick = () => {
+             document.getElementById('modal-task').classList.remove('open');
+         };
+     }
+
+     const form = document.getElementById('task-form');
+     if (form) {
+         form.onsubmit = (event) => {
+             event.preventDefault();
+             const title = document.getElementById('task-title-input').value;
+             const priority = document.getElementById('task-priority-input').value;
+             if (title.trim()) {
+                 addTask(title, priority);
+                 renderTasks();
+                 form.reset();
+                 document.getElementById('modal-task').classList.remove('open');
+             }
+         };
+     }
+
+     const filters = document.getElementById('task-filters');
+     if (filters) {
+         filters.onclick = (event) => {
+             const btn = event.target.closest('.filter-btn');
+             if (btn) {
+                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                 btn.classList.add('active');
+                 renderTasks(btn.dataset.filter);
+             }
+         };
+     }
+
+     const list = document.getElementById('task-list');
+     if (list) {
+         list.onclick = (event) => {
+             const item = event.target.closest('.task-item');
+             if (!item) return;
+             const id = item.dataset.id;
+             
+             if (event.target.type === 'checkbox') {
+                 toggletask(id);
+                 renderTasks();
+             } else if (event.target.closest('.btn--danger')) {
+                 deleteTask(id);
+                 renderTasks();
+             }
+          };
+      }
 
     const closeBtn = document.getElementById('modal-task-close');
     if (closeBtn) {
@@ -223,19 +281,7 @@ window.initTasks = function() {
     }
 };
 
-// Internal rendering logic (staying global for dashboard preview)
-function renderTasks(filterType = 'all') {
-    const container = document.getElementById('task-list');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    let tasks = getTasks();
 
-    if (filterType === 'active') {
-        tasks = tasks.filter(t => t.status === 'active');
-    } else if (filterType === 'completed') {
-        tasks = tasks.filter(t => t.status === 'completed');
-    }
 
     tasks.forEach(task => {
         const div = document.createElement('div');
@@ -252,7 +298,7 @@ function renderTasks(filterType = 'all') {
             </div>
             <div class="flex items-center gap-2">
                 <span class="badge badge--${task.priority}">${task.priority}</span>
-                <button class="btn--danger p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button class="btn--danger p-1.5 opacity-0 transition-opacity">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
                     </svg>
