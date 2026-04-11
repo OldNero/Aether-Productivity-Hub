@@ -40,7 +40,10 @@ window.addEventListener('click', (e) => {
 });
 
 // --- State ---
-let investments = Store.get('investments') || [];
+let investments = Store.get('investments');
+if (!Array.isArray(investments)) {
+  investments = [];
+}
 
 function calculateTransactionTotal() {
   let priceValue = Number(priceInput.value);
