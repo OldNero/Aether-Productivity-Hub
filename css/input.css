@@ -11,10 +11,28 @@
   --color-muted: #71717a;
   --color-subtle: #3f3f46;
 
-  --radius-card: 0.875rem;
+  --radius-card: 1rem;
 }
 
-@layer base {
+/* --- PROTECTION FROM TREE-SHAKING --- */
+/* These must be outside @layer to ensure they survive the Tailwind build process */
+#auth-overlay.open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.auth-required main,
+body.auth-required #sidebar,
+body.auth-required header,
+body.auth-required aside {
+  filter: blur(20px) grayscale(100%);
+  pointer-events: none !important;
+  opacity: 0.3 !important;
+}
+
+@layer utilities {
+  /* Other utilities... */
+}
   * {
     box-sizing: border-box;
   }
@@ -135,8 +153,8 @@
   }
 
   .task-item {
-    @apply flex items-start gap-4 p-4 rounded-lg border border-border bg-card
-           hover:bg-card-hover transition-colors duration-150 cursor-pointer;
+    @apply flex items-center gap-5 p-5 px-6 rounded-xl border border-border bg-card
+           hover:bg-card-hover transition-all duration-150 cursor-pointer group;
   }
   /* tasks.js adds task-item--completed (double dash) */
   .task-item--completed .task-item__title,
@@ -148,7 +166,7 @@
     @apply opacity-60;
   }
   .task-item__title {
-    @apply text-sm font-medium text-zinc-200;
+    @apply text-base font-semibold text-zinc-100 leading-tight;
   }
   .task-item__meta {
     @apply text-xs text-muted mt-0.5;
@@ -227,5 +245,34 @@
   }
   .palette-overlay.open {
     @apply opacity-100 pointer-events-auto;
+  }
+  /* Auth Hub Refinements */
+  #auth-overlay.open {
+    @apply opacity-100 pointer-events-auto;
+  }
+
+  body.auth-required main,
+  body.auth-required #sidebar,
+  body.auth-required header {
+    @apply blur-xl pointer-events-none grayscale opacity-30;
+  }
+
+  /* Split Form Layout Support */
+  #auth-overlay .card {
+    @apply transition-all duration-300 hover:border-white/10;
+  }
+
+  /* Animations */
+  .animate-in {
+    animation: animate-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes animate-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Sidebar Profile refinements */
+  #sidebar-user-avatar {
+    @apply shadow-lg border border-white/10 ring-4 ring-white/5;
   }
 }

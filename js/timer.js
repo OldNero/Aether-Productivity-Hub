@@ -1,230 +1,202 @@
-/* eslint-disable no-undef */
 'use strict';
 
-let startTime,
-  elapsed = 0;
+/**
+ * Timer Engine (Persistent State)
+ */
+let startTime, elapsed = 0;
 let timerInterval = null;
 let isRunning = false;
 
-function startTimer() {
-  if (isRunning) return;
-
-  startTime = Date.now() - elapsed;
-  isRunning = true;
-
-  timerInterval = setInterval(updateDisplay, 100);
+// Core Engine Functions
+function startTimerCore() {
+    if (isRunning) return;
+    startTime = Date.now() - elapsed;
+    isRunning = true;
+    timerInterval = setInterval(updateAllTimerDisplays, 100);
 }
 
-function pauseTimer() {
-  clearInterval(timerInterval);
-  isRunning = false;
-
-  elapsed = Date.now() - startTime;
+function pauseTimerCore() {
+    clearInterval(timerInterval);
+    isRunning = false;
+    elapsed = Date.now() - startTime;
 }
 
-function updateDisplay() {
-  elapsed = Date.now() - startTime;
-
-  let hours = Math.floor(elapsed / 3600000);
-  let minutes = Math.floor((elapsed % 3600000) / 60000);
-  let seconds = Math.floor((elapsed % 60000) / 1000);
-
-  let hrsStr = String(hours).padStart(2, '0');
-  let minStr = String(minutes).padStart(2, '0');
-  let secStr = String(seconds).padStart(2, '0');
-
-  document.getElementById('timer-hours').textContent = hrsStr;
-  document.getElementById('timer-minutes').textContent = minStr;
-  document.getElementById('timer-seconds').textContent = secStr;
-
-  document.getElementById(
-    'dash-timer-display'
-  ).textContent = `${hrsStr}:${minStr}:${secStr}`;
-
-  // --- SVG Ring Animation Math ---
-
-  // 1. Calculate the progression percentage
-  // (Let's make 1 full rotation equal to 1 hour, which is 3,600,000 milliseconds)
-  let progressFraction = (elapsed % 3600000) / 3600000;
-
-  // 2. Main Timer Ring Math (Radius is 105)
-  let mainRadius = 105;
-  let mainCircumference = 2 * Math.PI * mainRadius;
-  let mainOffset = mainCircumference * (1 - progressFraction);
-
-  // Grab the HTML element and apply the CSS SVG values
-  let mainRing = document.getElementById('timer-progress-ring');
-  mainRing.style.strokeDasharray = mainCircumference;
-  mainRing.style.strokeDashoffset = mainOffset;
-
-  // 3. Mini Dashboard Ring Math (Radius is 52)
-  let miniRadius = 52;
-  let miniCircumference = 2 * Math.PI * miniRadius;
-  let miniOffset = miniCircumference * (1 - progressFraction);
-
-  let dashRing = document.getElementById('dash-timer-ring');
-  if (dashRing) {
-    dashRing.style.strokeDasharray = miniCircumference;
-    dashRing.style.strokeDashoffset = miniOffset;
-  }
+function resetTimerCore() {
+    clearInterval(timerInterval);
+    saveSession();
+    elapsed = 0;
+    isRunning = false;
+    updateAllTimerDisplays();
 }
 
-function resetTimer() {
-  clearInterval(timerInterval);
-  saveSession();
-  renderSessions();
-  elapsed = 0;
-  isRunning = false;
+/**
+ * Update logic for all potential timer displays in the DOM
+ */
+function updateAllTimerDisplays() {
+    if (isRunning) {
+        elapsed = Date.now() - startTime;
+    }
 
-  // Manually force the screen back to zero
-  document.getElementById('timer-hours').textContent = '00';
-  document.getElementById('timer-minutes').textContent = '00';
-  document.getElementById('timer-seconds').textContent = '00';
+    const hours = Math.floor(elapsed / 3600000);
+    const minutes = Math.floor((elapsed % 3600000) / 60000);
+    const seconds = Math.floor((elapsed % 60000) / 1000);
 
-  document.getElementById('dash-timer-display').textContent = '00:00:00';
+    const hrsStr = String(hours).padStart(2, '0');
+    const minStr = String(minutes).padStart(2, '0');
+    const secStr = String(seconds).padStart(2, '0');
+    const timeStr = `${hrsStr}:${minStr}:${secStr}`;
 
-  // Reset the SVG Rings to full empty
-  let mainCircumference = 2 * Math.PI * 105;
-  document.getElementById('timer-progress-ring').style.strokeDashoffset =
-    mainCircumference;
+    // Update Main View Elements
+    const hEl = document.getElementById('timer-hours');
+    const mEl = document.getElementById('timer-minutes');
+    const sEl = document.getElementById('timer-seconds');
+    if (hEl) hEl.textContent = hrsStr;
+    if (mEl) mEl.textContent = minStr;
+    if (sEl) sEl.textContent = secStr;
 
-  let miniCircumference = 2 * Math.PI * 52;
-  document.getElementById('dash-timer-ring').style.strokeDashoffset =
-    miniCircumference;
+    // Update Dashboard Mini View
+    const dashDisp = document.getElementById('dash-timer-display');
+    if (dashDisp) dashDisp.textContent = timeStr;
+
+    // Ring Animations
+    const progress = (elapsed % 3600000) / 3600000;
+    
+    // Main Ring (R=105, C=659.7)
+    const mainRing = document.getElementById('timer-progress-ring');
+    if (mainRing) {
+        const c = 2 * Math.PI * 105;
+        mainRing.style.strokeDasharray = c;
+        mainRing.style.strokeDashoffset = c * (1 - progress);
+    }
+
+    // Dash Ring (R=52, C=326.7)
+    const dashRing = document.getElementById('dash-timer-ring');
+    if (dashRing) {
+        const c = 2 * Math.PI * 52;
+        dashRing.style.strokeDasharray = c;
+        dashRing.style.strokeDashoffset = c * (1 - progress);
+    }
 }
 
-// Wire up the DOM Buttons
-let startBtn = document.getElementById('timer-start-btn');
-let resetBtn = document.getElementById('timer-reset-btn');
-let lapBtn = document.getElementById('timer-lap-btn');
+/**
+ * Main View Initialization
+ */
+window.initTimer = function() {
+    console.log("Aether: Initializing Timer Module...");
+    updateAllTimerDisplays();
+    renderSessions();
 
-startBtn.addEventListener('click', () => {
-  // If it's running, pause it. If it's paused, start it!
-  if (isRunning) {
-    pauseTimer();
-    // Update the SVG icon to show a "Play" button
-    startBtn.innerHTML =
-      '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>';
-  } else {
-    startTimer();
-    // Update the SVG icon to show a "Pause" button
-    startBtn.innerHTML =
-      '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
-  }
+    const startBtn = document.getElementById('timer-start-btn');
+    const resetBtn = document.getElementById('timer-reset-btn');
+    const lapBtn = document.getElementById('timer-lap-btn');
 
-  // Only let the user click Reset if there is actually time on the clock!
-  resetBtn.disabled = false;
-});
+    if (!startBtn) return;
 
-lapBtn.addEventListener("click", () => {
-  if (elapsed === 0) return;
+    // Sync Button Icon
+    const updateIcon = () => {
+        startBtn.innerHTML = isRunning 
+            ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
+            : '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>';
+    };
+    updateIcon();
 
-  let sessions = getSessions();
+    startBtn.onclick = () => {
+        if (isRunning) pauseTimerCore();
+        else startTimerCore();
+        updateIcon();
+        if (resetBtn) resetBtn.disabled = !isRunning && elapsed === 0;
+    };
 
-  let newSession = {
-    duration: elapsed,
-    timestamp: Date.now(),
-  };
+    if (resetBtn) {
+        resetBtn.disabled = !isRunning && elapsed === 0;
+        resetBtn.onclick = () => {
+            resetTimerCore();
+            updateIcon();
+            resetBtn.disabled = true;
+            renderSessions();
+        };
+    }
 
-  Store.set('sessions', [...sessions, newSession]);
+    if (lapBtn) {
+        lapBtn.onclick = () => {
+            if (elapsed === 0) return;
+            saveSession();
+            renderSessions();
+        };
+    }
 
-  renderSessions();
-});
+    const clearBtn = document.getElementById('clear-sessions-btn');
+    if (clearBtn) {
+        clearBtn.onclick = () => {
+            if (confirm('Clear all session history?')) {
+                Store.set('sessions', []);
+                renderSessions();
+            }
+        };
+    }
+};
 
-resetBtn.addEventListener('click', () => {
-  resetTimer();
-  // Put the Play icon back
-  startBtn.innerHTML =
-    '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>';
-  resetBtn.disabled = true;
+/**
+ * Dashboard Mini-Timer Initialization
+ */
+window.initDashboardTimer = function() {
+    const btn = document.getElementById('dash-timer-start');
+    const badge = document.getElementById('dash-timer-status');
+    if (!btn) return;
 
-  // Reset Dashboard UI
-  document.getElementById('dash-timer-start').innerHTML =
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg> Start';
-  document.getElementById('dash-timer-status').textContent = 'Idle';
-  document.getElementById('dash-timer-status').className = 'badge badge--idle';
-});
+    const updateUI = () => {
+        btn.innerHTML = isRunning 
+            ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pause'
+            : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg> Start';
+        
+        if (badge) {
+            badge.textContent = isRunning ? 'Running' : (elapsed > 0 ? 'Paused' : 'Ready');
+            badge.className = `label ${isRunning ? 'text-emerald-400' : (elapsed > 0 ? 'text-amber-400' : 'text-zinc-500')}`;
+        }
+    };
 
-// Sync Dashboard Button
-const dashStartBtn = document.getElementById('dash-timer-start');
-const dashStatusBadge = document.getElementById('dash-timer-status');
+    updateUI();
 
-dashStartBtn.addEventListener('click', () => {
-  startBtn.click();
+    btn.onclick = () => {
+        if (isRunning) pauseTimerCore();
+        else startTimerCore();
+        updateUI();
+        // If we happen to be in the timer view, sync it too
+        const mainBtn = document.getElementById('timer-start-btn');
+        if (mainBtn) window.initTimer(); 
+    };
+};
 
-  if (isRunning) {
-    dashStartBtn.innerHTML =
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pause';
-    dashStatusBadge.textContent = 'Running';
-    dashStatusBadge.className = 'badge badge--running';
-  } else {
-    dashStartBtn.innerHTML =
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg> Start';
-    dashStatusBadge.textContent = 'Paused';
-    dashStatusBadge.className = 'badge badge--warning';
-  }
-});
-
-function getSessions() {
-  return Store.get('sessions') || [];
-}
+// Utilities
+function getSessions() { return Store.get('sessions') || []; }
 
 function saveSession() {
-  if (elapsed === 0) {
-    return;
-  }
-
-  let sessions = getSessions();
-
-  let newSession = {
-    duration: elapsed,
-    timestamp: Date.now(),
-  };
-
-  Store.set('sessions', [...sessions, newSession]);
+    if (elapsed === 0) return;
+    const sessions = getSessions();
+    sessions.push({ duration: elapsed, timestamp: Date.now() });
+    Store.set('sessions', sessions);
 }
 
 function renderSessions() {
-  let sessionListDiv = document.getElementById('session-list');
-  sessionListDiv.innerHTML = '';
-
-  let sessions = getSessions();
-
-  for (let i = sessions.length - 1; i >= 0; i--) {
-    // 1. Calculate our 3 units of time from the saved raw millisecond duration
-    let hours = Math.floor(sessions[i].duration / 3600000);
-    let minutes = Math.floor((sessions[i].duration % 3600000) / 60000);
-    let seconds = Math.floor((sessions[i].duration % 60000) / 1000);
-    // 2. Turn them into nicely formatted "01:05:08" Strings
-    let hrsStr = String(hours).padStart(2, '0');
-    let minStr = String(minutes).padStart(2, '0');
-    let secStr = String(seconds).padStart(2, '0');
-    // 3. Build the DOM element (Notice how we use `i + 1` to get the real Session Number!)
-    let div = document.createElement('div');
-    div.className = 'session-item';
-
-    // Inject all of our data into the HTML template
-    div.innerHTML = `
-      <div class="session-item__info">
-        <span class="session-item__label">Session #${i + 1}</span>
-        <span class="session-item__date">${timeElapsed(
-          sessions[i].timestamp
-        )}</span>
-      </div>
-      <span class="session-item__duration">${hrsStr}:${minStr}:${secStr}</span>
-    `;
-    sessionListDiv.appendChild(div);
-  }
+    const list = document.getElementById('session-list');
+    if (!list) return;
+    const sessions = getSessions();
+    list.innerHTML = '';
+    
+    sessions.slice().reverse().forEach((s, idx) => {
+        const h = Math.floor(s.duration / 3600000);
+        const m = Math.floor((s.duration % 3600000) / 60000);
+        const sec = Math.floor((s.duration % 60000) / 1000);
+        
+        const div = document.createElement('div');
+        div.className = 'card flex items-center justify-between p-3';
+        div.innerHTML = `
+            <div>
+                <p class="text-xs font-semibold text-zinc-300">Session #${sessions.length - idx}</p>
+                <p class="text-[10px] text-muted">${timeElapsed(s.timestamp)}</p>
+            </div>
+            <p class="font-mono text-zinc-100">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}</p>
+        `;
+        list.appendChild(div);
+    });
 }
-
-function clearSessions() {
-  if (confirm('Are you sure you want to clear all history?')) {
-    Store.set('sessions', []);
-
-    renderSessions();
-  }
-}
-
-document
-  .getElementById('clear-sessions-btn')
-  .addEventListener('click', clearSessions);

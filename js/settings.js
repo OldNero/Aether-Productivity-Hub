@@ -1,34 +1,74 @@
 "use strict";
 
-// load default settings
+/**
+ * Settings Module
+ */
+
 const DEFAULT_SETTINGS = {
     name: 'User',
     currency: 'USD',
-    exchangeRate: 0.27,
     theme: 'dark'
-
 };
 
-// load settings from local storage
-function load() {
+// Global utility to update UI elements that depend on settings (Header, etc)
+window.loadProfileSettings = function() {
     const saved = Store.get("settings") || DEFAULT_SETTINGS;
-    const { name, currency, theme } = saved;
+    const nameEl = document.getElementById("user-name-display");
+    if (nameEl) nameEl.textContent = saved.name;
+    document.documentElement.setAttribute('data-theme', saved.theme);
+};
 
-    document.getElementById("settings-name").value = name;
-    document.getElementById("settings-currency").value = currency;
-    document.getElementById("settings-theme").value = theme;
+window.initSettings = function() {
+    console.log("Aether: Initializing Settings Module...");
+    const saved = Store.get("settings") || DEFAULT_SETTINGS;
 
-    document.documentElement.setAttribute('data-theme', theme);
-    document.getElementById("user-name-display").textContent = name;
-}
+    // Selectors
+    const nameInput = document.getElementById("settings-name");
+    const currencyInput = document.getElementById("settings-currency");
+    const themeInput = document.getElementById("settings-theme");
+    const saveBtn = document.getElementById("save-settings-btn");
+    const exportBtn = document.getElementById("export-data-btn");
+    const clearBtn = document.getElementById("clear-data-btn");
 
-// save settings to local storage
-function save() {
-    const name = document.getElementById("settings-name").value;
-    const currency = document.getElementById("settings-currency").value;
-    const theme = document.getElementById("settings-theme").value;
+    if (!nameInput) return; // Guard
 
-    Store.set("settings", { name, currency, theme });
+    // Populate
+    nameInput.value = saved.name;
+    currencyInput.value = saved.currency;
+    themeInput.value = saved.theme;
 
-    load();
-}
+    // Listeners
+    if (saveBtn) {
+        saveBtn.onclick = () => {
+            const data = {
+                name: nameInput.value,
+                currency: currencyInput.value,
+                theme: themeInput.value
+            };
+            Store.set("settings", data);
+            window.loadProfileSettings();
+            alert("Settings saved successfully!");
+        };
+    }
+
+    if (exportBtn) {
+        exportBtn.onclick = () => {
+            const data = localStorage.getItem('AE_investments'); // Example
+            const blob = new Blob([JSON.stringify(localStorage, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `aether_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        };
+    }
+
+    if (clearBtn) {
+        clearBtn.onclick = () => {
+            if (confirm("THIS WILL DELETE ALL DATA. Are you absolutely sure?")) {
+                localStorage.clear();
+                window.location.reload();
+            }
+        };
+    }
+};

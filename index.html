@@ -105,10 +105,22 @@
           </svg>
           Timer
         </button>
-      </nav>
+      </nav>      <!-- Sidebar Bottom -->
+      <div class="mt-auto flex flex-col gap-1 pt-4 border-t border-border">
+        <!-- User Badge -->
+        <div class="px-3 py-3 mb-2 flex items-center gap-3 bg-zinc-900/40 rounded-xl border border-white/5 mx-2">
+          <div 
+            id="sidebar-user-avatar"
+            class="w-9 h-9 rounded-lg bg-zinc-100 text-zinc-950 flex items-center justify-center font-bold text-sm"
+          >
+            U
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="user-name-display-sidebar" class="text-sm font-bold text-zinc-100 truncate italic">User</p>
+            <p class="text-[10px] text-muted uppercase tracking-tighter">Profile</p>
+          </div>
+        </div>
 
-      <!-- Bottom -->
-      <div class="flex flex-col gap-1 pt-4 border-t border-border">
         <button
           class="nav-item sidebar__link"
           data-view="settings"
@@ -129,16 +141,35 @@
           </svg>
           Settings
         </button>
-        <div class="px-2 pt-4">
-          <p class="text-[10px] text-muted">
-            Press
-            <kbd
-              class="px-1 py-0.5 rounded bg-zinc-800 border border-zinc-700 font-mono text-zinc-400"
-              >⌘K</kbd
-            >
-            to search
-          </p>
-        </div>
+
+        <button
+          class="nav-item hover:text-red-400"
+          id="logout-btn"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="px-3 pt-4 border-t border-white/5 mt-2">
+        <p class="text-[10px] text-muted">
+          Press
+          <kbd
+            class="px-1 py-0.5 rounded bg-zinc-800 border border-zinc-700 font-mono text-zinc-400"
+            >⌘K</kbd
+          >
+          to search
+        </p>
       </div>
     </aside>
 
@@ -178,13 +209,13 @@
           </button>
           <div>
             <p
-              class="text-[11px] font-semibold uppercase tracking-widest text-muted"
+              class="text-xs font-semibold uppercase tracking-widest text-muted"
               id="greeting-text"
             >
               Good morning
             </p>
             <p
-              class="text-sm font-semibold text-zinc-100 leading-tight"
+              class="text-lg font-bold text-zinc-100 leading-tight"
               id="user-name-display"
             >
               Welcome back
@@ -214,1126 +245,15 @@
         </button>
       </header>
 
-      <!-- Scrollable Content -->
-      <div class="flex-1 overflow-y-auto">
-        <!-- ═══ DASHBOARD VIEW ═══ -->
-        <section class="view active" id="view-dashboard">
-          <div class="p-6 max-w-[1400px] mx-auto">
-            <!-- Bento Grid -->
-            <div
-              class="grid grid-cols-4 gap-4"
-              style="grid-auto-rows: minmax(160px, auto)"
-            >
-              <!-- Quote Card — col-span-3 -->
-              <div
-                id="quote-card"
-                class="card col-span-4 md:col-span-3 flex flex-col justify-end min-h-[180px] relative overflow-hidden"
-              >
-                <div
-                  class="absolute top-0 right-0 w-72 h-72 bg-zinc-800/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"
-                ></div>
-                <svg
-                  width="28"
-                  height="28"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  class="text-zinc-700 mb-4"
-                >
-                  <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
-                </svg>
-                <blockquote
-                  id="quote-text"
-                  class="text-xl font-semibold text-zinc-100 max-w-2xl leading-snug mb-3"
-                >
-                  "The only way to do great work is to love what you do."
-                </blockquote>
-                <cite
-                  id="quote-author"
-                  class="text-[11px] font-semibold uppercase tracking-widest text-muted not-italic font-mono"
-                  >— Steve Jobs</cite
-                >
-              </div>
-
-              <!-- Total Tasks Stat -->
-              <div
-                class="card col-span-4 md:col-span-1 flex flex-col justify-between"
-              >
-                <div
-                  class="p-2 w-9 h-9 rounded-lg bg-zinc-800/60 flex items-center justify-center text-zinc-400"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path d="M9 11l3 3L22 4" />
-                    <path
-                      d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p class="label">Total Tasks</p>
-                  <p
-                    class="text-4xl font-bold tracking-tight text-zinc-100"
-                    id="stat-total-val"
-                  >
-                    0
-                  </p>
-                </div>
-              </div>
-
-              <!-- Active Tasks -->
-              <div
-                class="card col-span-2 md:col-span-1 flex flex-col justify-between"
-              >
-                <div
-                  class="p-2 w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                </div>
-                <div>
-                  <p class="label">Active</p>
-                  <p
-                    class="text-4xl font-bold tracking-tight text-zinc-100"
-                    id="stat-active-val"
-                  >
-                    0
-                  </p>
-                </div>
-              </div>
-
-              <!-- Completed Tasks -->
-              <div
-                class="card col-span-2 md:col-span-1 flex flex-col justify-between"
-              >
-                <div
-                  class="p-2 w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                </div>
-                <div>
-                  <p class="label">Completed</p>
-                  <p
-                    class="text-4xl font-bold tracking-tight text-zinc-100"
-                    id="stat-completed-val"
-                  >
-                    0
-                  </p>
-                </div>
-              </div>
-
-              <!-- Portfolio Value -->
-              <div
-                class="card col-span-2 md:col-span-1 flex flex-col justify-between"
-              >
-                <div
-                  class="p-2 w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <line x1="12" y1="1" x2="12" y2="23" />
-                    <path
-                      d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p class="label">Portfolio (USD)</p>
-                  <p
-                    class="text-2xl font-bold tracking-tight text-zinc-100 truncate"
-                    id="stat-portfolio-val"
-                  >
-                    $ 0.00
-                  </p>
-                </div>
-              </div>
-
-              <!-- Focus List Preview — spans 2 rows -->
-              <div
-                class="card col-span-4 md:col-span-2 row-span-2 flex flex-col"
-                style="min-height: 340px"
-              >
-                <div class="flex items-center justify-between mb-5">
-                  <h3 class="font-semibold text-zinc-100">Focus List</h3>
-                  <button
-                    class="btn-ghost text-xs"
-                    id="dash-view-all-tasks"
-                    data-view="tasks"
-                  >
-                    View all →
-                  </button>
-                </div>
-                <div
-                  id="dashboard-task-list"
-                  class="flex-1 space-y-2 overflow-y-auto pr-1"
-                >
-                  <!-- JS injects tasks here -->
-                </div>
-              </div>
-
-              <!-- Timer Widget — spans 2 rows -->
-              <div
-                class="card col-span-4 md:col-span-2 row-span-2 flex flex-col items-center justify-center text-center gap-6"
-                style="min-height: 340px"
-              >
-                <div
-                  class="relative w-44 h-44 flex items-center justify-center"
-                >
-                  <svg
-                    class="absolute inset-0 w-full h-full -rotate-90"
-                    viewBox="0 0 112 112"
-                  >
-                    <circle
-                      class="text-zinc-800"
-                      stroke-width="6"
-                      stroke="currentColor"
-                      fill="none"
-                      r="52"
-                      cx="56"
-                      cy="56"
-                    />
-                    <circle
-                      class="text-zinc-100 transition-all duration-300"
-                      stroke-width="6"
-                      stroke-dasharray="326.73"
-                      stroke-dashoffset="326.73"
-                      stroke-linecap="round"
-                      stroke="currentColor"
-                      fill="none"
-                      r="52"
-                      cx="56"
-                      cy="56"
-                      id="dash-timer-ring"
-                    />
-                  </svg>
-                  <span
-                    class="text-2xl font-bold font-mono tracking-tighter text-zinc-100"
-                    id="dash-timer-display"
-                    >00:00:00</span
-                  >
-                </div>
-                <div>
-                  <p class="label mb-3" id="dash-timer-status">
-                    Ready to focus
-                  </p>
-                  <button class="btn-primary px-8 py-2.5" id="dash-timer-start">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                    Start Session
-                  </button>
-                </div>
-              </div>
-
-              <!-- Exchange Rate -->
-              <div
-                class="card col-span-2 md:col-span-1 flex flex-col justify-between"
-              >
-                <div class="flex items-center justify-between">
-                  <p class="label">Exchange Rate</p>
-                  <button id="refresh-rate-btn" class="btn-ghost p-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <polyline points="23 4 23 10 17 10" />
-                      <polyline points="1 20 1 14 7 14" />
-                      <path
-                        d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <div>
-                  <p
-                    class="text-2xl font-bold font-mono text-zinc-100"
-                    id="exchange-usd-val"
-                  >
-                    0.2667
-                  </p>
-                  <p class="text-[11px] text-muted mt-1">USD per SAR</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ TASKS VIEW ═══ -->
-        <section class="view" id="view-tasks">
-          <div class="p-6 max-w-3xl mx-auto">
-            <!-- Header Row -->
-            <div class="flex items-center justify-between mb-6">
-              <div>
-                <h1 class="text-2xl font-bold tracking-tight text-zinc-100">
-                  Focus List
-                </h1>
-                <p class="text-sm text-muted mt-0.5">
-                  Track and ship your priorities.
-                </p>
-              </div>
-              <button class="btn-primary" id="add-task-btn">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                New Task
-              </button>
-            </div>
-
-            <!-- Filters + Search -->
-            <div
-              class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6"
-            >
-              <div class="relative flex-1">
-                <svg
-                  class="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <input
-                  type="text"
-                  id="task-search-input"
-                  placeholder="Search tasks…"
-                  class="input pl-9"
-                />
-              </div>
-              <div
-                class="flex bg-card border border-border rounded-lg p-1 gap-1"
-                id="task-filters"
-              >
-                <button class="filter-btn active" data-filter="all">All</button>
-                <button class="filter-btn" data-filter="active">Active</button>
-                <button class="filter-btn" data-filter="completed">Done</button>
-              </div>
-              <button
-                class="btn-ghost text-xs text-muted hover:text-red-400"
-                id="clear-completed-btn"
-              >
-                Clear done
-              </button>
-            </div>
-
-            <!-- Task List -->
-            <div id="task-list" class="space-y-2">
-              <!-- JS injects tasks here -->
-            </div>
-
-            <!-- Empty State -->
-            <div
-              id="tasks-empty-state"
-              class="hidden py-20 flex flex-col items-center text-center"
-            >
-              <div
-                class="w-16 h-16 rounded-xl bg-card border border-border flex items-center justify-center text-muted mb-4"
-              >
-                <svg
-                  width="28"
-                  height="28"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                >
-                  <path d="M9 11l3 3L22 4" />
-                  <path
-                    d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
-                  />
-                </svg>
-              </div>
-              <p class="font-semibold text-zinc-300 mb-1">All clear.</p>
-              <p class="text-sm text-muted">
-                Add a task to start building momentum.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ INVESTMENTS VIEW ═══ -->
-        <section class="view" id="view-investments">
-          <div class="p-6 max-w-[1400px] mx-auto">
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-6">
-              <div>
-                <h1 class="text-2xl font-bold tracking-tight text-zinc-100">
-                  Portfolio
-                </h1>
-                <p class="text-sm text-muted mt-0.5">
-                  Track your global assets.
-                </p>
-              </div>
-              <button class="btn-primary" id="add-investment-btn">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                Add Asset
-              </button>
-            </div>
-
-            <!-- Stats Row -->
-            <div
-              class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
-              id="portfolio-summary"
-            >
-              <div class="card flex flex-col gap-1">
-                <p class="label">Net Worth (USD)</p>
-                <p
-                  class="text-2xl font-bold font-mono text-emerald-400"
-                  id="portfolio-usd"
-                >
-                  $ 0.00
-                </p>
-              </div>
-              <div class="card flex flex-col gap-1">
-                <p class="label">Total Gain/Loss</p>
-                <p
-                  class="text-2xl font-bold font-mono text-zinc-100"
-                  id="portfolio-performance"
-                >
-                  $ 0.00
-                </p>
-              </div>
-              <div class="card flex flex-col gap-1">
-                <p class="label">Day Change</p>
-                <p
-                  class="text-xl font-bold font-mono text-zinc-100"
-                  id="portfolio-day-change"
-                >
-                  0.00%
-                </p>
-              </div>
-              <div class="card flex flex-col gap-1">
-                <p class="label">Positions</p>
-                <p
-                  class="text-2xl font-bold text-zinc-100"
-                  id="portfolio-holdings-count"
-                >
-                  0
-                </p>
-              </div>
-            </div>
-
-            <!-- Main Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <!-- Ledger -->
-              <div class="card lg:col-span-2">
-                <h3 class="font-semibold text-zinc-100 mb-4">Asset Ledger</h3>
-                <div id="investment-list" class="space-y-3">
-                  <!-- JS injects investment cards here -->
-                </div>
-                <div
-                  id="investments-empty-state"
-                  class="hidden py-16 text-center"
-                >
-                  <p class="text-sm text-muted">
-                    No assets yet. Click
-                    <strong class="text-zinc-400">Add Asset</strong> to start
-                    tracking.
-                  </p>
-                </div>
-              </div>
-
-              <!-- Market Movers -->
-              <div class="card">
-                <h3
-                  class="font-semibold text-zinc-100 mb-4 flex items-center gap-2"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                    <polyline points="16 7 22 7 22 13" />
-                  </svg>
-                  Market Movers
-                </h3>
-                <div class="space-y-4" id="market-movers-list">
-                  <!-- Gainers -->
-                  <div class="flex items-center justify-between group">
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                        >
-                          <polyline points="18 15 12 9 6 15" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p class="text-sm font-bold text-zinc-200">NVDA</p>
-                        <p class="text-[10px] text-muted uppercase">
-                          Nvidia Corp
-                        </p>
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <p class="text-sm font-bold text-emerald-400">+$4.23</p>
-                      <p class="text-[10px] font-mono text-emerald-500/70">
-                        +2.15%
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="flex items-center justify-between group">
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                        >
-                          <polyline points="18 15 12 9 6 15" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p class="text-sm font-bold text-zinc-200">AAPL</p>
-                        <p class="text-[10px] text-muted uppercase">
-                          Apple Inc
-                        </p>
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <p class="text-sm font-bold text-emerald-400">+$1.85</p>
-                      <p class="text-[10px] font-mono text-emerald-500/70">
-                        +0.85%
-                      </p>
-                    </div>
-                  </div>
-
-                  <!-- Losers -->
-                  <div
-                    class="flex items-center justify-between group pt-2 border-t border-border/50"
-                  >
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p class="text-sm font-bold text-zinc-200">TSLA</p>
-                        <p class="text-[10px] text-muted uppercase">
-                          Tesla Motors
-                        </p>
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <p class="text-sm font-bold text-rose-400">-$12.40</p>
-                      <p class="text-[10px] font-mono text-rose-500/70">
-                        -4.32%
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="flex items-center justify-between group">
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p class="text-sm font-bold text-zinc-200">NFLX</p>
-                        <p class="text-[10px] text-muted uppercase">
-                          Netflix Inc
-                        </p>
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <p class="text-sm font-bold text-rose-400">-$3.12</p>
-                      <p class="text-[10px] font-mono text-rose-500/70">
-                        -0.65%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ TIMER VIEW ═══ -->
-        <section class="view" id="view-timer">
-          <div class="p-6 max-w-4xl mx-auto">
-            <div class="mb-8">
-              <h1 class="text-2xl font-bold tracking-tight text-zinc-100">
-                Deep Work Timer
-              </h1>
-              <p class="text-sm text-muted mt-0.5">
-                Measure your sessions and build consistency.
-              </p>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- Timer Card -->
-              <div
-                class="card flex flex-col items-center justify-center gap-8 py-16"
-              >
-                <!-- Ring -->
-                <div
-                  class="relative w-56 h-56 flex items-center justify-center"
-                >
-                  <svg
-                    class="absolute inset-0 w-full h-full -rotate-90"
-                    viewBox="0 0 240 240"
-                  >
-                    <circle
-                      class="text-zinc-800"
-                      stroke-width="8"
-                      stroke="currentColor"
-                      fill="none"
-                      r="105"
-                      cx="120"
-                      cy="120"
-                    />
-                    <circle
-                      class="text-zinc-100 transition-all duration-300"
-                      stroke-width="8"
-                      stroke-dasharray="659.7"
-                      stroke-dashoffset="659.7"
-                      stroke-linecap="round"
-                      stroke="currentColor"
-                      fill="none"
-                      r="105"
-                      cx="120"
-                      cy="120"
-                      id="timer-progress-ring"
-                    />
-                  </svg>
-                  <div class="text-center">
-                    <p
-                      class="text-4xl font-bold font-mono tracking-tighter text-zinc-100"
-                    >
-                      <span id="timer-hours">00</span>:<span id="timer-minutes"
-                        >00</span
-                      >:<span id="timer-seconds">00</span>
-                    </p>
-                    <p
-                      class="text-[11px] font-semibold uppercase tracking-widest text-muted mt-2"
-                      id="timer-label"
-                    >
-                      Ready
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Controls -->
-                <div class="flex items-center gap-4">
-                  <button class="btn-icon p-3" id="timer-reset-btn">
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
-                      />
-                      <polyline points="3 3 3 8 8 8" />
-                    </svg>
-                  </button>
-                  <button
-                    class="btn-primary w-16 h-16 rounded-full text-lg shadow-lg"
-                    id="timer-start-btn"
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                  </button>
-                  <button class="btn-icon p-3" id="timer-lap-btn">
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Session History -->
-              <div class="card flex flex-col">
-                <div class="flex items-center justify-between mb-5">
-                  <h3 class="font-semibold text-zinc-100">Session History</h3>
-                  <button
-                    class="btn-ghost text-xs hover:text-red-400"
-                    id="clear-sessions-btn"
-                  >
-                    Clear all
-                  </button>
-                </div>
-                <div
-                  id="session-list"
-                  class="flex-1 space-y-2 overflow-y-auto max-h-[480px] pr-1"
-                >
-                  <!-- JS injects sessions here -->
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ SETTINGS VIEW ═══ -->
-        <section class="view" id="view-settings">
-          <div class="p-6 max-w-2xl mx-auto">
-            <div class="mb-8">
-              <h1 class="text-2xl font-bold tracking-tight text-zinc-100">
-                Settings
-              </h1>
-              <p class="text-sm text-muted mt-0.5">
-                Manage your workspace preferences.
-              </p>
-            </div>
-
-            <div class="space-y-4">
-              <!-- Profile -->
-              <div class="card">
-                <h3 class="font-semibold text-zinc-100 mb-5">Profile</h3>
-                <div>
-                  <label class="label" for="settings-name">Display Name</label>
-                  <input
-                    type="text"
-                    id="settings-name"
-                    class="input"
-                    placeholder="Your name"
-                    value="User"
-                  />
-                </div>
-              </div>
-
-              <!-- Preferences -->
-              <div class="card">
-                <h3 class="font-semibold text-zinc-100 mb-5">Preferences</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label class="label" for="settings-currency"
-                      >Currency</label
-                    >
-                    <select id="settings-currency" class="select">
-                      <option value="SAR">SAR — Saudi Riyal</option>
-                      <option value="USD">USD — US Dollar</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="label" for="settings-theme">Theme</label>
-                    <select id="settings-theme" class="select">
-                      <option value="dark" selected>Dark</option>
-                      <option value="light">Light (coming soon)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Data -->
-              <div class="card">
-                <h3 class="font-semibold text-zinc-100 mb-2">Data</h3>
-                <p class="text-sm text-muted mb-5">
-                  All data lives in your browser's local storage.
-                </p>
-                <div class="flex flex-wrap gap-3">
-                  <button class="btn-secondary" id="export-data-btn">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Export Backup
-                  </button>
-                  <button
-                    class="btn-secondary text-red-400 border-red-500/20 hover:bg-red-500/10 hover:border-red-500/30"
-                    id="clear-data-btn"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <polyline points="3 6 5 6 21 6" />
-                      <path
-                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                      />
-                    </svg>
-                    Clear All Data
-                  </button>
-                </div>
-              </div>
-
-              <!-- Save -->
-              <div class="flex justify-end pt-2">
-                <button class="btn-primary px-8 py-2.5" id="save-settings-btn">
-                  Save Settings
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-      <!-- end scrollable -->
+      <!-- ═══ VIEW SHELL (Dynamic Content Injected Here) ═══ -->
+      <main id="view-shell" class="flex-1 overflow-y-auto">
+        <!-- Views from views/ are loaded here -->
+      </main>
     </div>
     <!-- end main -->
 
     <!-- ═══ MODALS ═══ -->
-
-    <!-- Task Modal -->
-    <div id="modal-task" class="modal-overlay">
-      <div class="modal-box">
-        <div
-          class="p-6 border-b border-border flex items-center justify-between"
-        >
-          <h2 class="font-semibold text-zinc-100" id="modal-title">New Task</h2>
-          <button type="button" class="btn-icon" id="modal-task-close">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-        <form id="task-form" class="p-6 space-y-4">
-          <input type="hidden" id="task-id" />
-          <div>
-            <label class="label" for="task-title-input">Task title</label>
-            <input
-              type="text"
-              id="task-title-input"
-              class="input"
-              placeholder="What needs to be done?"
-              required
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="label" for="task-priority-input">Priority</label>
-              <select id="task-priority-input" class="select">
-                <option value="low">Low</option>
-                <option value="medium" selected>Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-            <div>
-              <label class="label" for="task-date">Due date</label>
-              <input
-                type="date"
-                id="task-date"
-                class="input [color-scheme:dark]"
-              />
-            </div>
-          </div>
-          <div class="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              class="btn-secondary flex-1"
-              id="modal-task-cancel"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn-primary flex-1"
-              id="task-submit-btn"
-            >
-              Save Task
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Investment Modal -->
-    <div id="modal-investment" class="modal-overlay">
-      <div class="modal-box max-w-lg">
-        <div
-          class="p-6 border-b border-border flex items-center justify-between"
-        >
-          <h2 class="font-semibold text-zinc-100" id="investment-modal-title">
-            Record Transaction
-          </h2>
-          <button class="btn-icon modal-close" data-modal="modal-investment">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <form id="investment-form" class="p-6 space-y-6">
-          <!-- Transaction Type Toggle -->
-          <div
-            class="flex p-1 bg-zinc-900/50 border border-border rounded-xl gap-1"
-          >
-            <input type="hidden" id="investment-type" value="buy" />
-            <button
-              type="button"
-              id="btn-type-buy"
-              class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all btn-type-buy-active hover:text-zinc-300"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <polyline points="18 15 12 9 6 15" />
-              </svg>
-              BUY
-            </button>
-            <button
-              type="button"
-              id="btn-type-sell"
-              class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all text-muted hover:text-zinc-300"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-              SELL
-            </button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="col-span-2">
-              <label class="label" for="investment-symbol">Stock Symbol</label>
-              <input
-                type="text"
-                id="investment-symbol"
-                class="input uppercase font-bold tracking-widest"
-                placeholder="e.g. NVDA"
-                required
-              />
-            </div>
-            <div>
-              <label class="label" for="investment-price"
-                >Price per Share</label
-              >
-              <div class="relative">
-                <span
-                  class="absolute left-4 top-1/2 -translate-y-1/2 text-muted text-sm"
-                  >$</span
-                >
-                <input
-                  type="number"
-                  id="investment-price"
-                  class="input pl-8"
-                  placeholder="0.00"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label class="label" for="investment-quantity">Quantity</label>
-              <input
-                type="number"
-                id="investment-quantity"
-                class="input"
-                placeholder="0"
-                step="1"
-                required
-              />
-            </div>
-            <div>
-              <label class="label" for="investment-commission"
-                >Commission / Fees</label
-              >
-              <div class="relative">
-                <span
-                  class="absolute left-4 top-1/2 -translate-y-1/2 text-muted text-sm"
-                  >$</span
-                >
-                <input
-                  type="number"
-                  id="investment-commission"
-                  class="input pl-8"
-                  placeholder="0.00"
-                  step="0.01"
-                  value="0.00"
-                />
-              </div>
-            </div>
-            <div>
-              <label class="label" for="investment-date">Date</label>
-              <input
-                type="date"
-                id="investment-date"
-                class="input [color-scheme:dark]"
-              />
-            </div>
-            <div class="col-span-2">
-              <label class="label" for="investment-notes">Notes</label>
-              <textarea
-                id="investment-notes"
-                class="input min-h-[80px] resize-none py-3"
-                placeholder="Why did you take this position?"
-              ></textarea>
-            </div>
-          </div>
-
-          <!-- Calculated Summary -->
-          <div
-            class="p-4 bg-zinc-900/50 border border-border rounded-xl flex items-center justify-between"
-          >
-            <p class="text-xs font-semibold text-muted tracking-wide uppercase">
-              Transaction Total
-            </p>
-            <p
-              class="text-xl font-bold font-mono text-zinc-100"
-              id="investment-total-display"
-            >
-              $ 0.00
-            </p>
-          </div>
-
-          <div class="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              class="btn-secondary flex-1 modal-close"
-              data-modal="modal-investment"
-            >
-              Cancel
-            </button>
-            <button type="submit" class="btn-primary flex-1">
-              Save Transaction
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <div id="modal-overlay" class="modal-overlay"></div>
 
     <!-- ═══ COMMAND PALETTE ═══ -->
     <div id="command-palette-overlay" class="palette-overlay">
@@ -1492,20 +412,91 @@
       </div>
     </div>
 
-    <!-- ═══ TOASTS ═══ -->
+    <!-- ═══ AUTH OVERLAY ═══ -->
+    <div id="auth-overlay" class="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-3xl flex flex-col p-4 transition-all duration-500 opacity-0 pointer-events-none">
+      
+      <!-- Auth Top Nav -->
+      <nav class="w-full max-w-5xl mx-auto flex items-center justify-between py-6 animate-in">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-white text-zinc-950 rounded-xl flex items-center justify-center text-xl font-black shadow-lg shadow-white/5">A</div>
+          <span class="text-xl font-bold text-zinc-100 tracking-tighter italic">Aether</span>
+        </div>
+        <div class="flex items-center gap-2 bg-white/5 p-1 rounded-full border border-white/5">
+          <button id="nav-login-btn" class="px-6 py-2 rounded-full text-sm font-bold bg-white text-zinc-950 shadow-lg transition-all">Login</button>
+          <button id="nav-register-btn" class="px-6 py-2 rounded-full text-sm font-bold text-zinc-400 hover:text-zinc-100 transition-all">Register</button>
+        </div>
+      </nav>
+
+      <!-- Center Auth Content -->
+      <div class="flex-1 flex items-center justify-center">
+        <div class="w-full max-w-md animate-in" style="animation-delay: 100ms">
+          
+          <!-- Shared Form Container -->
+          <div class="card p-10 border-white/10 shadow-2xl relative overflow-hidden bg-zinc-900/60 backdrop-blur-md">
+            
+            <!-- Contextual Header -->
+            <div id="auth-context-header" class="mb-10 text-center">
+              <h2 class="text-3xl font-bold text-zinc-100 tracking-tight">Welcome Back</h2>
+              <p class="text-base text-muted mt-2">Sign in to your productivity hub</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-5">
+              <div>
+                <label class="label text-zinc-400 mb-1.5" for="login-username">Username</label>
+                <input type="text" id="login-username" class="input py-3.5 bg-zinc-950/50" placeholder="Enter username" required />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="label text-zinc-400 mb-0" for="login-password">Password</label>
+                  <a href="#" class="text-[11px] text-muted hover:text-white transition-colors">Forgot password?</a>
+                </div>
+                <input type="password" id="login-password" class="input py-3.5 bg-zinc-950/50" placeholder="••••••••" required />
+              </div>
+              <button type="submit" class="btn-primary w-full py-4 font-bold tracking-widest text-xs uppercase mt-6 shadow-xl shadow-white/5">
+                Sign in to Dashboard
+              </button>
+            </form>
+
+            <!-- Register Form (Hidden by default) -->
+            <form id="register-form" class="space-y-5 hidden">
+              <div>
+                <label class="label text-zinc-400 mb-1.5" for="register-username">Username</label>
+                <input type="text" id="register-username" class="input py-3.5 bg-zinc-950/50" placeholder="Choose a username" required />
+              </div>
+              <div>
+                <label class="label text-zinc-400 mb-1.5" for="register-password">Create Password</label>
+                <input type="password" id="register-password" class="input py-3.5 bg-zinc-950/50" placeholder="••••••••" required />
+              </div>
+              <button type="submit" class="btn-primary w-full py-4 font-bold tracking-widest text-xs uppercase mt-6 shadow-xl shadow-white/5">
+                Initialize Profile
+              </button>
+            </form>
+
+          </div>
+
+          <!-- Footer Info -->
+          <p class="text-center text-[11px] text-muted mt-8 uppercase tracking-[0.2em]">
+            Aether &copy; 2026 &bull; Secure Local-First Encryption
+          </p>
+        </div>
+      </div>
+    </div>
     <div
       id="toast-container"
       class="fixed bottom-6 right-6 z-[200] flex flex-col gap-3"
     ></div>
 
     <!-- ═══ SCRIPTS ═══ -->
-    <script src="js/utils.js"></script>
     <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/symbols.js"></script>
+    <script src="js/utils.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/app.js"></script>
     <script src="js/tasks.js"></script>
     <script src="js/timer.js"></script>
-    <script src="js/api.js"></script>
     <script src="js/investments.js"></script>
   </body>
 </html>

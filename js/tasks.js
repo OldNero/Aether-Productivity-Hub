@@ -1,52 +1,21 @@
-'use strict';
+/**
+ * Task Management logic
+ */
 
-// fetch quote from api-ninjas
-const apiKey = 'F1ZUIGi9ZMtPfKZknSizD9VgaKORsCZjNoDmds3e';
-const category = 'wisdom%2Cphilosophy%2Cinspirational%2Csuccess%2Cleadership'; // Example for the "Quotes" API
-const url = `https://api.api-ninjas.com/v2/quotes?categories=${category}`;
+async function updateQuote() {
+  const quoteText = document.getElementById('quote-text');
+  const quoteAuthor = document.getElementById('quote-author');
 
-async function getData() {
-  const cooldown = 10000; // 10 seconds in milliseconds
-  const lastFetch = localStorage.getItem('last_api_fetch');
-  const now = Date.now();
-
-  let quoteText = document.getElementById('quote-text');
-  let quoteAuthor = document.getElementById('quote-author');
-
-  // 1. Check if we are still in the cooldown period
-  if (lastFetch && now - lastFetch < cooldown) {
-    const remaining = Math.ceil((cooldown - (now - Number(lastFetch))) / 1000);
-    console.warn(`Throttled: Try again in ${remaining}s`);
-    return null;
-  }
-
-  try {
-    let response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-Api-Key': apiKey,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status} ${response.statusText}`);
-    }
-
-    let data = await response.json();
-
-    quoteText.textContent = data[0].quote;
-    quoteAuthor.textContent = data[0].author;
-
-    localStorage.setItem('last_api_fetch', Date.now());
-
-    return data;
-  } catch (error) {
-    console.error('Request failed:', error);
+  const data = await API.fetchQuote();
+  
+  if (data) {
+    quoteText.textContent = data.quote;
+    quoteAuthor.textContent = data.author;
   }
 }
 
-getData();
+// Initial quote load
+updateQuote();
 
 // create a new task
 function createTask(title, priority = 'medium') {
@@ -179,103 +148,122 @@ document.getElementById('task-list').addEventListener('click', (event) => {
 
   let id = taskDiv.dataset.id;
 
-  if (event.target.type == 'checkbox') {
-    toggletask(id);
+/**
+ * Task Management Module
+ * Exported as a global init function for the View Loader
+ */
+
+window.initTasks = function() {
+    console.log("Aether: Initializing Tasks Module...");
     renderTasks();
-  } else if (event.target.closest('.btn--danger')) {
-    deleteTask(id);
-    renderTasks();
-  }
-});
 
-document.getElementById('add-task-btn').addEventListener('click', () => {
-  let modalTask = document.getElementById('modal-task');
-  modalTask.classList.add('open');
-});
-
-// Close modal when X is clicked
-document.getElementById('modal-task-close').addEventListener('click', () => {
-  document.getElementById('modal-task').classList.remove('open');
-});
-
-// Close modal when Cancel is clicked
-document.getElementById('modal-task-cancel').addEventListener('click', () => {
-  document.getElementById('modal-task').classList.remove('open');
-});
-
-document.getElementById('task-form').addEventListener('submit', (event) => {
-  event.preventDefault();
-
-  let title = document.getElementById('task-title-input').value;
-  let priority = document.getElementById('task-priority-input').value;
-
-  if (title.trim() === '') {
-    return;
-  }
-
-  addTask(title, priority);
-
-  renderTasks();
-
-  document.getElementById('task-form').reset();
-
-  document.getElementById('modal-task').classList.remove('open');
-});
-
-document.getElementById('task-filters').addEventListener('click', (event) => {
-  if (!event.target.closest('.filter-btn')) {
-    return;
-  }
-
-  let filterType = event.target.dataset.filter;
-
-  document
-    .querySelectorAll('.filter-btn')
-    .forEach((btn) => btn.classList.remove('active'));
-
-  event.target.classList.add('active');
-
-  renderTasks(filterType);
-});
-
-function renderDashboardTasks() {
-  let dashboardContainer = document.getElementById('dashboard-task-list');
-  dashboardContainer.innerHTML = '';
-
-  let tasks = getTasks();
-
-  let recentTasks = tasks.slice(0, 3);
-
-  recentTasks.forEach((task) => {
-    let taskItemDiv = document.createElement('div');
-    taskItemDiv.classList.add('task-item');
-
-    if (task.status === 'completed') {
-      taskItemDiv.classList.add('task-item--completed');
+    const addBtn = document.getElementById('add-task-btn');
+    if (addBtn) {
+        addBtn.onclick = () => {
+            document.getElementById('modal-task').classList.add('open');
+        };
     }
 
-    taskItemDiv.dataset.id = task.id;
+    const closeBtn = document.getElementById('modal-task-close');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            document.getElementById('modal-task').classList.remove('open');
+        };
+    }
 
-    taskItemDiv.innerHTML = `
-              <label class="task-item__checkbox">
-                <input type="checkbox" ${
-                  task.status === 'completed' ? 'checked' : ''
-                } />
+    const cancelBtn = document.getElementById('modal-task-cancel');
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            document.getElementById('modal-task').classList.remove('open');
+        };
+    }
+
+    const form = document.getElementById('task-form');
+    if (form) {
+        form.onsubmit = (event) => {
+            event.preventDefault();
+            const title = document.getElementById('task-title-input').value;
+            const priority = document.getElementById('task-priority-input').value;
+            if (title.trim()) {
+                addTask(title, priority);
+                renderTasks();
+                form.reset();
+                document.getElementById('modal-task').classList.remove('open');
+            }
+        };
+    }
+
+    const filters = document.getElementById('task-filters');
+    if (filters) {
+        filters.onclick = (event) => {
+            const btn = event.target.closest('.filter-btn');
+            if (btn) {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderTasks(btn.dataset.filter);
+            }
+        };
+    }
+
+    const list = document.getElementById('task-list');
+    if (list) {
+        list.onclick = (event) => {
+            const item = event.target.closest('.task-item');
+            if (!item) return;
+            const id = item.dataset.id;
+            
+            if (event.target.type === 'checkbox') {
+                toggletask(id);
+                renderTasks();
+            } else if (event.target.closest('.btn--danger')) {
+                deleteTask(id);
+                renderTasks();
+            }
+        };
+    }
+};
+
+// Internal rendering logic (staying global for dashboard preview)
+function renderTasks(filterType = 'all') {
+    const container = document.getElementById('task-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    let tasks = getTasks();
+
+    if (filterType === 'active') {
+        tasks = tasks.filter(t => t.status === 'active');
+    } else if (filterType === 'completed') {
+        tasks = tasks.filter(t => t.status === 'completed');
+    }
+
+    tasks.forEach(task => {
+        const div = document.createElement('div');
+        div.className = `task-item ${task.status === 'completed' ? 'task-item--completed' : ''}`;
+        div.dataset.id = task.id;
+        div.innerHTML = `
+            <label class="task-item__checkbox">
+                <input type="checkbox" ${task.status === 'completed' ? 'checked' : ''} />
                 <span class="task-item__checkmark"></span>
-              </label>
-              <div class="task-item__content">
+            </label>
+            <div class="task-item__content">
                 <span class="task-item__title">${task.title}</span>
-                <span class="task-item__meta">${timeElapsed(
-                  task.createdAt
-                )}</span>
-              </div>
-              <span class="badge badge--${task.priority}">${
-      task.priority
-    }</span>
+                <span class="task-item__meta">${timeElapsed(task.createdAt)}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="badge badge--${task.priority}">${task.priority}</span>
+                <button class="btn--danger p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                    </svg>
+                </button>
+            </div>
         `;
+        container.appendChild(div);
+    });
 
-    dashboardContainer.appendChild(taskItemDiv);
-  });
+    const empty = document.getElementById('tasks-empty-state');
+    if (empty) {
+        empty.classList.toggle('hidden', tasks.length > 0);
+    }
 }
-
-renderTasks();

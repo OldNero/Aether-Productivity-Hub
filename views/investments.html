@@ -1,0 +1,420 @@
+<div class="p-6 max-w-screen-2xl mx-auto">
+  <!-- Header -->
+  <div class="mb-10 flex items-center justify-between">
+    <div>
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-100">
+        Portfolio
+      </h1>
+      <p class="text-base text-muted mt-2 max-w-2xl">
+        A real-time overview of your global asset positions.
+      </p>
+    </div>
+    <button class="btn-primary" id="add-investment-btn">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+      >
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+      Add Asset
+    </button>
+  </div>
+
+  <!-- Stats Row -->
+  <div
+    class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
+    id="portfolio-summary"
+  >
+    <div class="card flex flex-col gap-1">
+      <p class="label">Net Worth (USD)</p>
+      <p
+        class="text-2xl font-bold font-mono text-emerald-400"
+        id="portfolio-usd"
+      >
+        $ 0.00
+      </p>
+    </div>
+    <div class="card flex flex-col gap-1">
+      <p class="label">Total Gain/Loss</p>
+      <p
+        class="text-2xl font-bold font-mono text-zinc-100"
+        id="portfolio-performance"
+      >
+        $ 0.00
+      </p>
+    </div>
+    <div class="card flex flex-col gap-1">
+      <p class="label">Day Change</p>
+      <p
+        class="text-xl font-bold font-mono text-zinc-100"
+        id="portfolio-day-change"
+      >
+        0.00%
+      </p>
+    </div>
+    <div class="card flex flex-col gap-1">
+      <p class="label">Positions</p>
+      <p
+        class="text-2xl font-bold text-zinc-100"
+        id="portfolio-holdings-count"
+      >
+        0
+      </p>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Ledger -->
+    <div class="card lg:col-span-2">
+      <h3 class="font-semibold text-zinc-100 mb-4">Asset Ledger</h3>
+      <div id="investment-list" class="space-y-3">
+        <!-- JS injects investment cards here -->
+      </div>
+      <div
+        id="investments-empty-state"
+        class="hidden py-16 text-center"
+      >
+        <p class="text-sm text-muted">
+          No assets yet. Click
+          <strong class="text-zinc-400">Add Asset</strong> to start
+          tracking.
+        </p>
+      </div>
+    </div>
+
+    <!-- Market Movers -->
+    <div class="card">
+      <h3
+        class="font-semibold text-zinc-100 mb-4 flex items-center gap-2"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+          <polyline points="16 7 22 7 22 13" />
+        </svg>
+        Market Movers
+      </h3>
+      <div class="space-y-4" id="market-movers-list">
+        <!-- Gainers -->
+        <div class="flex items-center justify-between group">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <polyline points="18 15 12 9 6 15" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-zinc-200">NVDA</p>
+              <p class="text-[10px] text-muted uppercase">
+                Nvidia Corp
+              </p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-emerald-400">+$4.23</p>
+            <p class="text-[10px] font-mono text-emerald-500/70">
+              +2.15%
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between group">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <polyline points="18 15 12 9 6 15" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-zinc-200">AAPL</p>
+              <p class="text-[10px] text-muted uppercase">
+                Apple Inc
+              </p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-emerald-400">+$1.85</p>
+            <p class="text-[10px] font-mono text-emerald-500/70">
+              +0.85%
+            </p>
+          </div>
+        </div>
+
+        <!-- Losers -->
+        <div
+          class="flex items-center justify-between group pt-2 border-t border-border/50"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-zinc-200">TSLA</p>
+              <p class="text-[10px] text-muted uppercase">
+                Tesla Motors
+              </p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-rose-400">-$12.40</p>
+            <p class="text-[10px] font-mono text-rose-500/70">
+              -4.32%
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between group">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-zinc-200">NFLX</p>
+              <p class="text-[10px] text-muted uppercase">
+                Netflix Inc
+              </p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-rose-400">-$3.12</p>
+            <p class="text-[10px] font-mono text-rose-500/70">
+              -0.65%
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Investment Modal (Moved to fragment for modularity) -->
+<div id="modal-investment" class="modal-overlay">
+  <div class="modal-box max-w-lg">
+    <div
+      class="p-6 border-b border-border flex items-center justify-between"
+    >
+      <h2 class="font-semibold text-zinc-100" id="modal-investment-title">
+        Record Transaction
+      </h2>
+      <button class="btn-icon modal-close" data-modal="modal-investment">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <form id="investment-form" class="p-6 space-y-6">
+      <!-- Transaction Type Toggle -->
+      <div
+        class="flex p-1 bg-zinc-900/50 border border-border rounded-xl gap-1"
+      >
+        <input type="hidden" id="investment-type" value="buy" />
+        <button
+          type="button"
+          id="btn-type-buy"
+          class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all btn-type-buy-active hover:text-zinc-300"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+          BUY
+        </button>
+        <button
+          type="button"
+          id="btn-type-sell"
+          class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all text-muted hover:text-zinc-300"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+          SELL
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2 relative">
+          <label class="label" for="investment-symbol">Symbol</label>
+          <input
+            type="text"
+            id="investment-symbol"
+            class="input uppercase"
+            placeholder="AAPL, NVDA, TSLA..."
+            required
+            autocomplete="off"
+          />
+          <!-- Symbol Suggestions Dropdown -->
+          <div id="symbol-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-zinc-900/95 border border-border rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto hidden">
+            <!-- Suggestions injected here -->
+          </div>
+        </div>
+        <div>
+          <label class="label" for="investment-price"
+            >Price per Share</label
+          >
+          <div class="relative">
+            <span
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-muted text-sm"
+              >$</span
+            >
+            <input
+              type="number"
+              id="investment-price"
+              class="input pl-8"
+              placeholder="0.00"
+              step="0.01"
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <label class="label" for="investment-quantity">Quantity</label>
+          <input
+            type="number"
+            id="investment-quantity"
+            class="input"
+            placeholder="0"
+            step="1"
+            required
+          />
+        </div>
+        <div>
+          <label class="label" for="investment-commission"
+            >Commission / Fees</label
+          >
+          <div class="relative">
+            <span
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-muted text-sm"
+              >$</span
+            >
+            <input
+              type="number"
+              id="investment-commission"
+              class="input pl-8"
+              placeholder="0.00"
+              step="0.01"
+              value="0.00"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="label" for="investment-date">Date</label>
+          <input
+            type="date"
+            id="investment-date"
+            class="input [color-scheme:dark]"
+          />
+        </div>
+        <div class="col-span-2">
+          <label class="label" for="investment-notes">Notes</label>
+          <textarea
+            id="investment-notes"
+            class="input min-h-[80px] resize-none py-3"
+            placeholder="Why did you take this position?"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Calculated Summary -->
+      <div
+        class="p-4 bg-zinc-900/50 border border-border rounded-xl flex items-center justify-between"
+      >
+        <p class="text-xs font-semibold text-muted tracking-wide uppercase">
+          Transaction Total
+        </p>
+        <p
+          class="text-xl font-bold font-mono text-zinc-100"
+          id="investment-total-display"
+        >
+          $ 0.00
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3 pt-2">
+        <button
+          type="button"
+          class="btn-secondary flex-1 modal-close"
+          data-modal="modal-investment"
+        >
+          Cancel
+        </button>
+        <button type="submit" class="btn-primary flex-1">
+          Save Transaction
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
