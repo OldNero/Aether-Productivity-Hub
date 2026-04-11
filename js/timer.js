@@ -94,8 +94,9 @@ function resetTimer() {
 }
 
 // Wire up the DOM Buttons
-const startBtn = document.getElementById('timer-start-btn');
-const resetBtn = document.getElementById('timer-reset-btn');
+let startBtn = document.getElementById('timer-start-btn');
+let resetBtn = document.getElementById('timer-reset-btn');
+let lapBtn = document.getElementById('timer-lap-btn');
 
 startBtn.addEventListener('click', () => {
   // If it's running, pause it. If it's paused, start it!
@@ -113,6 +114,21 @@ startBtn.addEventListener('click', () => {
 
   // Only let the user click Reset if there is actually time on the clock!
   resetBtn.disabled = false;
+});
+
+lapBtn.addEventListener("click", () => {
+  if (elapsed === 0) return;
+
+  let sessions = getSessions();
+
+  let newSession = {
+    duration: elapsed,
+    timestamp: Date.now(),
+  };
+
+  Store.set('sessions', [...sessions, newSession]);
+
+  renderSessions();
 });
 
 resetBtn.addEventListener('click', () => {
