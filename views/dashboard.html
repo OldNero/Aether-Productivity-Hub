@@ -13,6 +13,42 @@
     class="grid grid-cols-4 gap-4"
     style="grid-auto-rows: minmax(160px, auto)"
   >
+    <!-- Greeting Card -->
+    <div
+      class="card col-span-4 md:col-span-1 flex flex-col justify-between bg-gradient-to-br from-zinc-900 to-zinc-950 border-white/5 relative overflow-hidden"
+    >
+      <div
+        class="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"
+        id="greeting-card-glow"
+      ></div>
+      <div
+        class="p-2 w-9 h-9 rounded-lg bg-zinc-800/60 flex items-center justify-center text-amber-400 mb-2 relative z-10"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          id="greeting-card-icon"
+        >
+          <circle cx="12" cy="12" r="5" />
+          <path
+            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+          />
+        </svg>
+      </div>
+      <div class="relative z-10">
+        <p class="label" id="dash-greeting-text">Good morning</p>
+        <p
+          class="text-2xl font-bold tracking-tight text-zinc-100 truncate"
+          id="dash-user-name"
+        >
+          Guest
+        </p>
+      </div>
+    </div>
     <!-- Quote Card — col-span-3 -->
     <div
       id="quote-card"
@@ -44,9 +80,7 @@
     </div>
 
     <!-- Total Tasks Stat -->
-    <div
-      class="card col-span-4 md:col-span-1 flex flex-col justify-between"
-    >
+    <div class="card col-span-4 md:col-span-1 flex flex-col justify-between">
       <div
         class="p-2 w-9 h-9 rounded-lg bg-zinc-800/60 flex items-center justify-center text-zinc-400"
       >
@@ -59,9 +93,7 @@
           stroke-width="2"
         >
           <path d="M9 11l3 3L22 4" />
-          <path
-            d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
-          />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
       </div>
       <div>
@@ -76,9 +108,7 @@
     </div>
 
     <!-- Active Tasks -->
-    <div
-      class="card col-span-2 md:col-span-1 flex flex-col justify-between"
-    >
+    <div class="card col-span-2 md:col-span-1 flex flex-col justify-between">
       <div
         class="p-2 w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400"
       >
@@ -106,9 +136,7 @@
     </div>
 
     <!-- Completed Tasks -->
-    <div
-      class="card col-span-2 md:col-span-1 flex flex-col justify-between"
-    >
+    <div class="card col-span-2 md:col-span-1 flex flex-col justify-between">
       <div
         class="p-2 w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400"
       >
@@ -136,9 +164,7 @@
     </div>
 
     <!-- Portfolio Value -->
-    <div
-      class="card col-span-2 md:col-span-1 flex flex-col justify-between"
-    >
+    <div class="card col-span-2 md:col-span-1 flex flex-col justify-between">
       <div
         class="p-2 w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400"
       >
@@ -151,9 +177,7 @@
           stroke-width="2"
         >
           <line x1="12" y1="1" x2="12" y2="23" />
-          <path
-            d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
-          />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
         </svg>
       </div>
       <div>
@@ -195,9 +219,7 @@
       class="card col-span-4 md:col-span-2 row-span-2 flex flex-col items-center justify-center text-center gap-6"
       style="min-height: 340px"
     >
-      <div
-        class="relative w-44 h-44 flex items-center justify-center"
-      >
+      <div class="relative w-44 h-44 flex items-center justify-center">
         <svg
           class="absolute inset-0 w-full h-full -rotate-90"
           viewBox="0 0 112 112"
@@ -232,54 +254,13 @@
         >
       </div>
       <div>
-        <p class="label mb-3" id="dash-timer-status">
-          Ready to focus
-        </p>
+        <p class="label mb-3" id="dash-timer-status">Ready to focus</p>
         <button class="btn-primary px-8 py-2.5" id="dash-timer-start">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5 3 19 12 5 21 5 3" />
           </svg>
           Start Session
         </button>
-      </div>
-    </div>
-
-    <!-- Exchange Rate -->
-    <div
-      class="card col-span-2 md:col-span-1 flex flex-col justify-between"
-    >
-      <div class="flex items-center justify-between">
-        <p class="label">Exchange Rate</p>
-        <button id="refresh-rate-btn" class="btn-ghost p-1">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-          >
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path
-              d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-            />
-          </svg>
-        </button>
-      </div>
-      <div>
-        <p
-          class="text-2xl font-bold font-mono text-zinc-100"
-          id="exchange-usd-val"
-        >
-          0.2667
-        </p>
-        <p class="text-[11px] text-muted mt-1">USD per SAR</p>
       </div>
     </div>
   </div>

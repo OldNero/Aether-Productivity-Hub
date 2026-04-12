@@ -37,10 +37,12 @@ const ViewManager = {
       this.viewShell.innerHTML = html;
       this.currentView = viewId;
 
-      // 3. Update Sidebar Activity
+      // 3. Update Sidebar & Header Activity
       document.querySelectorAll('.sidebar__link').forEach((l) => {
         l.classList.toggle('active', l.dataset.view === viewId);
       });
+      const headerTitle = document.getElementById('header-view-title');
+      if (headerTitle) headerTitle.textContent = viewId.charAt(0).toUpperCase() + viewId.slice(1);
 
       // 4. Initialize View-Specific Logic
       this.bootstrapView(viewId);
@@ -59,6 +61,23 @@ const ViewManager = {
         if (typeof initDashboardTimer === 'function')
           window.initDashboardTimer();
         if (typeof updateSummary === 'function') updateSummary();
+        
+        // Update Greeting Card
+        const greetingText = typeof getGreeting === 'function' ? getGreeting() : "Welcome";
+        const dashGreeting = document.getElementById('dash-greeting-text');
+        if (dashGreeting) dashGreeting.textContent = greetingText;
+
+        // Dynamic Styling for Card Glow based on time
+        const hour = new Date().getHours();
+        const glow = document.getElementById('greeting-card-glow');
+        if (glow) {
+            if (hour >= 5 && hour < 17) {
+                glow.className = "absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2";
+            } else {
+                glow.className = "absolute top-0 right-0 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2";
+            }
+        }
+        
         // Update profile UI to show real username
         if (
           typeof Auth !== 'undefined' &&

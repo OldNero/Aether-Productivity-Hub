@@ -122,7 +122,7 @@ function renderTasks(filterType = 'all') {
 
   tasks.forEach((task) => {
     const div = document.createElement('div');
-    div.className = `task-item ${task.status === 'completed' ? 'task-item--completed' : ''}`;
+    div.className = `task-item group ${task.status === 'completed' ? 'task-item--completed' : ''}`;
     div.dataset.id = task.id;
     div.innerHTML = `
       <label class="task-item__checkbox">
@@ -133,12 +133,11 @@ function renderTasks(filterType = 'all') {
         <span class="task-item__title">${task.title}</span>
         <span class="task-item__meta">${timeElapsed(task.createdAt)}</span>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="badge badge--${task.priority}">${task.priority}</span>
-        <button class="btn-icon text-muted hover:text-red-400 delete-task-btn" title="Delete task">
+      <span class="badge badge--${task.priority} mr-3">${task.priority}</span>
+      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button class="p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors delete-task-btn" title="Delete task">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-          </svg>
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         </button>
       </div>
     `;

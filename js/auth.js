@@ -92,6 +92,10 @@ const Auth = {
         sidebarDisplay.textContent = user.username;
         sidebarDisplay.classList.remove('italic');
     }
+
+    // Dashboard Greeting Card
+    const dashName = document.getElementById("dash-user-name");
+    if (dashName) dashName.textContent = user.username;
     
     // Avatar
     const avatar = document.getElementById("sidebar-user-avatar");

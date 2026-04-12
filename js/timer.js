@@ -173,8 +173,19 @@ function getSessions() { return Store.get('sessions') || []; }
 function saveSession() {
     if (elapsed === 0) return;
     const sessions = getSessions();
-    sessions.push({ duration: elapsed, timestamp: Date.now() });
+    sessions.push({ 
+        id: generateId(), // Added unique identity
+        duration: elapsed, 
+        timestamp: Date.now() 
+    });
     Store.set('sessions', sessions);
+}
+
+function deleteSession(id) {
+    let sessions = getSessions();
+    sessions = sessions.filter(s => s.id !== id);
+    Store.set('sessions', sessions);
+    renderSessions();
 }
 
 function renderSessions() {
@@ -183,20 +194,44 @@ function renderSessions() {
     const sessions = getSessions();
     list.innerHTML = '';
     
-    sessions.slice().reverse().forEach((s, idx) => {
+    // Sort logic: latest first
+    const sorted = [...sessions].reverse();
+
+    sorted.forEach((s, idx) => {
         const h = Math.floor(s.duration / 3600000);
         const m = Math.floor((s.duration % 3600000) / 60000);
         const sec = Math.floor((s.duration % 60000) / 1000);
         
         const div = document.createElement('div');
-        div.className = 'card flex items-center justify-between p-3';
+        div.className = 'card flex items-center justify-between p-3 group transition-all hover:border-white/10';
         div.innerHTML = `
-            <div>
-                <p class="text-xs font-semibold text-zinc-300">Session #${sessions.length - idx}</p>
-                <p class="text-[10px] text-muted">${timeElapsed(s.timestamp)}</p>
+            <div class="flex items-center gap-4">
+                <div class="w-8 h-8 rounded-lg bg-zinc-800/60 flex items-center justify-center text-zinc-400 text-[10px] font-mono">
+                    #${sessions.length - idx}
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-zinc-300">Deep Work Session</p>
+                    <p class="text-[10px] text-muted">${timeElapsed(s.timestamp)}</p>
+                </div>
             </div>
-            <p class="font-mono text-zinc-100">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}</p>
+        <div class="flex items-center gap-4">
+             <p class="font-mono text-zinc-100">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}</p>
+             <button class="p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 transition-opacity" data-id="${s.id}" title="Delete session">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+             </button>
+        </div>
         `;
+        
+        const deleteBtn = div.querySelector('button');
+        if (deleteBtn) {
+            deleteBtn.onclick = () => {
+                if (confirm('Delete this session?')) {
+                    deleteSession(s.id || sessions.length - 1 - idx); // Fallback for session without IDs
+                }
+            };
+        }
+        
         list.appendChild(div);
     });
 }

@@ -79,9 +79,3 @@ const API = (function() {
     fetchStockPrice
   };
 })();
-
-  return {
-    fetchQuote,
-    fetchStockPrice
-  };
-})();
