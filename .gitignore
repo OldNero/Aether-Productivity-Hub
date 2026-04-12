@@ -10,3 +10,7 @@ Thumbs.db
 # Node/NPM 
 package.json
 package-lock.json
+
+# AI Metadata
+GEMINI.md
+.gemini/
