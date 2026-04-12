@@ -14,3 +14,6 @@ package-lock.json
 # AI Metadata
 GEMINI.md
 .gemini/
+
+# Secrets & Config
+js/config.js

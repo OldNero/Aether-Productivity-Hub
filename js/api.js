@@ -4,8 +4,8 @@
  */
 
 const API = (function() {
-  const NINJA_API_KEY = 'F1ZUIGi9ZMtPfKZknSizD9VgaKORsCZjNoDmds3e';
-  const ALPHA_VANTAGE_KEY = 'QM642MJ8XZK68PR4';
+  const NINJA_API_KEY = CONFIG.keys.NINJA_API_KEY;
+  const ALPHA_VANTAGE_KEY = CONFIG.keys.ALPHA_VANTAGE_KEY;
 
   /**
    * Fetch a random quote

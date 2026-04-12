@@ -184,24 +184,24 @@ function initAuthEventListeners() {
   navLoginBtn?.addEventListener('click', () => showAuthTab('login'));
   navRegisterBtn?.addEventListener('click', () => showAuthTab('register'));
 
-  loginForm?.addEventListener('submit', (e) => {
+  loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = document.getElementById('login-username').value;
     const pass = document.getElementById('login-password').value;
     try {
-      Auth.login(user, pass);
+      await Auth.login(user, pass);
       window.location.reload();
     } catch (err) {
       alert(err.message);
     }
   });
 
-  registerForm?.addEventListener('submit', (e) => {
+  registerForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = document.getElementById('register-username').value;
     const pass = document.getElementById('register-password').value;
     try {
-      Auth.register(user, pass);
+      await Auth.register(user, pass);
       window.location.reload();
     } catch (err) {
       alert(err.message);
