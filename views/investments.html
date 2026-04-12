@@ -83,8 +83,23 @@
   <!-- Main Grid -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <!-- Ledger -->
-    <div class="card lg:col-span-2">
-      <h3 class="font-semibold text-zinc-100 mb-4">Asset Ledger</h3>
+    <div class="card lg:col-span-2 relative overflow-hidden group">
+      <!-- Background Chart -->
+      <div class="absolute inset-0 pointer-events-none opacity-30 group-hover:opacity-40 transition-opacity duration-500" id="portfolio-chart-container">
+        <svg id="portfolio-chart-svg" class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#10b981" stop-opacity="0.5" />
+              <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <path id="chart-area" d="" fill="url(#chart-grad)" />
+          <path id="chart-line" d="" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+
+      <div class="relative z-10">
+        <h3 class="font-semibold text-zinc-100 mb-4">Asset Ledger</h3>
       <div id="investment-list" class="space-y-3">
         <!-- JS injects investment cards here -->
       </div>
@@ -94,7 +109,8 @@
           <strong class="text-zinc-400">Add Asset</strong> to start tracking.
         </p>
       </div>
-    </div>
+     </div> <!-- End of relative z-10 -->
+    </div> <!-- End of Asset Ledger Card -->
 
     <!-- Market Movers -->
     <div class="card">
@@ -113,115 +129,57 @@
         Market Movers
       </h3>
       <div class="space-y-4" id="market-movers-list">
-        <!-- Gainers -->
+        <!-- Skeletons (replaced by JS) -->
         <div class="flex items-center justify-between group">
           <div class="flex items-center gap-3">
-            <div
-              class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <polyline points="18 15 12 9 6 15" />
-              </svg>
-            </div>
+            <div class="skeleton skeleton-circle"></div>
             <div>
-              <p class="text-sm font-bold text-zinc-200">NVDA</p>
-              <p class="text-[10px] text-muted uppercase">Nvidia Corp</p>
+              <div class="skeleton w-12 h-4 mb-1"></div>
+              <div class="skeleton w-20 h-2"></div>
             </div>
           </div>
           <div class="text-right">
-            <p class="text-sm font-bold text-emerald-400">+$4.23</p>
-            <p class="text-[10px] font-mono text-emerald-500/70">+2.15%</p>
+            <div class="skeleton w-10 h-4 mb-1 ml-auto"></div>
+            <div class="skeleton w-14 h-2 ml-auto"></div>
           </div>
         </div>
-
         <div class="flex items-center justify-between group">
           <div class="flex items-center gap-3">
-            <div
-              class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <polyline points="18 15 12 9 6 15" />
-              </svg>
-            </div>
+            <div class="skeleton skeleton-circle"></div>
             <div>
-              <p class="text-sm font-bold text-zinc-200">AAPL</p>
-              <p class="text-[10px] text-muted uppercase">Apple Inc</p>
+              <div class="skeleton w-10 h-4 mb-1"></div>
+              <div class="skeleton w-16 h-2"></div>
             </div>
           </div>
           <div class="text-right">
-            <p class="text-sm font-bold text-emerald-400">+$1.85</p>
-            <p class="text-[10px] font-mono text-emerald-500/70">+0.85%</p>
+            <div class="skeleton w-12 h-4 mb-1 ml-auto"></div>
+            <div class="skeleton w-10 h-2 ml-auto"></div>
           </div>
         </div>
-
-        <!-- Losers -->
-        <div
-          class="flex items-center justify-between group pt-2 border-t border-border/50"
-        >
-          <div class="flex items-center gap-3">
-            <div
-              class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-sm font-bold text-zinc-200">TSLA</p>
-              <p class="text-[10px] text-muted uppercase">Tesla Motors</p>
-            </div>
-          </div>
-          <div class="text-right">
-            <p class="text-sm font-bold text-rose-400">-$12.40</p>
-            <p class="text-[10px] font-mono text-rose-500/70">-4.32%</p>
-          </div>
-        </div>
-
         <div class="flex items-center justify-between group">
           <div class="flex items-center gap-3">
-            <div
-              class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
+            <div class="skeleton skeleton-circle"></div>
             <div>
-              <p class="text-sm font-bold text-zinc-200">NFLX</p>
-              <p class="text-[10px] text-muted uppercase">Netflix Inc</p>
+              <div class="skeleton w-14 h-4 mb-1"></div>
+              <div class="skeleton w-12 h-2"></div>
             </div>
           </div>
           <div class="text-right">
-            <p class="text-sm font-bold text-rose-400">-$3.12</p>
-            <p class="text-[10px] font-mono text-rose-500/70">-0.65%</p>
+            <div class="skeleton w-8 h-4 mb-1 ml-auto"></div>
+            <div class="skeleton w-16 h-2 ml-auto"></div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between group">
+          <div class="flex items-center gap-3">
+            <div class="skeleton skeleton-circle"></div>
+            <div>
+              <div class="skeleton w-11 h-4 mb-1"></div>
+              <div class="skeleton w-18 h-2"></div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="skeleton w-11 h-4 mb-1 ml-auto"></div>
+            <div class="skeleton w-12 h-2 ml-auto"></div>
           </div>
         </div>
       </div>

@@ -8,10 +8,18 @@ async function updateQuote() {
   const quoteAuthor = document.getElementById('quote-author');
   if (!quoteText || !quoteAuthor) return;
 
-  const data = await API.fetchQuote();
+  // Enforce a minimum 1s skeleton presence for visual intent
+  const [data] = await Promise.all([
+    API.fetchQuote(),
+    new Promise(resolve => setTimeout(resolve, 1000))
+  ]);
+
   if (data) {
-    quoteText.textContent = data.quote;
-    quoteAuthor.textContent = data.author;
+    quoteText.innerHTML = `"${data.quote}"`;
+    quoteAuthor.innerHTML = `— ${data.author}`;
+  } else {
+    quoteText.innerHTML = `"The only way to do great work is to love what you do."`;
+    quoteAuthor.innerHTML = `— Steve Jobs`;
   }
 }
 

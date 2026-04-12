@@ -284,4 +284,16 @@ body {
   #sidebar-user-avatar {
     @apply shadow-lg border border-white/10 ring-4 ring-white/5;
   }
+
+  /* Skeleton Loaders */
+  .skeleton {
+    @apply bg-zinc-800/50 animate-pulse rounded;
+    min-height: 1em;
+    display: block;
+  }
+  .skeleton-text { @apply w-full h-4; }
+  .skeleton-header { @apply w-3/4 h-6 mb-2; }
+  .skeleton-author { @apply w-24 h-3 mt-4; }
+  .skeleton-circle { @apply w-8 h-8 rounded-lg; }
+  .skeleton-stat { @apply w-32 h-10; }
 }
