@@ -35,11 +35,11 @@ const API = (function() {
    */
   async function fetchStockPrice(ticker) {
     const cacheKey = `stock_cache_${ticker}`;
-    const cached = Store.get(cacheKey);
+    const cached = await Store.get(cacheKey);
     const now = Date.now();
 
-    // 1. Return cached data if it's less than 60 minutes old
-    if (cached && (now - cached.timestamp < 3600000)) {
+    // 1. Return cached data if it's less than 12 hours old (conserves 25/day limit)
+    if (cached && (now - cached.timestamp < 43200000)) {
       console.log(`Using cached data for ${ticker}`);
       return cached.data;
     }
@@ -61,11 +61,11 @@ const API = (function() {
         ticker: quote['01. symbol'],
         price: parseFloat(quote['05. price']),
         change: parseFloat(quote['09. change']),
-        changesPercentage: parseFloat(quote['10. change percent'].replace('%', ''))
+        changesPercentage: parseFloat(quote['10. change percent']?.replace('%', '') || 0)
       };
 
       // Update cache
-      Store.set(cacheKey, { data: standardizedData, timestamp: now });
+      await Store.set(cacheKey, { data: standardizedData, timestamp: now });
       
       return standardizedData;
     } catch (error) {
@@ -74,8 +74,56 @@ const API = (function() {
     }
   }
 
+  /**
+   * Fetch top gainers & losers in ONE call (vs 10 individual calls)
+   * Cached for 24 hours since this data changes once per trading day
+   */
+  async function fetchMarketMovers() {
+    const cacheKey = 'market_movers_cache';
+    const cached = await Store.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && (now - cached.timestamp < 86400000)) {
+      console.log('Using cached Market Movers data');
+      return cached.data;
+    }
+
+    try {
+      const response = await fetch(
+        `https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey=${ALPHA_VANTAGE_KEY}`
+      );
+      if (!response.ok) throw new Error(`Market Movers fetch failed: ${response.status}`);
+
+      const resData = await response.json();
+
+      if (!resData.top_gainers || !resData.top_losers) {
+        if (cached) return cached.data;
+        return null;
+      }
+
+      const normalize = (item) => ({
+        ticker: item.ticker,
+        price: parseFloat(item.price),
+        change: parseFloat(item.change_amount),
+        changesPercentage: parseFloat(item.change_percentage?.replace('%', '') || 0)
+      });
+
+      const moversData = {
+        gainers: resData.top_gainers.slice(0, 5).map(normalize),
+        losers: resData.top_losers.slice(0, 5).map(normalize)
+      };
+
+      await Store.set(cacheKey, { data: moversData, timestamp: now });
+      return moversData;
+    } catch (error) {
+      console.error('API Error (Market Movers):', error);
+      return cached ? cached.data : null;
+    }
+  }
+
   return {
     fetchQuote,
-    fetchStockPrice
+    fetchStockPrice,
+    fetchMarketMovers
   };
 })();

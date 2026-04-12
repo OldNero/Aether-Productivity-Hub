@@ -4,97 +4,101 @@
  * Authentication & Profile System
  */
 const Auth = {
-  isAuthenticated() {
-    return !!localStorage.getItem("currentUser");
+  /**
+   * Check if a Supabase session exists
+   */
+  async isAuthenticated() {
+    if (!supabase) return !!localStorage.getItem("currentUser");
+    const { data: { session } } = await supabase.auth.getSession();
+    return !!session;
   },
 
-  getCurrentUser() {
-    try {
-      return JSON.parse(localStorage.getItem("currentUser"));
-    } catch {
-      return null;
+  async getCurrentUser() {
+    if (!supabase) {
+        try { return JSON.parse(localStorage.getItem("currentUser")); } catch { return null; }
     }
+    const { data: { user } } = await supabase.auth.getUser();
+    return user ? { id: user.id, username: user.user_metadata.username || user.email.split('@')[0] } : null;
   },
 
   /**
-   * Securely hash a password using SHA-256
+   * Transitionary helper to use usernames as Supabase identifiers
    */
-  async hashPassword(password) {
-    const msgUint8 = new TextEncoder().encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  _toEmail(username) {
+    return `${username.toLowerCase()}@aether.local`;
   },
 
   async register(username, password) {
-    const users = Store.get("users") || [];
-    if (users.find((u) => u.username.toLowerCase() === username.toLowerCase())) {
-      throw new Error("Username already taken");
+    if (!supabase) {
+        throw new Error("Supabase not configured. Please add keys to config.js.");
     }
 
-    const hashedPassword = await this.hashPassword(password);
+    const { data, error } = await supabase.auth.signUp({
+      email: this._toEmail(username),
+      password: password,
+      options: {
+        data: { username: username }
+      }
+    });
 
-    const newUser = {
-      id: "user_" + Date.now(),
-      username,
-      password: hashedPassword, // Store SHA-256 hash
-      createdAt: Date.now(),
-    };
-
-    users.push(newUser);
-    Store.set("users", users);
-    return await this.login(username, password);
+    if (error) throw error;
+    return data.user;
   },
 
   async login(username, password) {
-    const users = Store.get("users") || [];
-    const hashedPassword = await this.hashPassword(password);
-    
-    // Find user by username
-    const userIndex = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
-    if (userIndex === -1) throw new Error("Invalid username or password");
-    
-    const user = users[userIndex];
-
-    // 1. Check if hashed passwords match (Current Standard)
-    if (user.password === hashedPassword) {
-      return this._createSession(user);
+    if (!supabase) {
+        // Legacy fallback for development before keys are added
+        const users = await Store.get("users") || [];
+        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (user && user.password === password) { // Simple check for legacy
+            const session = { id: user.id, username: user.username };
+            localStorage.setItem("currentUser", JSON.stringify(session));
+            return session;
+        }
+        throw new Error("Legacy login failed. Please configure Supabase.");
     }
 
-    // 2. LAZY MIGRATION: Check if plain-text password matches (Legacy)
-    if (user.password === password) {
-      console.warn("Aether: Legacy plain-text password detected. Migrating to SHA-256...");
-      user.password = hashedPassword;
-      users[userIndex] = user;
-      Store.set("users", users); // Commit the hashed version
-      return this._createSession(user);
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: this._toEmail(username),
+      password: password,
+    });
 
-    throw new Error("Invalid username or password");
-  },
-
-  _createSession(user) {
+    if (error) throw error;
+    
     const session = {
-      id: user.id,
-      username: user.username,
+      id: data.user.id,
+      username: data.user.user_metadata.username || username,
     };
     localStorage.setItem("currentUser", JSON.stringify(session));
     return session;
   },
 
-  logout() {
-    localStorage.removeItem("currentUser");
-    window.location.href = window.location.pathname; // Hard redirect to clear all JS state
+  async signInWithGoogle() {
+    if (!supabase) throw new Error("Supabase not configured.");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) throw error;
   },
 
-  init() {
-    if (!this.isAuthenticated()) {
+  async logout() {
+    if (supabase) await supabase.auth.signOut();
+    localStorage.removeItem("currentUser");
+    window.location.href = window.location.pathname;
+  },
+
+  async init() {
+    const isAuth = await this.isAuthenticated();
+    if (!isAuth) {
       document.body.classList.add("auth-required");
       this.showAuthOverlay();
     } else {
       document.body.classList.remove("auth-required");
       document.getElementById("auth-overlay")?.classList.remove("open");
-      this.updateProfileUI();
+      await this.updateProfileUI();
     }
   },
 
@@ -107,8 +111,8 @@ const Auth = {
     }
   },
 
-  updateProfileUI() {
-    const user = this.getCurrentUser();
+  async updateProfileUI() {
+    const user = await this.getCurrentUser();
     if (!user) return;
 
     // Header Display

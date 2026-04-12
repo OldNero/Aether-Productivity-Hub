@@ -26,7 +26,7 @@ async function updateQuote() {
 // create a new task object
 function createTask(title, priority = 'medium') {
   return {
-    id: generateId(),
+    id: Store.generateUUID(),
     title: title,
     priority: priority,
     status: 'active',
@@ -34,39 +34,39 @@ function createTask(title, priority = 'medium') {
   };
 }
 
-function getTasks() {
-  return Store.get('tasks') || [];
+async function getTasks() {
+  return await Store.get('tasks') || [];
 }
 
-function saveTasks(taskArray) {
-  Store.set('tasks', taskArray);
+async function saveTasks(taskArray) {
+  await Store.set('tasks', taskArray);
 }
 
-function addTask(title, priority) {
-  const tasks = getTasks();
+async function addTask(title, priority) {
+  const tasks = await getTasks();
   const newTask = createTask(title, priority);
   tasks.push(newTask);
-  saveTasks(tasks);
+  await saveTasks(tasks);
   return newTask;
 }
 
-function deleteTask(id) {
-  let tasks = getTasks();
+async function deleteTask(id) {
+  let tasks = await getTasks();
   tasks = tasks.filter((task) => task.id !== id);
-  saveTasks(tasks);
+  await saveTasks(tasks);
 }
 
-function toggleTask(id) {
-  const tasks = getTasks();
+async function toggleTask(id) {
+  const tasks = await getTasks();
   const task = tasks.find((t) => t.id === id);
   if (task) {
     task.status = task.status === 'active' ? 'completed' : 'active';
-    saveTasks(tasks);
+    await saveTasks(tasks);
   }
 }
 
-function updateTaskStatus() {
-  const tasks = getTasks();
+async function updateTaskStatus() {
+  const tasks = await getTasks();
   const totalEl = document.getElementById('stat-total-val');
   const activeEl = document.getElementById('stat-active-val');
   const completedEl = document.getElementById('stat-completed-val');
@@ -76,16 +76,17 @@ function updateTaskStatus() {
   if (completedEl) completedEl.textContent = tasks.filter(t => t.status === 'completed').length;
 }
 
-function renderDashboardTasks() {
+async function renderDashboardTasks() {
     const container = document.getElementById('dashboard-task-list');
     
     // Always update counts even if list rendering fails
-    updateTaskStatus();
+    await updateTaskStatus();
 
     if (!container) return;
 
     container.innerHTML = '';
-    const tasks = getTasks().filter(t => t.status === 'active').slice(0, 5);
+    const allTasks = await getTasks();
+    const tasks = allTasks.filter(t => t.status === 'active').slice(0, 5);
 
     if (tasks.length === 0) {
         container.innerHTML = '<p class="text-xs text-muted py-4">No active tasks. Time to focus?</p>';
@@ -104,17 +105,17 @@ function renderDashboardTasks() {
     });
 }
 
-function renderTasks(filterType = 'all') {
+async function renderTasks(filterType = 'all') {
   const container = document.getElementById('task-list');
   
   // Always update stats if they exist (on dashboard or focus list)
-  updateTaskStatus();
-  renderDashboardTasks();
+  await updateTaskStatus();
+  await renderDashboardTasks();
 
   if (!container) return;
   
   container.innerHTML = '';
-  let tasks = getTasks();
+  let tasks = await getTasks();
 
   if (filterType === 'active') {
     tasks = tasks.filter((t) => t.status === 'active');
@@ -156,10 +157,10 @@ function renderTasks(filterType = 'all') {
 /**
  * Main Initialization for Task View
  */
-window.initTasks = function() {
+window.initTasks = async function() {
     console.log("Aether: Initializing Focus List...");
-    renderTasks();
-    updateQuote();
+    await renderTasks();
+    await updateQuote();
 
     const taskModal = document.getElementById('modal-task');
     const taskForm = document.getElementById('task-form');
@@ -184,14 +185,14 @@ window.initTasks = function() {
 
     // Form Submission
     if (taskForm) {
-        taskForm.onsubmit = (e) => {
+        taskForm.onsubmit = async (e) => {
             e.preventDefault();
             const title = document.getElementById('task-title-input').value;
             const priority = document.getElementById('task-priority-input').value;
             
             if (title.trim()) {
-                addTask(title, priority);
-                renderTasks();
+                await addTask(title, priority);
+                await renderTasks();
                 taskForm.reset();
                 taskModal?.classList.remove('open');
             }
@@ -200,29 +201,29 @@ window.initTasks = function() {
 
     // Filtering
     if (filters) {
-        filters.onclick = (e) => {
+        filters.onclick = async (e) => {
             const btn = e.target.closest('.filter-btn');
             if (btn) {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                renderTasks(btn.dataset.filter);
+                await renderTasks(btn.dataset.filter);
             }
         };
     }
 
     // Task Interactions (Delete / Toggle)
     if (taskList) {
-        taskList.onclick = (e) => {
+        taskList.onclick = async (e) => {
             const taskItem = e.target.closest('.task-item');
             if (!taskItem) return;
             const id = taskItem.dataset.id;
 
             if (e.target.type === 'checkbox') {
-                toggleTask(id);
-                renderTasks();
+                await toggleTask(id);
+                await renderTasks();
             } else if (e.target.closest('.delete-task-btn')) {
-                deleteTask(id);
-                renderTasks();
+                await deleteTask(id);
+                await renderTasks();
             }
         };
     }

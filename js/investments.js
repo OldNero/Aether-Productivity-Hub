@@ -109,9 +109,9 @@ window.initInvestments = async function () {
     };
   }
 
-  investmentForm.onsubmit = (e) => {
+  investmentForm.onsubmit = async (e) => {
     e.preventDefault();
-    let investments = Store.get('investments') || [];
+    let investments = await Store.get('investments') || [];
     const transactionData = {
       type: investmentTypeArr.value,
       symbol: symbolInput.value.trim().toUpperCase(),
@@ -131,14 +131,14 @@ window.initInvestments = async function () {
           : inv
       );
     } else {
-      investments.unshift({ ...transactionData, id: Date.now() });
+      investments.unshift({ ...transactionData, id: Store.generateUUID() });
     }
-    Store.set('investments', investments);
+    await Store.set('investments', investments);
     investmentForm.reset();
     investmentModal.classList.remove('open');
     editingInvestmentId = null;
-    renderInvestments();
-    updateSummary();
+    await renderInvestments();
+    await updateSummary();
   };
 
   let debounceTimeout;
@@ -166,8 +166,8 @@ window.initInvestments = async function () {
     };
   }
 
-  renderInvestments();
-  updateSummary();
+  await renderInvestments();
+  await updateSummary();
   
   console.log('Aether: Starting Market Movers fetch (1s minimum)...');
   await initMarketMovers();
@@ -182,7 +182,7 @@ function startLivePriceUpdates() {
 }
 
 async function updateLivePrices() {
-  const investments = Store.get('investments') || [];
+  const investments = await Store.get('investments') || [];
   const symbols = [...new Set(investments.map((i) => i.symbol))];
   for (const symbol of symbols) {
     if (!marketDataCache[symbol]) {
@@ -190,15 +190,15 @@ async function updateLivePrices() {
       if (data) marketDataCache[symbol] = data;
     }
   }
-  renderInvestments();
-  updateSummary();
+  await renderInvestments();
+  await updateSummary();
 }
 
-function renderInvestments() {
+async function renderInvestments() {
   const investmentList = document.getElementById('investment-list');
   const emptyState = document.getElementById('investments-empty-state');
   if (!investmentList) return;
-  const investments = Store.get('investments') || [];
+  const investments = await Store.get('investments') || [];
   investmentList.innerHTML = '';
   if (investments.length === 0) {
     if (emptyState) emptyState.classList.remove('hidden');
@@ -219,17 +219,17 @@ function renderInvestments() {
       const div = document.createElement('div');
       div.innerHTML = card.trim();
       const finalCard = div.firstChild;
-      finalCard.querySelector('.btn-edit-inv').onclick = () =>
-        editTransaction(asset.id);
-      finalCard.querySelector('.btn-delete-inv').onclick = () =>
-        deleteTransaction(asset.id);
+      finalCard.querySelector('.btn-edit-inv').onclick = async () =>
+        await editTransaction(asset.id);
+      finalCard.querySelector('.btn-delete-inv').onclick = async () =>
+        await deleteTransaction(asset.id);
       investmentList.appendChild(finalCard);
     });
   }
 }
 
-function updateSummary() {
-  const investments = Store.get('investments') || [];
+async function updateSummary() {
+  const investments = await Store.get('investments') || [];
 
   const positions = {};
   let realizedGain = 0;
@@ -315,19 +315,19 @@ function updateSummary() {
   }
 
   // Trigger Background Chart Rendering
-  renderPortfolioChart();
+  await renderPortfolioChart();
 }
 
 /**
  * Renders a Linear Area Chart in the background of the Asset Ledger
  */
-function renderPortfolioChart() {
+async function renderPortfolioChart() {
   const svg = document.getElementById('portfolio-chart-svg');
   const pathLine = document.getElementById('chart-line');
   const pathArea = document.getElementById('chart-area');
   if (!svg || !pathLine || !pathArea) return;
 
-  const investments = Store.get('investments') || [];
+  const investments = await Store.get('investments') || [];
   if (investments.length < 2) {
     pathLine.setAttribute('d', '');
     pathArea.setAttribute('d', '');
@@ -388,18 +388,18 @@ function renderPortfolioChart() {
   if (gradStop1) gradStop1.setAttribute('stop-color', color);
 }
 
-function deleteTransaction(id) {
+async function deleteTransaction(id) {
   if (confirm('Are you sure you want to delete this transaction?')) {
-    let invs = Store.get('investments') || [];
+    let invs = await Store.get('investments') || [];
     invs = invs.filter((i) => i.id !== id);
-    Store.set('investments', invs);
-    renderInvestments();
-    updateSummary();
+    await Store.set('investments', invs);
+    await renderInvestments();
+    await updateSummary();
   }
 }
 
-function editTransaction(id) {
-  const invs = Store.get('investments') || [];
+async function editTransaction(id) {
+  const invs = await Store.get('investments') || [];
   const asset = invs.find((i) => i.id === id);
   if (!asset) return;
   editingInvestmentId = id;
@@ -418,42 +418,33 @@ async function initMarketMovers() {
   const list = document.getElementById('market-movers-list');
   if (!list) return;
 
-  const allTickers = [
-    'NVDA', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 
-    'META', 'TSLA', 'NFLX', 'AMD', 'INTC'
-  ];
-  
-  const data = [];
-  // Use Promise.all to fetch in parallel and enforce a minimum 1s skeleton time
-  const [results] = await Promise.all([
-    Promise.all(allTickers.map(t => API.fetchStockPrice(t))),
+  // Use batch endpoint: 1 API call instead of 10
+  const [movers] = await Promise.all([
+    API.fetchMarketMovers(),
     new Promise(resolve => setTimeout(resolve, 1000))
   ]);
-  
-  results.forEach(res => {
-    if (res) data.push(res);
+
+  if (!movers) {
+    list.innerHTML = '<p class="text-xs text-muted py-4 text-center">Market data unavailable. Check back tomorrow when API resets.</p>';
+    return;
+  }
+
+  const { gainers, losers } = movers;
+
+  // Clear skeletons and inject real data
+  list.innerHTML = '';
+
+  gainers.forEach((stock) => {
+    list.insertAdjacentHTML(
+      'beforeend',
+      `<div class="flex items-center justify-between group animate-in"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></div><div><p class="text-sm font-bold text-zinc-200">${stock.ticker}</p><p class="text-[10px] text-muted uppercase">Stock</p></div></div><div class="text-right"><p class="text-sm font-bold text-emerald-400">+$${stock.change.toFixed(2)}</p><p class="text-[10px] font-mono text-emerald-500/70">+${stock.changesPercentage.toFixed(2)}%</p></div></div>`
+    );
   });
 
-  if (data.length > 0) {
-    data.sort((a, b) => b.changesPercentage - a.changesPercentage);
-    const gainers = data.slice(0, 5);
-    const losers = data.slice(-5).reverse();
-    
-    // Clear skeletons and inject real data
-    list.innerHTML = '';
-    
-    gainers.forEach((stock) => {
-      list.insertAdjacentHTML(
-        'beforeend',
-        `<div class="flex items-center justify-between group animate-in"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></div><div><p class="text-sm font-bold text-zinc-200">${stock.ticker}</p><p class="text-[10px] text-muted uppercase">Stock</p></div></div><div class="text-right"><p class="text-sm font-bold text-emerald-400">+$${stock.change.toFixed(2)}</p><p class="text-[10px] font-mono text-emerald-500/70">+${stock.changesPercentage.toFixed(2)}%</p></div></div>`
-      );
-    });
-
-    losers.forEach((stock) => {
-      list.insertAdjacentHTML(
-        'beforeend',
-        `<div class="flex items-center justify-between group pt-2 border-t border-border/50 animate-in"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div><div><p class="text-sm font-bold text-zinc-200">${stock.ticker}</p><p class="text-[10px] text-muted uppercase">Stock</p></div></div><div class="text-right"><p class="text-sm font-bold text-rose-400">-$${Math.abs(stock.change).toFixed(2)}</p><p class="text-[10px] font-mono text-rose-500/70">${stock.changesPercentage.toFixed(2)}%</p></div></div>`
-      );
-    });
-  }
+  losers.forEach((stock) => {
+    list.insertAdjacentHTML(
+      'beforeend',
+      `<div class="flex items-center justify-between group pt-2 border-t border-border/50 animate-in"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div><div><p class="text-sm font-bold text-zinc-200">${stock.ticker}</p><p class="text-[10px] text-muted uppercase">Stock</p></div></div><div class="text-right"><p class="text-sm font-bold text-rose-400">-$${Math.abs(stock.change).toFixed(2)}</p><p class="text-[10px] font-mono text-rose-500/70">${stock.changesPercentage.toFixed(2)}%</p></div></div>`
+    );
+  });
 }

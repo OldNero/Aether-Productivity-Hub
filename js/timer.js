@@ -81,10 +81,10 @@ function updateAllTimerDisplays() {
 /**
  * Main View Initialization
  */
-window.initTimer = function() {
+window.initTimer = async function() {
     console.log("Aether: Initializing Timer Module...");
     updateAllTimerDisplays();
-    renderSessions();
+    await renderSessions();
 
     const startBtn = document.getElementById('timer-start-btn');
     const resetBtn = document.getElementById('timer-reset-btn');
@@ -109,28 +109,28 @@ window.initTimer = function() {
 
     if (resetBtn) {
         resetBtn.disabled = !isRunning && elapsed === 0;
-        resetBtn.onclick = () => {
-            resetTimerCore();
+        resetBtn.onclick = async () => {
+            await resetTimerCore();
             updateIcon();
             resetBtn.disabled = true;
-            renderSessions();
+            await renderSessions();
         };
     }
 
     if (lapBtn) {
-        lapBtn.onclick = () => {
+        lapBtn.onclick = async () => {
             if (elapsed === 0) return;
-            saveSession();
-            renderSessions();
+            await saveSession();
+            await renderSessions();
         };
     }
 
     const clearBtn = document.getElementById('clear-sessions-btn');
     if (clearBtn) {
-        clearBtn.onclick = () => {
+        clearBtn.onclick = async () => {
             if (confirm('Clear all session history?')) {
-                Store.set('sessions', []);
-                renderSessions();
+                await Store.set('sessions', []);
+                await renderSessions();
             }
         };
     }
@@ -168,30 +168,30 @@ window.initDashboardTimer = function() {
 };
 
 // Utilities
-function getSessions() { return Store.get('sessions') || []; }
+async function getSessions() { return await Store.get('sessions') || []; }
 
-function saveSession() {
+async function saveSession() {
     if (elapsed === 0) return;
-    const sessions = getSessions();
+    const sessions = await getSessions();
     sessions.push({ 
         id: generateId(), // Added unique identity
         duration: elapsed, 
         timestamp: Date.now() 
     });
-    Store.set('sessions', sessions);
+    await Store.set('sessions', sessions);
 }
 
-function deleteSession(id) {
-    let sessions = getSessions();
+async function deleteSession(id) {
+    let sessions = await getSessions();
     sessions = sessions.filter(s => s.id !== id);
-    Store.set('sessions', sessions);
-    renderSessions();
+    await Store.set('sessions', sessions);
+    await renderSessions();
 }
 
-function renderSessions() {
+async function renderSessions() {
     const list = document.getElementById('session-list');
     if (!list) return;
-    const sessions = getSessions();
+    const sessions = await getSessions();
     list.innerHTML = '';
     
     // Sort logic: latest first
@@ -225,9 +225,9 @@ function renderSessions() {
         
         const deleteBtn = div.querySelector('button');
         if (deleteBtn) {
-            deleteBtn.onclick = () => {
+            deleteBtn.onclick = async () => {
                 if (confirm('Delete this session?')) {
-                    deleteSession(s.id || sessions.length - 1 - idx); // Fallback for session without IDs
+                    await deleteSession(s.id || sessions.length - 1 - idx); // Fallback for session without IDs
                 }
             };
         }

@@ -107,12 +107,12 @@ const ViewManager = {
   },
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('Aether Hub: Booting security layer...');
 
-  // 1. Initialize Auth
+  // 1. Initialize Auth (Now Async)
   initAuthEventListeners();
-  Auth.init();
+  await Auth.init();
 
   // 2. Initialize UI & View Layer
   ViewManager.init();
@@ -120,7 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.loadProfileSettings();
 
   // 3. Load Initial View
-  if (Auth.isAuthenticated()) {
+  const isAuth = await Auth.isAuthenticated();
+  if (isAuth) {
     ViewManager.loadView('dashboard');
   }
 });
@@ -183,6 +184,15 @@ function initAuthEventListeners() {
 
   navLoginBtn?.addEventListener('click', () => showAuthTab('login'));
   navRegisterBtn?.addEventListener('click', () => showAuthTab('register'));
+
+  // Social Login Triggers
+  document.getElementById('google-login-btn')?.addEventListener('click', async () => {
+    try {
+        await Auth.signInWithGoogle();
+    } catch (err) {
+        alert("Google Login failed: " + err.message);
+    }
+  });
 
   loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();

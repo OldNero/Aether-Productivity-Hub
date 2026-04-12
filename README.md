@@ -1,106 +1,149 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-In%20Progress-blueviolet?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Pure-HTML%20%7C%20CSS%20%7C%20JS-f7df1e?style=for-the-badge&logo=javascript&logoColor=black" />
-  <img src="https://img.shields.io/badge/Purpose-Learning-10b981?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Status-Cloud%20Ready-10b981?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Stack-HTML%20%7C%20CSS%20%7C%20JS%20%7C%20Supabase-6366f1?style=for-the-badge&logo=supabase&logoColor=white" />
+  <img src="https://img.shields.io/badge/Auth-Google%20OAuth-4285F4?style=for-the-badge&logo=google&logoColor=white" />
+  <img src="https://img.shields.io/badge/Purpose-Learning-f7df1e?style=for-the-badge" />
 </p>
 
 <h1 align="center">✦ Aether Productivity Hub</h1>
 
 <p align="center">
-  <em>A centralized productivity dashboard built from scratch with vanilla JavaScript.</em><br/>
-  <em>No frameworks. No libraries. Just the raw language.</em>
+  <em>A cloud-backed productivity dashboard built from scratch with vanilla JavaScript.</em><br/>
+  <em>No frontend frameworks. Powered by Supabase + Google OAuth.</em>
 </p>
 
 ---
 
-> 📚 **This is a personal learning project.** Built to master core JavaScript concepts through hands-on practice — from DOM manipulation to async APIs. Not intended for production use.
+> 📚 **This is a personal learning project.** Built to master core JavaScript concepts through hands-on practice — from DOM manipulation to async cloud APIs. Evolved from a local-only prototype to a fully cloud-synchronized application.
 
 ---
 
 ## 🖼️ Preview
 
-| Dashboard | Timer |
-|-----------|-------|
-| Dark glassmorphism UI with stat cards, task list, exchange rate widget | Circular SVG progress ring with session history |
+| Dashboard | Portfolio |
+|-----------|-----------|
+| Dark glassmorphism UI with stat cards, task list, timer widget | Real-time stock tracking with market movers & area chart |
 
 ## ✨ Features
 
-### 📋 Task Management
+### 🔐 Authentication
+- **Google OAuth** — One-tap social login via Supabase Auth
+- **Email/Password** — Traditional registration with Supabase identity
+- Row Level Security (RLS) — strict per-user data isolation
+
+### 📋 Task Management (Focus List)
 - Create, edit, delete, and complete tasks
 - Priority levels — 🔴 High · 🟡 Medium · 🟢 Low
 - Filter by status (All / Active / Completed)
-- Search tasks in real-time
+- Cloud-synced via Supabase with UUID identifiers
 
-### 💰 Investment Tracker
-- Track ETF holdings in SAR (🇸🇦) and USD (🇺🇸)
-- Live currency conversion with exchange rate API
-- Portfolio summary with total value calculations
+### 💰 Investment Tracker (Portfolio)
+- Track stock positions with buy/sell transactions
+- Live market prices via Alpha Vantage API (12-hour cache)
+- Market Movers — top gainers & losers via batch endpoint (1 API call/day)
+- Portfolio area chart with real-time gain/loss calculations
+- Commission tracking and realized/unrealized P&L
 
-### ⏱️ Coding Timer
+### ⏱️ Focus Timer
 - Stopwatch with start / pause / reset controls
 - Circular SVG progress ring animation
-- Session history log with timestamps
+- Session history persisted to cloud
 
 ### ⚡ Extras
 - 🔍 Command palette (`Ctrl + K`) for quick navigation
-- 💬 Quote of the Day via public API
-- 💾 LocalStorage persistence — data survives refresh
-- 🌙 Dark glassmorphism design with indigo-violet accents
+- 💬 Quote of the Day via API Ninjas
+- ☁️ Hybrid storage — Supabase when authenticated, localStorage fallback
+- 🌙 Dark glassmorphism design with Geist typography
 - 📱 Fully responsive (desktop → tablet → mobile)
-- ⌨️ Keyboard shortcuts throughout
+- 💀 Skeleton loading states for async data
 
 ## 🧠 JS Concepts Practiced
-
-This project is structured in phases to progressively cover JavaScript fundamentals:
 
 | Phase | Concepts | Where It Shows Up |
 |-------|----------|-------------------|
 | **1 — Core Engine** | `let`/`const`, objects, arrays, arrow functions, destructuring, spread operator, template literals | `store.js`, `settings.js`, `utils.js` |
 | **2 — Interface** | `createElement`, event listeners, event delegation, form validation, keyboard events, modals | `app.js`, `tasks.js`, `investments.js` |
-| **3 — Advanced** | `fetch`, `async/await`, Promises, `try/catch`, `localStorage`, `.map()`, `.filter()`, `.reduce()` | `api.js`, `store.js`, `tasks.js` |
+| **3 — Async & APIs** | `fetch`, `async/await`, Promises, `Promise.all`, `try/catch`, REST APIs, caching strategies | `api.js`, `store.js`, `tasks.js` |
+| **4 — Cloud & Auth** | Supabase SDK, OAuth 2.0, JWT sessions, Row Level Security, UUID generation, hybrid persistence | `store.js`, `auth.js`, `config.js` |
 
 ## 🏗️ Project Structure
 
 ```
 Aether-Productivity-Hub/
-├── index.html          # Single-page app shell (5 views, 3 modals, command palette)
+├── index.html            # SPA shell (auth overlay, sidebar, modals)
 ├── css/
-│   └── styles.css      # Full design system (~900 lines, 60+ CSS variables)
+│   ├── input.css         # Tailwind source + custom components
+│   └── output.css        # Compiled CSS
 ├── js/
-│   ├── app.js          # Bootstrap, router, keyboard shortcuts
-│   ├── store.js        # LocalStorage persistence layer
-│   ├── settings.js     # User preferences (name, currency, theme)
-│   ├── tasks.js        # Task CRUD + filtering + rendering
-│   ├── investments.js  # ETF tracker + currency conversion
-│   ├── timer.js        # Stopwatch + session history
-│   ├── api.js          # Fetch wrappers (currency rate + quotes)
-│   └── utils.js        # Shared helpers (time, currency, IDs)
+│   ├── app.js            # Bootstrap, view router, auth listeners
+│   ├── store.js          # Hybrid storage (Supabase ↔ localStorage)
+│   ├── auth.js           # Supabase Auth + Google OAuth
+│   ├── config.js         # API keys & Supabase credentials (git-ignored)
+│   ├── tasks.js          # Task CRUD + cloud sync
+│   ├── investments.js    # Portfolio tracker + market movers
+│   ├── timer.js          # Focus timer + session persistence
+│   ├── api.js            # Alpha Vantage & API Ninjas wrappers
+│   ├── settings.js       # User preferences (cloud-backed)
+│   └── utils.js          # Shared helpers (time, currency, IDs)
+├── views/
+│   ├── dashboard.html    # Bento grid with stats & widgets
+│   ├── tasks.html        # Focus list view
+│   ├── investments.html  # Portfolio & market movers
+│   ├── timer.html        # Deep work timer
+│   └── settings.html     # Profile & preferences
 └── README.md
 ```
 
 ## 🚀 Getting Started
+
+### Prerequisites
+- A free [Supabase](https://supabase.com) project
+- A free [Alpha Vantage](https://www.alphavantage.co/support/#api-key) API key
+- A free [API Ninjas](https://api-ninjas.com) API key
+
+### Setup
 
 ```bash
 # Clone the repo
 git clone https://github.com/OldNero/Aether-Productivity-Hub.git
 cd Aether-Productivity-Hub
 
-# Serve locally (any static server works)
+# Install dependencies (Tailwind CLI)
+npm install
+
+# Create your config file
+cp js/config.example.js js/config.js
+# Then fill in your API keys and Supabase credentials
+
+# Serve locally
 npx http-server . -p 8080
 
-# Open in browser
-# → http://localhost:8080
+# Open → http://localhost:8080
 ```
+
+### Supabase Setup
+1. Create a new Supabase project
+2. Run the SQL from `supabase_setup.sql` in the SQL Editor
+3. Enable **Google** under Authentication → Providers
+4. Set Site URL to `http://localhost:8080` under Authentication → URL Configuration
 
 ## 🎨 Design System
 
 | Token | Value |
 |-------|-------|
-| Background | `#090b10` → `#0f1219` → `#161b27` |
-| Accent | `#6366f1` (indigo) → `#8b5cf6` (violet) |
-| Cards | Glassmorphism — `backdrop-filter: blur(12px)` |
-| Font (UI) | [Inter](https://fonts.google.com/specimen/Inter) |
-| Font (Mono) | [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono) |
+| Background | `#09090b` (zinc-950) |
+| Cards | `#111113` with `border-border` |
+| Accent | White primary buttons on dark |
+| Font (UI) | [Geist](https://vercel.com/font) |
+| Font (Mono) | [Geist Mono](https://vercel.com/font) |
+| Style | Glassmorphism + subtle gradients |
+
+## 🔒 Security
+
+- API keys stored in `js/config.js` (excluded via `.gitignore`)
+- Supabase Row Level Security ensures data isolation per user
+- Auth sessions managed by Supabase JWT — no manual token handling
+- All database operations require authenticated session
 
 ---
 
