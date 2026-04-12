@@ -1,23 +1,21 @@
 /**
- * Task Management logic
+ * Task Management Module
  */
+"use strict";
 
 async function updateQuote() {
   const quoteText = document.getElementById('quote-text');
   const quoteAuthor = document.getElementById('quote-author');
+  if (!quoteText || !quoteAuthor) return;
 
   const data = await API.fetchQuote();
-  
   if (data) {
     quoteText.textContent = data.quote;
     quoteAuthor.textContent = data.author;
   }
 }
 
-// Initial quote load
-updateQuote();
-
-// create a new task
+// create a new task object
 function createTask(title, priority = 'medium') {
   return {
     id: generateId(),
@@ -28,233 +26,175 @@ function createTask(title, priority = 'medium') {
   };
 }
 
-// retrieve tasks
 function getTasks() {
   return Store.get('tasks') || [];
 }
 
-// save the task
-function saveTask(taskArray) {
+function saveTasks(taskArray) {
   Store.set('tasks', taskArray);
 }
 
-// add a task
 function addTask(title, priority) {
-  let tasks = getTasks();
-
-  let newTask = createTask(title, priority);
-
+  const tasks = getTasks();
+  const newTask = createTask(title, priority);
   tasks.push(newTask);
-
-  saveTask(tasks);
-
+  saveTasks(tasks);
   return newTask;
 }
 
-// deleting a task
 function deleteTask(id) {
   let tasks = getTasks();
-
-  // filter non-matching ids and save it to localStorage
   tasks = tasks.filter((task) => task.id !== id);
-  saveTask(tasks);
+  saveTasks(tasks);
 }
 
-// toggle task state
-function toggletask(id) {
-  let tasks = getTasks();
-
-  let myTask = tasks.find((task) => task.id === id);
-
-  if (myTask.status === 'active') {
-    myTask.status = 'completed';
-  } else {
-    myTask.status = 'active';
+function toggleTask(id) {
+  const tasks = getTasks();
+  const task = tasks.find((t) => t.id === id);
+  if (task) {
+    task.status = task.status === 'active' ? 'completed' : 'active';
+    saveTasks(tasks);
   }
-
-  saveTask(tasks);
-}
-
-function renderTasks(filterType = 'all') {
-  let container = document.getElementById('task-list');
-  container.innerHTML = '';
-
-  let tasks = getTasks();
-
-  if (filterType === 'active') {
-    tasks = tasks.filter((task) => task.status === 'active');
-  } else if (filterType === 'completed') {
-    tasks = tasks.filter((task) => task.status === 'completed');
-  }
-
-  tasks.forEach((task) => {
-    let div = document.createElement('div');
-    div.className = 'task-item';
-
-    if (task.status === 'completed') {
-      div.classList.add('task-item--completed');
-    }
-
-    div.dataset.id = task.id;
-    div.innerHTML = `
-              <label class="task-item__checkbox">
-                <input type="checkbox" ${
-                  task.status === 'completed' ? 'checked' : ''
-                } />
-                <span class="task-item__checkmark"></span>
-              </label>
-              <div class="task-item__content">
-                <span class="task-item__title">${task.title}</span>
-                <span class="task-item__meta">${timeElapsed(
-                  task.createdAt
-                )}</span>
-              </div>
-              <span class="badge badge--${task.priority}">${
-      task.priority
-    }</span>
-              <div class="task-item__actions">
-                <button class="btn btn--ghost btn--icon btn--sm btn--danger" aria-label="Delete task">
-                  ❌ <!-- Using an emoji for now to keep it simple! -->
-                </button>
-              </div>
-           `;
-
-    container.appendChild(div);
-  });
-
-  updateTaskStatus();
-  renderDashboardTasks();
 }
 
 function updateTaskStatus() {
-  let tasks = getTasks();
+  const tasks = getTasks();
+  const totalEl = document.getElementById('stat-total-val');
+  const activeEl = document.getElementById('stat-active-val');
+  const completedEl = document.getElementById('stat-completed-val');
 
-  let total = tasks.length;
-
-  let activeCount = tasks.filter((task) => task.status === 'active').length;
-  let completedCount = tasks.filter(
-    (task) => task.status === 'completed'
-  ).length;
-
-  document.getElementById('stat-total-val').textContent = total;
-  document.getElementById('stat-active-val').textContent = activeCount;
-  document.getElementById('stat-completed-val').textContent = completedCount;
+  if (totalEl) totalEl.textContent = tasks.length;
+  if (activeEl) activeEl.textContent = tasks.filter(t => t.status === 'active').length;
+  if (completedEl) completedEl.textContent = tasks.filter(t => t.status === 'completed').length;
 }
 
-document.getElementById('task-list').addEventListener('click', (event) => {
-  let taskDiv = event.target.closest('.task-item');
+function renderDashboardTasks() {
+    const container = document.getElementById('dashboard-task-list');
+    
+    // Always update counts even if list rendering fails
+    updateTaskStatus();
 
-  if (taskDiv == null) return;
+    if (!container) return;
 
-  let id = taskDiv.dataset.id;
+    container.innerHTML = '';
+    const tasks = getTasks().filter(t => t.status === 'active').slice(0, 5);
+
+    if (tasks.length === 0) {
+        container.innerHTML = '<p class="text-xs text-muted py-4">No active tasks. Time to focus?</p>';
+        return;
+    }
+
+    tasks.forEach(task => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3 py-2 border-b border-white/5 last:border-0';
+        div.innerHTML = `
+            <div class="w-1.5 h-1.5 rounded-full bg-zinc-500"></div>
+            <span class="text-sm text-zinc-300 flex-1 truncate">${task.title}</span>
+            <span class="badge badge--${task.priority} scale-90Origin">${task.priority}</span>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function renderTasks(filterType = 'all') {
+  const container = document.getElementById('task-list');
+  
+  // Always update stats if they exist (on dashboard or focus list)
+  updateTaskStatus();
+  renderDashboardTasks();
+
+  if (!container) return;
+  
+  container.innerHTML = '';
+  let tasks = getTasks();
+
+  if (filterType === 'active') {
+    tasks = tasks.filter((t) => t.status === 'active');
+  } else if (filterType === 'completed') {
+    tasks = tasks.filter((t) => t.status === 'completed');
+  }
+
+  if (tasks.length === 0) {
+    document.getElementById('tasks-empty-state')?.classList.remove('hidden');
+  } else {
+    document.getElementById('tasks-empty-state')?.classList.add('hidden');
+  }
+
+  tasks.forEach((task) => {
+    const div = document.createElement('div');
+    div.className = `task-item ${task.status === 'completed' ? 'task-item--completed' : ''}`;
+    div.dataset.id = task.id;
+    div.innerHTML = `
+      <label class="task-item__checkbox">
+        <input type="checkbox" ${task.status === 'completed' ? 'checked' : ''} />
+        <span class="task-item__checkmark"></span>
+      </label>
+      <div class="task-item__content">
+        <span class="task-item__title">${task.title}</span>
+        <span class="task-item__meta">${timeElapsed(task.createdAt)}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="badge badge--${task.priority}">${task.priority}</span>
+        <button class="btn-icon text-muted hover:text-red-400 delete-task-btn" title="Delete task">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+          </svg>
+        </button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
 
 /**
- * Task Management Module
- * Exported as a global init function for the View Loader
+ * Main Initialization for Task View
  */
-
 window.initTasks = function() {
-     console.log("Aether: Initializing Tasks Module...");
-     renderTasks();
+    console.log("Aether: Initializing Focus List...");
+    renderTasks();
+    updateQuote();
 
-     const addBtn = document.getElementById('add-task-btn');
-     if (addBtn) {
-         addBtn.onclick = () => {
-             document.getElementById('modal-task').classList.add('open');
-         };
-     }
-
-     const closeBtn = document.getElementById('modal-task-close');
-     if (closeBtn) {
-         closeBtn.onclick = () => {
-             document.getElementById('modal-task').classList.remove('open');
-         };
-     }
-
-     const cancelBtn = document.getElementById('modal-task-cancel');
-     if (cancelBtn) {
-         cancelBtn.onclick = () => {
-             document.getElementById('modal-task').classList.remove('open');
-         };
-     }
-
-     const form = document.getElementById('task-form');
-     if (form) {
-         form.onsubmit = (event) => {
-             event.preventDefault();
-             const title = document.getElementById('task-title-input').value;
-             const priority = document.getElementById('task-priority-input').value;
-             if (title.trim()) {
-                 addTask(title, priority);
-                 renderTasks();
-                 form.reset();
-                 document.getElementById('modal-task').classList.remove('open');
-             }
-         };
-     }
-
-     const filters = document.getElementById('task-filters');
-     if (filters) {
-         filters.onclick = (event) => {
-             const btn = event.target.closest('.filter-btn');
-             if (btn) {
-                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                 btn.classList.add('active');
-                 renderTasks(btn.dataset.filter);
-             }
-         };
-     }
-
-     const list = document.getElementById('task-list');
-     if (list) {
-         list.onclick = (event) => {
-             const item = event.target.closest('.task-item');
-             if (!item) return;
-             const id = item.dataset.id;
-             
-             if (event.target.type === 'checkbox') {
-                 toggletask(id);
-                 renderTasks();
-             } else if (event.target.closest('.btn--danger')) {
-                 deleteTask(id);
-                 renderTasks();
-             }
-          };
-      }
-
+    const taskModal = document.getElementById('modal-task');
+    const taskForm = document.getElementById('task-form');
+    const addBtn = document.getElementById('add-task-btn');
     const closeBtn = document.getElementById('modal-task-close');
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            document.getElementById('modal-task').classList.remove('open');
-        };
-    }
-
     const cancelBtn = document.getElementById('modal-task-cancel');
-    if (cancelBtn) {
-        cancelBtn.onclick = () => {
-            document.getElementById('modal-task').classList.remove('open');
-        };
+    const taskList = document.getElementById('task-list');
+    const filters = document.getElementById('task-filters');
+
+    // Modal Controls
+    if (addBtn && taskModal) {
+        addBtn.onclick = () => taskModal.classList.add('open');
     }
 
-    const form = document.getElementById('task-form');
-    if (form) {
-        form.onsubmit = (event) => {
-            event.preventDefault();
+    if (closeBtn && taskModal) {
+        closeBtn.onclick = () => taskModal.classList.remove('open');
+    }
+
+    if (cancelBtn && taskModal) {
+        cancelBtn.onclick = () => taskModal.classList.remove('open');
+    }
+
+    // Form Submission
+    if (taskForm) {
+        taskForm.onsubmit = (e) => {
+            e.preventDefault();
             const title = document.getElementById('task-title-input').value;
             const priority = document.getElementById('task-priority-input').value;
+            
             if (title.trim()) {
                 addTask(title, priority);
                 renderTasks();
-                form.reset();
-                document.getElementById('modal-task').classList.remove('open');
+                taskForm.reset();
+                taskModal?.classList.remove('open');
             }
         };
     }
 
-    const filters = document.getElementById('task-filters');
+    // Filtering
     if (filters) {
-        filters.onclick = (event) => {
-            const btn = event.target.closest('.filter-btn');
+        filters.onclick = (e) => {
+            const btn = e.target.closest('.filter-btn');
             if (btn) {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
@@ -263,53 +203,20 @@ window.initTasks = function() {
         };
     }
 
-    const list = document.getElementById('task-list');
-    if (list) {
-        list.onclick = (event) => {
-            const item = event.target.closest('.task-item');
-            if (!item) return;
-            const id = item.dataset.id;
-            
-            if (event.target.type === 'checkbox') {
-                toggletask(id);
+    // Task Interactions (Delete / Toggle)
+    if (taskList) {
+        taskList.onclick = (e) => {
+            const taskItem = e.target.closest('.task-item');
+            if (!taskItem) return;
+            const id = taskItem.dataset.id;
+
+            if (e.target.type === 'checkbox') {
+                toggleTask(id);
                 renderTasks();
-            } else if (event.target.closest('.btn--danger')) {
+            } else if (e.target.closest('.delete-task-btn')) {
                 deleteTask(id);
                 renderTasks();
             }
         };
     }
 };
-
-
-
-    tasks.forEach(task => {
-        const div = document.createElement('div');
-        div.className = `task-item ${task.status === 'completed' ? 'task-item--completed' : ''}`;
-        div.dataset.id = task.id;
-        div.innerHTML = `
-            <label class="task-item__checkbox">
-                <input type="checkbox" ${task.status === 'completed' ? 'checked' : ''} />
-                <span class="task-item__checkmark"></span>
-            </label>
-            <div class="task-item__content">
-                <span class="task-item__title">${task.title}</span>
-                <span class="task-item__meta">${timeElapsed(task.createdAt)}</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="badge badge--${task.priority}">${task.priority}</span>
-                 <button class="btn--danger p-1.5 opacity-0 transition-opacity">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
-        container.appendChild(div);
-    });
-
-    const empty = document.getElementById('tasks-empty-state');
-    if (empty) {
-        empty.classList.toggle('hidden', tasks.length > 0);
-    }
-}
