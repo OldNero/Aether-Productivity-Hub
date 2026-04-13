@@ -67,6 +67,18 @@ const ViewManager = {
         const dashGreeting = document.getElementById('dash-greeting-text');
         if (dashGreeting) dashGreeting.textContent = greetingText;
 
+        // Aether Intelligence: Update Pulse Insight
+        (async () => {
+            const [t, s, h] = await Promise.all([
+                Store.get('tasks'),
+                Store.get('sessions'),
+                Store.get('habits')
+            ]);
+            const insight = typeof generateAetherInsight === 'function' ? generateAetherInsight(t || [], s || [], h) : "Consistency is key.";
+            const insightEl = document.getElementById('dash-insight-text');
+            if (insightEl) insightEl.textContent = insight;
+        })();
+
         // Dynamic Styling for Card Glow based on time
         const hour = new Date().getHours();
         const glow = document.getElementById('greeting-card-glow');
@@ -119,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 2. Initialize UI & View Layer
   ViewManager.init();
+  if (typeof Palette !== 'undefined') Palette.init();
   if (typeof window.loadProfileSettings === 'function')
     window.loadProfileSettings();
 
@@ -135,7 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.key === 'k') {
     e.preventDefault();
-    console.log('Command Palette: Opening...');
+    if (typeof Palette !== 'undefined') Palette.toggle();
   }
 
   // Close modals with ESC key

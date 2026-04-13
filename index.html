@@ -525,11 +525,44 @@
     <script src="js/symbols.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/settings.js"></script>
-    <script src="js/app.js"></script>
     <script src="js/tasks.js"></script>
     <script src="js/timer.js"></script>
     <script src="js/investments.js"></script>
     <script src="js/habits.js"></script>
+    <script src="js/palette.js"></script>
+    <script src="js/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+    <!-- ═══ COMMAND PALETTE ═══ -->
+    <div id="command-palette" class="modal-overlay">
+      <div class="modal-box max-w-2xl bg-zinc-900/40 backdrop-blur-2xl border-white/10 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.7)] p-0">
+        <div class="flex items-center gap-4 px-6 py-5 border-b border-white/5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-zinc-400">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input 
+            type="text" 
+            id="palette-input" 
+            class="bg-transparent border-none outline-none flex-1 text-lg text-zinc-100 placeholder:text-zinc-500 font-medium" 
+            placeholder="Type a command or search..."
+            autocomplete="off"
+          >
+          <div class="px-2 py-1 rounded bg-zinc-800 border border-white/5 text-[10px] text-zinc-400 font-mono uppercase tracking-widest hidden md:block">Esc</div>
+        </div>
+        <div id="palette-results" class="max-h-[60vh] overflow-y-auto p-2">
+          <!-- Commands injected here -->
+          <div class="p-4 text-center text-zinc-500 text-sm">
+            Try <span class="text-zinc-300 font-mono">goto:</span> or <span class="text-zinc-300 font-mono">task:</span>
+          </div>
+        </div>
+        <div class="px-6 py-3 border-t border-white/5 bg-white/[0.02] flex items-center justify-between text-[10px] text-muted uppercase tracking-widest">
+            <div class="flex gap-4">
+                <span><span class="text-zinc-400 font-bold">↑↓</span> Navigate</span>
+                <span><span class="text-zinc-400 font-bold">↵</span> Select</span>
+            </div>
+            <div>Aether Intelligence V1.0</div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

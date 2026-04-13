@@ -537,3 +537,46 @@ body {
   border-radius: 4px 4px 0 0;
   transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ─── Command Palette & Global Search ─── */
+.palette-result-item {
+  @apply flex items-center justify-between p-3 rounded-xl cursor-pointer
+         transition-all duration-150 border border-transparent;
+}
+
+.palette-result-item:hover,
+.palette-result-item.active {
+  @apply bg-white/[0.04] border-white/5;
+}
+
+.palette-result-item.active {
+  @apply bg-white/[0.08] border-white/10;
+}
+
+.palette-icon-box {
+  @apply w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0;
+}
+
+.palette-icon-box--goto { @apply bg-sky-500/10 text-sky-400; }
+.palette-icon-box--task { @apply bg-amber-500/10 text-amber-400; }
+.palette-icon-box--search { @apply bg-zinc-800 text-zinc-400; }
+.palette-icon-box--inv { @apply bg-violet-500/10 text-violet-400; }
+
+.palette-kbd {
+  @apply text-[9px] font-mono px-1.5 py-0.5 rounded border border-white/10
+         bg-zinc-800 text-muted opacity-0 transition-opacity;
+}
+
+.palette-result-item:hover .palette-kbd,
+.palette-result-item.active .palette-kbd {
+  @apply opacity-100;
+}
+
+@keyframes palette-pop {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+#command-palette.open .modal-box {
+  animation: palette-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

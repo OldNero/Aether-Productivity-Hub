@@ -41,3 +41,43 @@ function timeElapsed(timestamp) {
         return `${Math.floor(seconds / 86400)}d ago`;
     }
 }
+
+/**
+ * Aether Intelligence: Insight Engine
+ * Generates a human-friendly productivity insight based on raw data.
+ */
+function generateAetherInsight(tasks = [], sessions = [], habits = null) {
+    const insights = [
+      "Your deep work rhythm is stabilizing. Keep the focus high.",
+      "You've completed more tasks this week than last. Great momentum!",
+      "Consistency is key. Your habit streaks are looking healthy.",
+      "Most of your focused work happens early. Leverage your morning energy.",
+      "Don't forget to take short breaks to maintain long-term stamina.",
+      "Portfolio volatility is low today. A good time for deep work.",
+      "Aether is synced. Your productivity cloud is 100% resilient."
+    ];
+
+    // Data-driven logic
+    const activeTasks = tasks.filter(t => !t.completed).length;
+    const completedTasks = tasks.filter(t => t.completed).length;
+    const sessionCount = sessions.length;
+
+    if (activeTasks > 5) {
+        return "You have a high volume of active tasks. Consider a 'Deep Work' sprint to clear the deck.";
+    }
+
+    if (completedTasks > 10 && sessionCount < 3) {
+        return "High task velocity detected, but low focus sessions. Try a Pomodoro to deepen your concentration.";
+    }
+
+    if (habits && habits.log) {
+        const today = new Date().toISOString().split('T')[0];
+        const todayRituals = Object.values(habits.log[today] || {}).filter(Boolean).length;
+        if (todayRituals >= 3) {
+            return "Daily rituals complete! You're in a high-performance 'Flow State' today.";
+        }
+    }
+
+    // Default to a random baseline insight if no data triggers met
+    return insights[Math.floor(Math.random() * insights.length)];
+}
