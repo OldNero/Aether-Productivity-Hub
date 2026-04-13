@@ -296,4 +296,95 @@ body {
   .skeleton-author { @apply w-24 h-3 mt-4; }
   .skeleton-circle { @apply w-8 h-8 rounded-lg; }
   .skeleton-stat { @apply w-32 h-10; }
+
+  /* ─── Zenith Focus: Mode Pills ─── */
+  .mode-pill {
+    @apply flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+           text-zinc-400 bg-zinc-800/60 border border-white/5
+           cursor-pointer transition-all duration-200
+           hover:text-zinc-200 hover:bg-zinc-700/60 hover:border-white/10;
+  }
+  .mode-pill--active {
+    @apply text-emerald-400 bg-emerald-500/10 border-emerald-500/30
+           shadow-[0_0_12px_rgba(16,185,129,0.15)];
+  }
+
+  /* ─── Zenith Focus: Sound Buttons ─── */
+  .sound-btn {
+    @apply flex flex-col items-center justify-center gap-1 py-3 rounded-xl
+           bg-zinc-800/50 border border-white/5 cursor-pointer
+           transition-all duration-200 hover:bg-zinc-700/60 hover:border-white/10;
+  }
+  .sound-btn--active {
+    @apply bg-emerald-500/10 border-emerald-500/30
+           shadow-[0_0_16px_rgba(16,185,129,0.12)];
+  }
 }
+
+/* ─── Zenith Focus: Zen Mode Overlay ─── */
+.zen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(ellipse at center, rgba(9,9,11,0.97) 0%, rgba(0,0,0,1) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.zen-overlay.zen-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.zen-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.zen-time {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: #e4e4e7;
+  line-height: 1;
+}
+
+.zen-close-btn {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  padding: 0.75rem;
+  border-radius: 50%;
+  color: rgba(161, 161, 170, 0.4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.zen-close-btn:hover {
+  color: rgba(244, 244, 245, 0.8);
+  background: rgba(255,255,255,0.05);
+}
+
+.zen-breathing-ring {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  animation: zen-breathe 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes zen-breathe {
+  0%, 100% { transform: scale(0.95); opacity: 0.3; }
+  50% { transform: scale(1.08); opacity: 0.7; }
+}
+
