@@ -34,7 +34,11 @@ const ViewManager = {
       const html = await response.text();
 
       // 2. Inject HTML
+      this.viewShell.classList.remove('page-transition');
+      void this.viewShell.offsetWidth; // Trigger reflow to restart animation
+      
       this.viewShell.innerHTML = html;
+      this.viewShell.classList.add('page-transition');
       this.currentView = viewId;
 
       // 3. Update Sidebar & Header Activity

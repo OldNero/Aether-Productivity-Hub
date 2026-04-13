@@ -580,3 +580,19 @@ body {
 #command-palette.open .modal-box {
   animation: palette-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ─── Seamless View Transitions ─── */
+@keyframes view-entrance {
+  from { 
+    opacity: 0; 
+    transform: translateY(15px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.page-transition {
+  animation: view-entrance 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
