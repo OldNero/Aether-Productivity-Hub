@@ -1,7 +1,8 @@
 {
   "scripts": {
-    "dev": "node scripts/generate-config.js && npx http-server . -p 8080 -c-1",
-    "build": "node scripts/generate-config.js && tailwindcss -i ./css/input.css -o ./css/output.css --minify",
+    "dev": "node scripts/build.js && npx http-server dist -p 8080 -c-1",
+    "dev:watch": "node scripts/generate-config.js && tailwindcss -i ./css/input.css -o ./css/output.css --watch",
+    "build": "node scripts/build.js",
     "build:css": "tailwindcss -i ./css/input.css -o ./css/output.css --minify",
     "watch:css": "tailwindcss -i ./css/input.css -o ./css/output.css --watch"
   },

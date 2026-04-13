@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aether — Productivity Hub</title>
+    <meta
+      name="description"
+      content="A beautiful productivity dashboard for managing tasks, investments, and deep work sessions."
+    />
+    <link rel="stylesheet" href="css/output.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body
+    class="bg-background text-zinc-100 flex h-screen overflow-hidden antialiased"
+  >
+    <!-- ===== SIDEBAR ===== -->
+    <aside
+      id="sidebar"
+      class="w-60 shrink-0 flex flex-col h-screen bg-[#0d0d0f] border-r border-border px-4 py-6 z-30 fixed inset-y-0 left-0 -translate-x-full md:relative md:translate-x-0 transition-transform duration-300"
+    >
+      <!-- Logo -->
+      <div class="flex items-center gap-2.5 px-2 mb-8">
+        <div
+          class="w-7 h-7 rounded-lg bg-white flex items-center justify-center flex-shrink-0"
+        >
+          <span class="text-zinc-950 font-bold text-base leading-none">A</span>
+        </div>
+        <span class="font-semibold text-zinc-100 tracking-tight">Aether</span>
+      </div>
+
+      <!-- Navigation -->
+      <nav id="sidebar-nav" class="flex flex-col gap-1 flex-1">
+        <button
+          class="nav-item sidebar__link active"
+          data-view="dashboard"
+          id="nav-dashboard"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+          </svg>
+          Dashboard
+        </button>
+        <button class="nav-item sidebar__link" data-view="tasks" id="nav-tasks">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M9 11l3 3L22 4" />
+            <path
+              d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+            />
+          </svg>
+          Focus List
+        </button>
+        <button
+          class="nav-item sidebar__link"
+          data-view="investments"
+          id="nav-investments"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+            <polyline points="16 7 22 7 22 13" />
+          </svg>
+          Portfolio
+        </button>
+        <button class="nav-item sidebar__link" data-view="timer" id="nav-timer">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          Timer
+        </button>
+        <button class="nav-item sidebar__link" data-view="habits" id="nav-habits">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Habits
+        </button>
+      </nav>      <!-- Sidebar Bottom -->
+      <div class="mt-auto flex flex-col gap-1 pt-4 border-t border-border">
+        <!-- User Badge -->
+        <div class="px-3 py-3 mb-2 flex items-center gap-3 bg-zinc-900/40 rounded-xl border border-white/5 mx-2">
+          <div 
+            id="sidebar-user-avatar"
+            class="w-9 h-9 rounded-lg bg-zinc-100 text-zinc-950 flex items-center justify-center font-bold text-sm"
+          >
+            U
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="user-name-display-sidebar" class="text-sm font-bold text-zinc-100 truncate italic">User</p>
+            <p class="text-[10px] text-muted uppercase tracking-tighter">Profile</p>
+          </div>
+        </div>
+
+        <button
+          class="nav-item sidebar__link"
+          data-view="settings"
+          id="nav-settings"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            />
+          </svg>
+          Settings
+        </button>
+
+        <button
+          class="nav-item hover:text-red-400"
+          id="logout-btn"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="px-3 pt-4 border-t border-white/5 mt-2">
+        <p class="text-[10px] text-muted">
+          Press
+          <kbd
+            class="px-1 py-0.5 rounded bg-zinc-800 border border-zinc-700 font-mono text-zinc-400"
+            >⌘K</kbd
+          >
+          to search
+        </p>
+      </div>
+    </aside>
+
+    <!-- Mobile Overlay -->
+    <div
+      id="sidebar-overlay"
+      class="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-20 hidden md:hidden"
+      onclick="document.getElementById('sidebar').classList.add('-translate-x-full'); this.classList.add('hidden')"
+    ></div>
+
+    <!-- ===== MAIN ===== -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <!-- Header -->
+      <header
+        class="h-14 flex items-center justify-between px-6 border-b border-border bg-[#0d0d0f]/80 backdrop-blur-md shrink-0 z-20"
+        id="header"
+      >
+        <div class="flex items-center gap-4">
+          <!-- Mobile Menu -->
+          <button
+            id="sidebar-toggle"
+            class="md:hidden btn-icon"
+            onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebar-overlay').classList.toggle('hidden')"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="18" y2="18" />
+            </svg>
+          </button>
+          
+          <div class="flex flex-col">
+            <p id="header-view-title" class="text-xs font-semibold uppercase tracking-widest text-muted leading-none mb-1">Overview</p>
+            <p class="text-lg font-bold text-zinc-100 leading-tight">Aether Hub</p>
+          </div>
+        </div>
+
+        <!-- SEARCH BAR -->
+        <div class="flex-1 flex justify-center px-4 max-w-xl">
+          <button
+            id="open-search-btn"
+            class="hidden md:flex w-full items-center gap-3 px-4 py-2 rounded-xl border border-white/5 bg-white/5 text-zinc-500 text-sm hover:bg-white/10 hover:text-zinc-300 transition-all duration-300 group"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3"/>
+            </svg>
+            <span>Search everything...</span>
+            <kbd class="ml-auto px-1.5 py-0.5 rounded border border-white/10 bg-white/10 font-mono text-[10px] group-hover:text-zinc-200">Ctrl+K</kbd>
+          </button>
+
+          <!-- Mobile Only Icon -->
+          <button
+            id="mobile-search-btn"
+            class="md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/5 text-zinc-400"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ═══ VIEW SHELL (Dynamic Content Injected Here) ═══ -->
+      <main id="view-shell" class="flex-1 overflow-y-auto">
+        <!-- Views from views/ are loaded here -->
+      </main>
+    </div>
+    <!-- end main -->
+
+    <!-- ═══ MODALS ═══ -->
+    <!-- ═══ AUTH OVERLAY ═══ -->
+    <div id="auth-overlay" class="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-3xl flex flex-col p-4 transition-all duration-500 opacity-0 pointer-events-none">
+      
+      <!-- Auth Top Nav -->
+      <nav class="w-full max-w-5xl mx-auto flex items-center justify-between py-6 animate-in">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-white text-zinc-950 rounded-xl flex items-center justify-center text-xl font-black shadow-lg shadow-white/5">A</div>
+          <span class="text-xl font-bold text-zinc-100 tracking-tighter italic">Aether</span>
+        </div>
+        <div class="flex items-center gap-2 bg-white/5 p-1 rounded-full border border-white/5">
+          <button id="nav-login-btn" class="px-6 py-2 rounded-full text-sm font-bold bg-white text-zinc-950 shadow-lg transition-all">Login</button>
+          <button id="nav-register-btn" class="px-6 py-2 rounded-full text-sm font-bold text-zinc-400 hover:text-zinc-100 transition-all">Register</button>
+        </div>
+      </nav>
+
+      <!-- Center Auth Content -->
+      <div class="flex-1 flex items-center justify-center">
+        <div class="w-full max-w-md animate-in" style="animation-delay: 100ms">
+          
+          <!-- Shared Form Container -->
+          <div class="card p-10 border-white/10 shadow-2xl relative overflow-hidden bg-zinc-900/60 backdrop-blur-md">
+            
+            <!-- Contextual Header -->
+            <div id="auth-context-header" class="mb-10 text-center">
+              <h2 class="text-3xl font-bold text-zinc-100 tracking-tight">Welcome Back</h2>
+              <p class="text-base text-muted mt-2">Sign in to your productivity hub</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-5">
+              <div>
+                <label class="label text-zinc-400 mb-1.5" for="login-username">Username</label>
+                <input type="text" id="login-username" class="input py-3.5 bg-zinc-950/50" placeholder="Enter username" required />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="label text-zinc-400 mb-0" for="login-password">Password</label>
+                  <a href="#" class="text-[11px] text-muted hover:text-white transition-colors">Forgot password?</a>
+                </div>
+                <input type="password" id="login-password" class="input py-3.5 bg-zinc-950/50" placeholder="••••••••" required />
+              </div>
+              <button type="submit" class="btn-primary w-full py-4 font-bold tracking-widest text-xs uppercase mt-6 shadow-xl shadow-white/5">
+                Sign in to Dashboard
+              </button>
+            </form>
+
+            <!-- Register Form (Hidden by default) -->
+            <form id="register-form" class="space-y-5 hidden">
+              <div>
+                <label class="label text-zinc-400 mb-1.5" for="register-username">Username</label>
+                <input type="text" id="register-username" class="input py-3.5 bg-zinc-950/50" placeholder="Choose a username" required />
+              </div>
+              <div>
+                <label class="label text-zinc-400 mb-1.5" for="register-password">Create Password</label>
+                <input type="password" id="register-password" class="input py-3.5 bg-zinc-950/50" placeholder="••••••••" required />
+              </div>
+              <button type="submit" class="btn-primary w-full py-4 font-bold tracking-widest text-xs uppercase mt-6 shadow-xl shadow-white/5">
+                Initialize Profile
+              </button>
+            </form>
+
+            <!-- Social Login Separator -->
+            <div class="relative my-8">
+              <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                <div class="w-full border-t border-white/5"></div>
+              </div>
+              <div class="relative flex justify-center text-[10px] uppercase tracking-[0.2em] font-bold">
+                <span class="bg-zinc-900 px-4 text-muted">OR continue with</span>
+              </div>
+            </div>
+
+            <!-- Social Buttons -->
+            <div class="flex justify-center">
+              <button id="google-login-btn" class="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all font-semibold text-xs text-zinc-300">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Sign in with Google
+              </button>
+            </div>
+
+          <!-- Footer Info -->
+          <p class="text-center text-[11px] text-muted mt-8 uppercase tracking-[0.2em]">
+            Aether &copy; 2026 &bull; Secure Local-First Encryption
+          </p>
+        </div>
+      </div>
+    </div>
+    <div
+      id="toast-container"
+      class="fixed bottom-6 right-6 z-[200] flex flex-col gap-3"
+    ></div>
+
+    <!-- ═══ SCRIPTS ═══ -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/symbols.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/timer.js"></script>
+    <script src="js/investments.js"></script>
+    <script src="js/habits.js"></script>
+    <script src="js/palette.js"></script>
+    <script src="js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+    <!-- ═══ COMMAND PALETTE ═══ -->
+    <div id="command-palette" class="modal-overlay">
+      <div class="modal-box max-w-2xl bg-zinc-900/40 backdrop-blur-2xl border-white/10 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.7)] p-0">
+        <div class="flex items-center gap-4 px-6 py-5 border-b border-white/5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-zinc-400">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input 
+            type="text" 
+            id="palette-input" 
+            class="bg-transparent border-none outline-none flex-1 text-lg text-zinc-100 placeholder:text-zinc-500 font-medium" 
+            placeholder="Type a command or search..."
+            autocomplete="off"
+          >
+          <div class="px-2 py-1 rounded bg-zinc-800 border border-white/5 text-[10px] text-zinc-400 font-mono uppercase tracking-widest hidden md:block">Esc</div>
+        </div>
+        <div id="palette-results" class="max-h-[60vh] overflow-y-auto p-2">
+          <!-- Commands injected here -->
+          <div class="p-4 text-center text-zinc-500 text-sm">
+            Try <span class="text-zinc-300 font-mono">goto:</span> or <span class="text-zinc-300 font-mono">task:</span>
+          </div>
+        </div>
+        <div class="px-6 py-3 border-t border-white/5 bg-white/[0.02] flex items-center justify-between text-[10px] text-muted uppercase tracking-widest">
+            <div class="flex gap-4">
+                <span><span class="text-zinc-400 font-bold">↑↓</span> Navigate</span>
+                <span><span class="text-zinc-400 font-bold">↵</span> Select</span>
+            </div>
+            <div>Aether Intelligence V1.0</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
