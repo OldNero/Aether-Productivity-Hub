@@ -8,16 +8,16 @@ const Auth = {
    * Check if a Supabase session exists
    */
   async isAuthenticated() {
-    if (!supabase) return !!localStorage.getItem("currentUser");
-    const { data: { session } } = await supabase.auth.getSession();
+    if (!supabaseClient) return !!localStorage.getItem("currentUser");
+    const { data: { session } } = await supabaseClient.auth.getSession();
     return !!session;
   },
 
   async getCurrentUser() {
-    if (!supabase) {
+    if (!supabaseClient) {
         try { return JSON.parse(localStorage.getItem("currentUser")); } catch { return null; }
     }
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
     return user ? { id: user.id, username: user.user_metadata.username || user.email.split('@')[0] } : null;
   },
 
@@ -29,11 +29,11 @@ const Auth = {
   },
 
   async register(username, password) {
-    if (!supabase) {
+    if (!supabaseClient) {
         throw new Error("Supabase not configured. Please add keys to config.js.");
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseClient.auth.signUp({
       email: this._toEmail(username),
       password: password,
       options: {
@@ -46,7 +46,7 @@ const Auth = {
   },
 
   async login(username, password) {
-    if (!supabase) {
+    if (!supabaseClient) {
         // Legacy fallback for development before keys are added
         const users = await Store.get("users") || [];
         const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
@@ -58,7 +58,7 @@ const Auth = {
         throw new Error("Legacy login failed. Please configure Supabase.");
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
       email: this._toEmail(username),
       password: password,
     });
@@ -74,8 +74,8 @@ const Auth = {
   },
 
   async signInWithGoogle() {
-    if (!supabase) throw new Error("Supabase not configured.");
-    const { error } = await supabase.auth.signInWithOAuth({
+    if (!supabaseClient) throw new Error("Supabase not configured.");
+    const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin
@@ -85,7 +85,7 @@ const Auth = {
   },
 
   async logout() {
-    if (supabase) await supabase.auth.signOut();
+    if (supabaseClient) await supabaseClient.auth.signOut();
     localStorage.removeItem("currentUser");
     window.location.href = window.location.pathname;
   },
