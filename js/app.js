@@ -98,6 +98,9 @@ const ViewManager = {
       timer: () => {
         if (typeof window.initTimer === 'function') window.initTimer();
       },
+      habits: () => {
+        if (typeof window.initHabits === 'function') window.initHabits();
+      },
       settings: () => {
         if (typeof window.initSettings === 'function') window.initSettings();
       },

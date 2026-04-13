@@ -388,3 +388,152 @@ body {
   50% { transform: scale(1.08); opacity: 0.7; }
 }
 
+/* ─── Consistency Canvas: Heatmap Grid ─── */
+.heatmap-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heatmap-months {
+  display: grid;
+  grid-template-columns: 28px repeat(27, 1fr);
+  gap: 3px;
+  margin-bottom: 2px;
+}
+
+.heatmap-month-label {
+  font-size: 10px;
+  color: #71717a;
+  white-space: nowrap;
+}
+
+.heatmap-cells {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+}
+
+.heatmap-day-label {
+  font-size: 10px;
+  color: #52525b;
+  display: flex;
+  align-items: center;
+  width: 28px;
+}
+
+.heatmap-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  min-width: 12px;
+  max-width: 16px;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.heatmap-cell[data-level="0"] { background: rgba(39, 39, 42, 0.6); }
+.heatmap-cell[data-level="1"] { background: rgba(16, 185, 129, 0.2); }
+.heatmap-cell[data-level="2"] { background: rgba(16, 185, 129, 0.4); }
+.heatmap-cell[data-level="3"] { background: rgba(16, 185, 129, 0.6); }
+.heatmap-cell[data-level="4"] { background: #10b981; }
+
+.heatmap-cell--today {
+  outline: 2px solid rgba(16, 185, 129, 0.5);
+  outline-offset: 1px;
+}
+
+.heatmap-cell--empty {
+  background: transparent !important;
+}
+
+.heatmap-cell:hover {
+  outline: 2px solid rgba(255, 255, 255, 0.2);
+  outline-offset: 1px;
+}
+
+/* ─── Consistency Canvas: Ritual Items ─── */
+.ritual-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(39, 39, 42, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.2s;
+}
+
+.ritual-item:hover {
+  background: rgba(39, 39, 42, 0.5);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.ritual-item--done {
+  opacity: 0.5;
+}
+
+.ritual-checkbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #52525b;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ritual-checkbox:checked {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.ritual-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  color: white;
+  font-weight: bold;
+}
+
+.ritual-checkmark {
+  display: none;
+}
+
+.ritual-remove {
+  color: #71717a;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.ritual-item:hover .ritual-remove {
+  opacity: 1;
+}
+
+.ritual-remove:hover {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.1);
+}
+
+/* ─── Consistency Canvas: History Bars ─── */
+.ritual-history-bar {
+  width: 100%;
+  min-height: 4px;
+  max-height: 100%;
+  background: linear-gradient(to top, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.7));
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
