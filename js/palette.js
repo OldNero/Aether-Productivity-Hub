@@ -60,8 +60,18 @@ const Palette = {
 
     /**
      * Open & Snapshot: Fetches current state from cloud ONCE per session open.
+     * Guarded by Authentication.
      */
     async open() {
+        // PRE-FLIGHT GUARD: Ensure user is logged in
+        if (typeof Auth !== 'undefined') {
+            const isAuth = await Auth.isAuthenticated();
+            if (!isAuth) {
+                console.warn('Aether: Search access denied [Unauthenticated].');
+                return;
+            }
+        }
+
         this.isOpen = true;
         this.modal.classList.add('open');
         this.input.value = '';
