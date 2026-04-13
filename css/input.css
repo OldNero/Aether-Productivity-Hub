@@ -223,32 +223,7 @@ body {
     @apply border-blue-500/30 bg-blue-500/5 text-blue-300;
   }
 
-  /* Modals */
-  .modal-overlay {
-    @apply fixed inset-0 z-50 flex items-center justify-center p-4
-           bg-zinc-950/70 backdrop-blur-sm
-           opacity-0 pointer-events-none transition-opacity duration-200;
-  }
-  .modal-overlay.open {
-    @apply opacity-100 pointer-events-auto;
-  }
-  .modal-box {
-    @apply bg-card border border-border rounded-xl shadow-2xl w-full max-w-md
-           transform scale-95 transition-transform duration-200;
-  }
-  .modal-overlay.open .modal-box {
-    @apply scale-100;
-  }
-
-  /* Command Palette */
-  .palette-overlay {
-    @apply fixed inset-0 z-50 flex items-start justify-center pt-24 p-4
-           bg-zinc-950/60 backdrop-blur-sm
-           opacity-0 pointer-events-none transition-opacity duration-200;
-  }
-  .palette-overlay.open {
-    @apply opacity-100 pointer-events-auto;
-  }
+  /* Modals — see bottom of file for .modal-overlay (outside @layer to survive tree-shaking) */
   /* Auth Hub Refinements */
   #auth-overlay.open {
     @apply opacity-100 pointer-events-auto;
@@ -538,61 +513,39 @@ body {
   transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ─── Command Palette & Global Search ─── */
-.palette-result-item {
-  @apply flex items-center justify-between p-3 rounded-xl cursor-pointer
-         transition-all duration-150 border border-transparent;
-}
+/* ═══ Global Modals ═══ */
 
-.palette-result-item:hover,
-.palette-result-item.active {
-  @apply bg-white/[0.04] border-white/5;
-}
-
-.palette-result-item.active {
-  @apply bg-white/[0.08] border-white/10;
-}
-
-.palette-icon-box {
-  @apply w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0;
-}
-
-.palette-icon-box--goto { @apply bg-sky-500/10 text-sky-400; }
-.palette-icon-box--task { @apply bg-amber-500/10 text-amber-400; }
-.palette-icon-box--search { @apply bg-zinc-800 text-zinc-400; }
-.palette-icon-box--inv { @apply bg-violet-500/10 text-violet-400; }
-
-.palette-kbd {
-  @apply text-[9px] font-mono px-1.5 py-0.5 rounded border border-white/10
-         bg-zinc-800 text-muted opacity-0 transition-opacity;
-}
-
-.palette-result-item:hover .palette-kbd,
-.palette-result-item.active .palette-kbd {
-  @apply opacity-100;
-}
-
-@keyframes palette-pop {
-  from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-#command-palette.open .modal-box {
-  animation: palette-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* ─── Global Modal System ─── */
 .modal-overlay {
-  @apply fixed inset-0 z-[100] bg-zinc-950/40 backdrop-blur-sm
-         invisible opacity-0 transition-all duration-300 flex items-start justify-center pt-[15vh];
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  padding-top: 15vh;
+  background: rgba(9, 9, 11, 0.60);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
 .modal-overlay.open {
-  @apply visible opacity-100;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .modal-box {
   @apply w-full mx-4 rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl;
+  transform: scale(0.97) translateY(-8px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-overlay.open .modal-box {
+  transform: scale(1) translateY(0);
 }
 
 /* ─── Seamless View Transitions ─── */

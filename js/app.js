@@ -135,7 +135,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 2. Initialize UI & View Layer
   ViewManager.init();
-  if (typeof Palette !== 'undefined') Palette.init();
   if (typeof window.loadProfileSettings === 'function')
     window.loadProfileSettings();
 
@@ -147,14 +146,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Global Keyboard Listeners (Ctrl+K palette, Esc)
+ * Global Keyboard Listeners (Esc to close modals)
  */
 document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && e.key === 'k') {
-    e.preventDefault();
-    if (typeof Palette !== 'undefined') Palette.toggle();
-  }
-
   // Close modals with ESC key
   if (e.key === 'Escape') {
     const modals = document.querySelectorAll('.modal-overlay.open');

@@ -12,6 +12,25 @@
 const fs = require('fs');
 const path = require('path');
 
+// ─── Simple .env Parser ───
+const dotEnvPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(dotEnvPath)) {
+  console.log('📝 Found .env file, loading local configuration...');
+  const dotEnvContent = fs.readFileSync(dotEnvPath, 'utf8');
+  dotEnvContent.split('\n').forEach(line => {
+    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+    if (match) {
+      const key = match[1];
+      let value = match[2] || '';
+      // Remove quotes if present
+      if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
+        value = value.substring(1, value.length - 1);
+      }
+      if (!process.env[key]) process.env[key] = value;
+    }
+  });
+}
+
 const required = ['NINJA_API_KEY', 'ALPHA_VANTAGE_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'];
 const missing = required.filter(key => !process.env[key]);
 
