@@ -314,8 +314,166 @@ async function updateSummary() {
     countEl.textContent = positionCount;
   }
 
-  // Trigger Background Chart Rendering
+  // Trigger Background Chart + Analytics Rendering
   await renderPortfolioChart();
+  await renderAllocationChart(positions, totalCurrent);
+  await renderHoldingsBreakdown(positions, totalCurrent);
+}
+
+/**
+ * Phase 2: Allocation Donut Chart (Chart.js)
+ */
+let allocationChartInstance = null;
+
+const CHART_COLORS = [
+  '#10b981', '#38bdf8', '#a78bfa', '#f59e0b', '#f43f5e',
+  '#06b6d4', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316',
+];
+
+async function renderAllocationChart(positions, totalCurrent) {
+    const canvas = document.getElementById('allocation-chart');
+    const legend = document.getElementById('allocation-legend');
+    const centerVal = document.getElementById('allocation-center-value');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // Build data from aggregated positions
+    const holdingData = [];
+    Object.keys(positions).forEach(symbol => {
+        const pos = positions[symbol];
+        if (pos.shares > 0) {
+            const currentData = marketDataCache[symbol];
+            const currentPrice = currentData ? currentData.price : 0;
+            const value = currentPrice * pos.shares;
+            holdingData.push({ symbol, value });
+        }
+    });
+
+    // Sort by value descending
+    holdingData.sort((a, b) => b.value - a.value);
+
+    if (holdingData.length === 0) {
+        if (allocationChartInstance) { allocationChartInstance.destroy(); allocationChartInstance = null; }
+        if (centerVal) centerVal.textContent = '—';
+        if (legend) legend.innerHTML = '';
+        return;
+    }
+
+    const labels = holdingData.map(h => h.symbol);
+    const values = holdingData.map(h => h.value);
+    const colors = holdingData.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+
+    // Center label
+    if (centerVal) centerVal.textContent = holdingData.length;
+
+    // Render legend
+    if (legend) {
+        legend.innerHTML = holdingData.map((h, i) => {
+            const pct = totalCurrent > 0 ? ((h.value / totalCurrent) * 100).toFixed(1) : 0;
+            return `<span class="flex items-center gap-1.5 text-zinc-400">
+                <span class="w-2 h-2 rounded-full inline-block" style="background:${colors[i]}"></span>
+                ${h.symbol} ${pct}%
+            </span>`;
+        }).join('');
+    }
+
+    // Destroy previous instance
+    if (allocationChartInstance) allocationChartInstance.destroy();
+
+    allocationChartInstance = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderColor: 'rgba(9,9,11,0.8)',
+                borderWidth: 2,
+                hoverBorderColor: 'rgba(255,255,255,0.15)',
+                hoverBorderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '70%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(24,24,27,0.95)',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
+                    titleColor: '#e4e4e7',
+                    bodyColor: '#a1a1aa',
+                    padding: 12,
+                    cornerRadius: 10,
+                    callbacks: {
+                        label: (ctx) => {
+                            const val = ctx.parsed;
+                            const pct = totalCurrent > 0 ? ((val / totalCurrent) * 100).toFixed(1) : 0;
+                            return ` $${val.toLocaleString(undefined, { minimumFractionDigits: 2 })} · ${pct}%`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                duration: 800,
+                easing: 'easeOutQuart',
+            }
+        }
+    });
+}
+
+/**
+ * Phase 2: Holdings Breakdown Table
+ */
+async function renderHoldingsBreakdown(positions, totalCurrent) {
+    const tbody = document.getElementById('holdings-breakdown-body');
+    const empty = document.getElementById('holdings-empty');
+    if (!tbody) return;
+
+    const rows = [];
+    Object.keys(positions).forEach(symbol => {
+        const pos = positions[symbol];
+        if (pos.shares > 0) {
+            const currentData = marketDataCache[symbol];
+            const currentPrice = currentData ? currentData.price : 0;
+            const avgCost = pos.costBasis / pos.shares;
+            const value = currentPrice * pos.shares;
+            const pl = value - pos.costBasis;
+            const plPct = pos.costBasis > 0 ? (pl / pos.costBasis) * 100 : 0;
+            const weight = totalCurrent > 0 ? (value / totalCurrent) * 100 : 0;
+            rows.push({ symbol, shares: pos.shares, avgCost, currentPrice, value, pl, plPct, weight });
+        }
+    });
+
+    // Sort by value descending
+    rows.sort((a, b) => b.value - a.value);
+
+    if (rows.length === 0) {
+        tbody.innerHTML = '';
+        if (empty) empty.classList.remove('hidden');
+        return;
+    }
+
+    if (empty) empty.classList.add('hidden');
+
+    tbody.innerHTML = rows.map(r => {
+        const isGain = r.pl >= 0;
+        const plColor = isGain ? 'text-emerald-400' : 'text-rose-400';
+        const plSign = isGain ? '+' : '';
+        return `
+            <tr class="group hover:bg-white/[0.02] transition-colors">
+                <td class="py-3 font-bold text-zinc-200">${r.symbol}</td>
+                <td class="py-3 text-right text-zinc-400 font-mono">${r.shares}</td>
+                <td class="py-3 text-right text-zinc-400 font-mono">$${r.avgCost.toFixed(2)}</td>
+                <td class="py-3 text-right text-zinc-300 font-mono font-semibold">$${r.currentPrice.toFixed(2)}</td>
+                <td class="py-3 text-right text-zinc-200 font-mono font-semibold">$${r.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td class="py-3 text-right font-mono ${plColor}">${plSign}$${r.pl.toFixed(2)} <span class="text-[10px] opacity-70">(${plSign}${r.plPct.toFixed(1)}%)</span></td>
+                <td class="py-3 text-right text-zinc-400 font-mono">${r.weight.toFixed(1)}%</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 /**
