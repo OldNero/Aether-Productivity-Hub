@@ -16,21 +16,21 @@ const required = ['NINJA_API_KEY', 'ALPHA_VANTAGE_KEY', 'SUPABASE_URL', 'SUPABAS
 const missing = required.filter(key => !process.env[key]);
 
 if (missing.length > 0) {
-  console.error(`❌ Missing environment variables: ${missing.join(', ')}`);
-  console.error('   Set these in Cloudflare Pages → Settings → Environment Variables');
-  process.exit(1);
+  console.warn(`⚠️  Note: Missing environment variables: ${missing.join(', ')}`);
+  console.warn('   Local development will use placeholders for these keys.');
 }
 
 const config = `/**
  * Aether Hub Configuration
  * Auto-generated at build time — do NOT edit manually.
+ * Locally generated on: ${new Date().toISOString()}
  */
 const CONFIG = {
   keys: {
-    NINJA_API_KEY: '${process.env.NINJA_API_KEY}',
-    ALPHA_VANTAGE_KEY: '${process.env.ALPHA_VANTAGE_KEY}',
-    SUPABASE_URL: '${process.env.SUPABASE_URL}',
-    SUPABASE_ANON_KEY: '${process.env.SUPABASE_ANON_KEY}',
+    NINJA_API_KEY: '${process.env.NINJA_API_KEY || "LOCAL_DEV_PLACEHOLDER"}',
+    ALPHA_VANTAGE_KEY: '${process.env.ALPHA_VANTAGE_KEY || "LOCAL_DEV_PLACEHOLDER"}',
+    SUPABASE_URL: '${process.env.SUPABASE_URL || "LOCAL_DEV_PLACEHOLDER"}',
+    SUPABASE_ANON_KEY: '${process.env.SUPABASE_ANON_KEY || "LOCAL_DEV_PLACEHOLDER"}',
   },
   settings: {},
 };

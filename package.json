@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build": "node scripts/generate-config.js && tailwindcss -i ./css/input.css -o ./css/output.css --minify && mkdir -p dist && cp index.html dist/ && cp -r js dist/ && cp -r css dist/ && cp -r views dist/",
+    "dev": "node scripts/generate-config.js && npx http-server . -p 8080 -c-1",
+    "build": "node scripts/generate-config.js && tailwindcss -i ./css/input.css -o ./css/output.css --minify",
     "build:css": "tailwindcss -i ./css/input.css -o ./css/output.css --minify",
     "watch:css": "tailwindcss -i ./css/input.css -o ./css/output.css --watch"
   },
