@@ -7,10 +7,6 @@ Thumbs.db
 .eslintrc.json
 .prettierrc
 
-# Node/NPM 
-package.json
-package-lock.json
-
 # AI Metadata
 GEMINI.md
 .gemini/
