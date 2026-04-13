@@ -12,6 +12,7 @@ function startTimerCore() {
     if (isRunning) return;
     startTime = Date.now() - elapsed;
     isRunning = true;
+    _saveTimerState();
     timerInterval = setInterval(updateAllTimerDisplays, 100);
 }
 
@@ -19,14 +20,45 @@ function pauseTimerCore() {
     clearInterval(timerInterval);
     isRunning = false;
     elapsed = Date.now() - startTime;
+    _saveTimerState();
 }
 
-function resetTimerCore() {
+async function resetTimerCore() {
     clearInterval(timerInterval);
-    saveSession();
+    await saveSession();
     elapsed = 0;
     isRunning = false;
+    localStorage.removeItem(Store._getPrefixedKey('active_timer'));
     updateAllTimerDisplays();
+}
+
+/**
+ * Persistence Helpers for 'Refresh Resilience'
+ */
+function _saveTimerState() {
+    const state = { startTime, elapsed, isRunning, lastUpdate: Date.now() };
+    localStorage.setItem(Store._getPrefixedKey('active_timer'), JSON.stringify(state));
+}
+
+function _loadTimerState() {
+    const saved = localStorage.getItem(Store._getPrefixedKey('active_timer'));
+    if (!saved) return;
+    
+    try {
+        const state = JSON.parse(saved);
+        isRunning = state.isRunning;
+        
+        if (isRunning) {
+            // Calculate true elapsed time based on when it was last seen 'running'
+            startTime = state.startTime;
+            elapsed = Date.now() - startTime;
+            timerInterval = setInterval(updateAllTimerDisplays, 100);
+        } else {
+            elapsed = state.elapsed;
+        }
+    } catch (e) {
+        console.error("Timer State Recovery Error:", e);
+    }
 }
 
 /**
@@ -35,6 +67,11 @@ function resetTimerCore() {
 function updateAllTimerDisplays() {
     if (isRunning) {
         elapsed = Date.now() - startTime;
+    }
+
+    // Auto-save progress occasionally if running
+    if (isRunning && Math.floor(elapsed / 1000) % 5 === 0) {
+        _saveTimerState();
     }
 
     const hours = Math.floor(elapsed / 3600000);
@@ -82,6 +119,7 @@ function updateAllTimerDisplays() {
  * Main View Initialization
  */
 window.initTimer = async function() {
+    _loadTimerState();
     console.log("Aether: Initializing Timer Module...");
     updateAllTimerDisplays();
     await renderSessions();
@@ -172,19 +210,19 @@ async function getSessions() { return await Store.get('sessions') || []; }
 
 async function saveSession() {
     if (elapsed === 0) return;
-    const sessions = await getSessions();
-    sessions.push({ 
-        id: generateId(), // Added unique identity
+    const session = { 
+        id: Store.generateUUID(),
         duration: elapsed, 
-        timestamp: Date.now() 
-    });
+        created_at: new Date().toISOString() 
+    };
+    
+    const sessions = await getSessions();
+    sessions.push(session);
     await Store.set('sessions', sessions);
 }
 
 async function deleteSession(id) {
-    let sessions = await getSessions();
-    sessions = sessions.filter(s => s.id !== id);
-    await Store.set('sessions', sessions);
+    await Store.remove('sessions', id);
     await renderSessions();
 }
 
@@ -211,7 +249,7 @@ async function renderSessions() {
                 </div>
                 <div>
                     <p class="text-xs font-semibold text-zinc-300">Deep Work Session</p>
-                    <p class="text-[10px] text-muted">${timeElapsed(s.timestamp)}</p>
+                    <p class="text-[10px] text-muted">${timeElapsed(s.created_at)}</p>
                 </div>
             </div>
         <div class="flex items-center gap-4">

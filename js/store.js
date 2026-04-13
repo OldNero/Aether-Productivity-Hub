@@ -69,7 +69,7 @@ const Store = {
         // 1. Check for Supabase Cloud Path
         const { data: { session } } = supabaseClient ? await supabaseClient.auth.getSession() : { data: { session: null } };
         
-        if (session && ["tasks", "investments", "profiles"].includes(key)) {
+        if (session && ["tasks", "investments", "profiles", "sessions"].includes(key)) {
             // Inject user_id into every row so RLS policies pass
             const uid = session.user.id;
             const stamp = (row) => ({ ...row, user_id: uid });
@@ -100,7 +100,7 @@ const Store = {
         // 1. Check for Supabase Cloud Path
         const { data: { session } } = supabaseClient ? await supabaseClient.auth.getSession() : { data: { session: null } };
         
-        if (session && id && ["tasks", "investments"].includes(key)) {
+        if (session && id && ["tasks", "investments", "sessions"].includes(key)) {
             const { error } = await supabaseClient
                 .from(key)
                 .delete()
@@ -113,7 +113,7 @@ const Store = {
 
         // 2. Local Hygiene (Focus on array-based collections)
         const prefixedKey = this._getPrefixedKey(key);
-        if (id && ["tasks", "investments"].includes(key)) {
+        if (id && ["tasks", "investments", "sessions"].includes(key)) {
             const current = await this.get(key); // Use this.get() for consistent prefixed decryption
             if (Array.isArray(current)) {
                 const updated = current.filter(item => item.id !== id);
