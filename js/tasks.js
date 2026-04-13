@@ -51,9 +51,7 @@ async function addTask(title, priority) {
 }
 
 async function deleteTask(id) {
-  let tasks = await getTasks();
-  tasks = tasks.filter((task) => task.id !== id);
-  await saveTasks(tasks);
+  await Store.remove('tasks', id);
 }
 
 async function toggleTask(id) {

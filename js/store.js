@@ -105,12 +105,24 @@ const Store = {
                 .from(key)
                 .delete()
                 .eq('id', id);
-            if (!error) return;
-            console.error(`Supabase Delete Error [${key}]:`, error);
+            
+            if (error) {
+                console.error(`Supabase Delete Error [${key}]:`, error);
+            }
         }
 
-        // 2. Fallback to LocalStorage
+        // 2. Local Hygiene (Focus on array-based collections)
         const prefixedKey = this._getPrefixedKey(key);
+        if (id && ["tasks", "investments"].includes(key)) {
+            const current = await this.get(key); // Use this.get() for consistent prefixed decryption
+            if (Array.isArray(current)) {
+                const updated = current.filter(item => item.id !== id);
+                localStorage.setItem(prefixedKey, JSON.stringify(updated));
+                return;
+            }
+        }
+
+        // Fallback for non-array items or global removal
         localStorage.removeItem(prefixedKey);
     },
 

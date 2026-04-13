@@ -390,9 +390,7 @@ async function renderPortfolioChart() {
 
 async function deleteTransaction(id) {
   if (confirm('Are you sure you want to delete this transaction?')) {
-    let invs = await Store.get('investments') || [];
-    invs = invs.filter((i) => i.id !== id);
-    await Store.set('investments', invs);
+    await Store.remove('investments', id);
     await renderInvestments();
     await updateSummary();
   }
