@@ -30,7 +30,7 @@ function createTask(title, priority = 'medium') {
     title: title,
     priority: priority,
     status: 'active',
-    createdAt: Date.now(),
+    created_at: new Date().toISOString(),
   };
 }
 
@@ -138,7 +138,7 @@ async function renderTasks(filterType = 'all') {
       </label>
       <div class="task-item__content">
         <span class="task-item__title">${task.title}</span>
-        <span class="task-item__meta">${timeElapsed(task.createdAt)}</span>
+        <span class="task-item__meta">${timeElapsed(task.created_at)}</span>
       </div>
       <span class="badge badge--${task.priority} mr-3">${task.priority}</span>
       <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

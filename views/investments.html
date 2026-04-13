@@ -85,8 +85,16 @@
     <!-- Ledger -->
     <div class="card lg:col-span-2 relative overflow-hidden group">
       <!-- Background Chart -->
-      <div class="absolute inset-0 pointer-events-none opacity-30 group-hover:opacity-40 transition-opacity duration-500" id="portfolio-chart-container">
-        <svg id="portfolio-chart-svg" class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+      <div
+        class="absolute inset-0 pointer-events-none opacity-30 group-hover:opacity-40 transition-opacity duration-500"
+        id="portfolio-chart-container"
+      >
+        <svg
+          id="portfolio-chart-svg"
+          class="w-full h-full"
+          preserveAspectRatio="none"
+          viewBox="0 0 100 100"
+        >
           <defs>
             <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#10b981" stop-opacity="0.5" />
@@ -94,23 +102,33 @@
             </linearGradient>
           </defs>
           <path id="chart-area" d="" fill="url(#chart-grad)" />
-          <path id="chart-line" d="" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path
+            id="chart-line"
+            d=""
+            fill="none"
+            stroke="#10b981"
+            stroke-width="0.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
       </div>
 
       <div class="relative z-10">
         <h3 class="font-semibold text-zinc-100 mb-4">Asset Ledger</h3>
-      <div id="investment-list" class="space-y-3">
-        <!-- JS injects investment cards here -->
+        <div id="investment-list" class="space-y-3">
+          <!-- JS injects investment cards here -->
+        </div>
+        <div id="investments-empty-state" class="hidden py-16 text-center">
+          <p class="text-sm text-muted">
+            No assets yet. Click
+            <strong class="text-zinc-400">Add Asset</strong> to start tracking.
+          </p>
+        </div>
       </div>
-      <div id="investments-empty-state" class="hidden py-16 text-center">
-        <p class="text-sm text-muted">
-          No assets yet. Click
-          <strong class="text-zinc-400">Add Asset</strong> to start tracking.
-        </p>
-      </div>
-     </div> <!-- End of relative z-10 -->
-    </div> <!-- End of Asset Ledger Card -->
+      <!-- End of relative z-10 -->
+    </div>
+    <!-- End of Asset Ledger Card -->
 
     <!-- Market Movers -->
     <div class="card">
