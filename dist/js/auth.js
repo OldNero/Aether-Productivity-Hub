@@ -30,7 +30,16 @@ const Auth = {
 
   async register(username, password) {
     if (!supabaseClient) {
-        throw new Error("Supabase not configured. Please add keys to config.js.");
+        // Local-Only Sanctuary Mode
+        console.warn("Aether: Supabase not detected. Using LocalStorage fallback.");
+        const users = await Store.get("users") || [];
+        if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+            throw new Error("User already exists locally.");
+        }
+        const newUser = { id: Store.generateUUID(), username, password };
+        users.push(newUser);
+        await Store.set("users", users);
+        return newUser;
     }
 
     const { data, error } = await supabaseClient.auth.signUp({
@@ -47,15 +56,16 @@ const Auth = {
 
   async login(username, password) {
     if (!supabaseClient) {
-        // Legacy fallback for development before keys are added
+        // Local-Only Sanctuary Mode
         const users = await Store.get("users") || [];
         const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-        if (user && user.password === password) { // Simple check for legacy
+        
+        if (user && user.password === password) { 
             const session = { id: user.id, username: user.username };
             localStorage.setItem("currentUser", JSON.stringify(session));
             return session;
         }
-        throw new Error("Legacy login failed. Please configure Supabase.");
+        throw new Error("Local authentication failed. Check credentials.");
     }
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({
