@@ -32,14 +32,17 @@ const Palette = {
         this.resultsContainer = document.getElementById('palette-results');
         if (!this.modal || !this.input) return;
 
-        // Wire header button if exists
+        // Wire header button if exists (using robust listener)
         const headerSearchBtn = document.getElementById('open-search-btn');
-        if (headerSearchBtn) {
-            headerSearchBtn.onclick = (e) => {
-                e.preventDefault();
-                this.open();
-            };
-        }
+        const mobileSearchBtn = document.getElementById('mobile-search-btn');
+        
+        const openPalette = (e) => {
+            e.preventDefault();
+            this.open();
+        };
+
+        if (headerSearchBtn) headerSearchBtn.addEventListener('click', openPalette);
+        if (mobileSearchBtn) mobileSearchBtn.addEventListener('click', openPalette);
 
         this.initEventListeners();
         console.log('Aether: Command Palette engine online [Snapshot Mode].');
