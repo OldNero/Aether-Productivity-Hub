@@ -102,20 +102,17 @@ const ViewManager = {
           Auth.updateProfileUI();
         // Add "View All" listener back after injection
         const viewAllBtn = document.getElementById('dash-view-all-tasks');
-        if (viewAllBtn) viewAllBtn.onclick = () => this.loadView('tasks');
+        if (viewAllBtn) viewAllBtn.onclick = () => this.loadView('routines');
       },
-      tasks: () => {
+      routines: () => {
         if (typeof window.initTasks === 'function') window.initTasks();
+        if (typeof window.initHabits === 'function') window.initHabits();
       },
       investments: () => {
-        if (typeof window.initInvestments === 'function')
-          window.initInvestments();
+        if (typeof window.initInvestments === 'function') window.initInvestments();
       },
       timer: () => {
         if (typeof window.initTimer === 'function') window.initTimer();
-      },
-      habits: () => {
-        if (typeof window.initHabits === 'function') window.initHabits();
       },
       settings: () => {
         if (typeof window.initSettings === 'function') window.initSettings();
