@@ -105,6 +105,7 @@ async function renderDashboardTasks() {
 
 async function renderTasks(filterType = 'all') {
   const container = document.getElementById('task-list');
+  const skeleton = document.getElementById('tasks-skeleton');
   
   // Always update stats if they exist (on dashboard or focus list)
   await updateTaskStatus();
@@ -112,6 +113,16 @@ async function renderTasks(filterType = 'all') {
 
   if (!container) return;
   
+  // Show skeleton on initial render if container is empty
+  let isInitialRender = false;
+  if (skeleton && !container.innerHTML.trim() && filterType === 'all') {
+      isInitialRender = true;
+      container.classList.add('hidden');
+      skeleton.classList.remove('hidden');
+      // Ensure skeleton is visible for at least 600ms for visual polish
+      await new Promise(resolve => setTimeout(resolve, 600));
+  }
+
   container.innerHTML = '';
   let tasks = await getTasks();
 
@@ -150,6 +161,11 @@ async function renderTasks(filterType = 'all') {
     `;
     container.appendChild(div);
   });
+
+  if (isInitialRender && skeleton) {
+      skeleton.classList.add('hidden');
+      container.classList.remove('hidden');
+  }
 }
 
 /**

@@ -167,8 +167,6 @@
           </svg>
         </button>
       </div>
-
-      </div>
     </aside>
 
     <!-- Mobile Overlay -->
@@ -203,8 +201,27 @@
           </div>
         </div>
 
-        <!-- Empty spacer to maintain layout -->
-        <div class="flex-1 max-w-xl"></div>
+        <!-- Global Search Bar -->
+        <div class="flex-1 max-w-xl relative" id="global-search-wrapper">
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              id="global-search-input"
+              class="w-full bg-zinc-900/60 border border-white/5 rounded-lg pl-9 pr-16 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-600 focus:border-zinc-600 focus:bg-zinc-900 transition-all"
+              placeholder="Search everything…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <kbd class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-zinc-600 bg-white/5 border border-white/5 px-1.5 py-0.5 rounded pointer-events-none hidden md:inline-block">Ctrl K</kbd>
+          </div>
+          <!-- Dropdown Results -->
+          <div id="global-search-dropdown" class="absolute top-full left-0 right-0 mt-2 bg-zinc-950/95 backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50 hidden">
+            <div id="global-search-results" class="max-h-[60vh] overflow-y-auto">
+              <!-- JS injects results here -->
+            </div>
+          </div>
+        </div>
       </header>
 
       <!-- ═══ VIEW SHELL (Dynamic Content Injected Here) ═══ -->
@@ -310,6 +327,70 @@
       id="toast-container"
       class="fixed bottom-6 right-6 z-[200] flex flex-col gap-3"
     ></div>
+    <!-- ═══ END AUTH OVERLAY ═══ -->
+
+    <!-- ═══ CMD+K SEARCH PALETTE OVERLAY ═══ -->
+    <div id="search-palette" class="modal-overlay" style="align-items: start; padding-top: 10vh;">
+      <div class="modal-box max-w-2xl bg-zinc-950/80 backdrop-blur-2xl border-white/5 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col">
+        <!-- Search Input Header -->
+        <div class="flex items-center px-4 py-4 border-b border-white/5 relative">
+          <svg class="text-zinc-500 mr-3 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="palette-search-input" class="w-full bg-transparent border-none text-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-0 p-0" placeholder="Search tasks, investments, or type a command..." autocomplete="off" spellcheck="false" />
+          <div class="flex items-center gap-2 ml-3 shrink-0">
+            <span class="text-[10px] font-semibold text-zinc-600 bg-white/5 px-2 py-1 rounded">ESC</span>
+          </div>
+        </div>
+
+        <!-- Search Results Area -->
+        <div id="palette-search-results" class="max-h-[60vh] overflow-y-auto p-2 scroll-smooth hidden">
+          <!-- JS will inject results here -->
+        </div>
+
+        <!-- Default State / Suggestions -->
+        <div id="palette-default-state" class="p-6">
+            <p class="text-[10px] font-bold text-muted uppercase tracking-widest mb-3 px-2">Quick Navigation</p>
+            <div class="space-y-1">
+                <button class="w-full text-left flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group" onclick="document.getElementById('search-palette').classList.remove('open'); ViewManager.loadView('dashboard');">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-zinc-800/50 flex items-center justify-center text-muted group-hover:text-zinc-300">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        </div>
+                        <span class="text-sm font-medium text-zinc-400 group-hover:text-zinc-200">Go to Dashboard</span>
+                    </div>
+                    <span class="text-[10px] text-zinc-600 font-mono">G D</span>
+                </button>
+                <button class="w-full text-left flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group" onclick="document.getElementById('search-palette').classList.remove('open'); ViewManager.loadView('tasks');">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-zinc-800/50 flex items-center justify-center text-muted group-hover:text-zinc-300">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        </div>
+                        <span class="text-sm font-medium text-zinc-400 group-hover:text-zinc-200">Go to Focus List</span>
+                    </div>
+                </button>
+                <button class="w-full text-left flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group" onclick="document.getElementById('search-palette').classList.remove('open'); ViewManager.loadView('investments');">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-zinc-800/50 flex items-center justify-center text-muted group-hover:text-zinc-300">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        </div>
+                        <span class="text-sm font-medium text-zinc-400 group-hover:text-zinc-200">Go to Portfolio</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Palette Footer -->
+        <div class="px-4 py-3 border-t border-white/5 bg-black/20 flex items-center justify-between">
+            <div class="flex flex-wrap items-center gap-4 text-[10px] text-zinc-500 font-medium">
+                <span class="flex items-center gap-1.5"><strong class="bg-white/5 px-1.5 py-0.5 rounded text-zinc-400">&uarr;&darr;</strong> to navigate</span>
+                <span class="flex items-center gap-1.5"><strong class="bg-white/5 px-1.5 py-0.5 rounded text-zinc-400">&crarr;</strong> to select</span>
+            </div>
+            <div class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+                Aether Search
+            </div>
+        </div>
+      </div>
+    </div>
+    <!-- ═══ END SEARCH PALETTE ═══ -->
 
     <!-- ═══ SCRIPTS ═══ -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -322,9 +403,11 @@
     <script src="js/settings.js"></script>
     <script src="js/tasks.js"></script>
     <script src="js/timer.js"></script>
+    <script src="js/sync.js"></script>
     <script src="js/investments.js"></script>
     <script src="js/habits.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/search.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   </body>
 </html>

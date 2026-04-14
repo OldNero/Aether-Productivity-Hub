@@ -28,7 +28,8 @@ window.initInvestments = async function () {
     let priceValue = Number(priceInput.value) || 0;
     let quantityValue = Number(quantityInput.value) || 0;
     let commissionValue = Number(commissionInput.value) || 0;
-    let totalValue = priceValue * quantityValue + commissionValue;
+    const isBuy = investmentTypeArr ? investmentTypeArr.value === 'buy' : true;
+    let totalValue = isBuy ? (priceValue * quantityValue + commissionValue) : (priceValue * quantityValue - commissionValue);
     if (totalDisplay) totalDisplay.textContent = '$ ' + totalValue.toFixed(2);
   };
 
@@ -121,8 +122,9 @@ window.initInvestments = async function () {
       date: dateInput.value || new Date().toISOString().split('T')[0],
       notes: notesInput.value,
       total:
-        Number(priceInput.value) * Number(quantityInput.value) +
-        Number(commissionInput.value),
+        investmentTypeArr.value === 'buy' 
+            ? (Number(priceInput.value) * Number(quantityInput.value) + Number(commissionInput.value))
+            : (Number(priceInput.value) * Number(quantityInput.value) - Number(commissionInput.value)),
     };
     if (editingInvestmentId) {
       investments = investments.map((inv) =>
@@ -166,6 +168,91 @@ window.initInvestments = async function () {
     };
   }
 
+  const syncBtn = document.getElementById('sync-now-btn');
+  const syncStatusContainer = document.getElementById('sync-status-container');
+  const syncStatusText = document.getElementById('sync-status-text');
+  const syncTimeText = document.getElementById('sync-time-text');
+  
+  const csvDropzone = document.getElementById('csv-dropzone');
+  const csvInput = document.getElementById('csv-input');
+
+  // CSV Import logic
+  if (csvDropzone && csvInput) {
+    csvDropzone.onclick = () => csvInput.click();
+    
+    csvDropzone.ondragover = (e) => {
+        e.preventDefault();
+        csvDropzone.classList.add('border-emerald-500/50', 'bg-emerald-500/5');
+    };
+    
+    csvDropzone.ondragleave = () => {
+        csvDropzone.classList.remove('border-emerald-500/50', 'bg-emerald-500/5');
+    };
+    
+    csvDropzone.ondrop = async (e) => {
+        e.preventDefault();
+        csvDropzone.classList.remove('border-emerald-500/50', 'bg-emerald-500/5');
+        const file = e.dataTransfer.files[0];
+        if (file) await handleCSVFile(file);
+    };
+    
+    csvInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) await handleCSVFile(file);
+    };
+  }
+
+  async function handleCSVFile(file) {
+      if (!file.name.endsWith('.csv')) return alert('Please upload a .csv file');
+      
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+          const text = e.target.result;
+          const trades = SyncManager.parseCSV(text);
+          const result = await SyncManager.ingest(trades);
+          
+          if (result.success) {
+              alert(`Import successful! Added ${result.added} new records.`);
+              await renderInvestments();
+              await updateSummary();
+          }
+      };
+      reader.readAsText(file);
+  }
+
+  if (syncBtn) {
+    // Show sync indicators if URL is configured
+    const config = await SyncManager.getSyncConfig();
+    if (config.url && syncStatusContainer) syncStatusContainer.classList.remove('hidden');
+
+    syncBtn.onclick = async () => {
+      syncBtn.disabled = true;
+      if (syncStatusText) syncStatusText.textContent = 'Syncing...';
+      
+      const result = await SyncManager.poll();
+      
+      if (result.success) {
+        if (syncStatusText) syncStatusText.textContent = result.added > 0 ? `Synced +${result.added}` : 'Up to date';
+        if (syncTimeText) syncTimeText.textContent = `Last: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        if (result.added > 0) {
+            await renderInvestments();
+            await updateSummary();
+        }
+      } else {
+        if (syncStatusText) {
+            syncStatusText.textContent = 'Sync Failed';
+            syncStatusText.className = 'text-[10px] font-bold text-rose-400 uppercase tracking-[0.2em] leading-none mb-1';
+        }
+        alert(`Sync Error: ${result.error}`);
+      }
+      
+      syncBtn.disabled = false;
+    };
+  }
+
+  window.renderInvestments = renderInvestments;
+  window.updateSummary = updateSummary;
+
   await renderInvestments();
   await updateSummary();
   
@@ -183,59 +270,185 @@ function startLivePriceUpdates() {
 
 async function updateLivePrices() {
   const investments = await Store.get('investments') || [];
-  const symbols = [...new Set(investments.map((i) => i.symbol))];
+  // Filter out CASH and already cached symbols to save API limits
+  const symbols = [...new Set(investments
+    .filter(i => i.symbol !== '$CASH')
+    .map((i) => i.symbol))];
+
   for (const symbol of symbols) {
     if (!marketDataCache[symbol]) {
-      const data = await API.fetchStockPrice(symbol);
-      if (data) marketDataCache[symbol] = data;
+      // Don't await here in the loop to allow UI to stay responsive
+      API.fetchStockPrice(symbol).then(data => {
+          if (data) {
+              marketDataCache[symbol] = data;
+              // Re-render only if we are still on the investments view
+              if (document.getElementById('investment-list')) {
+                  renderInvestments();
+                  updateSummary();
+              }
+          }
+      });
     }
   }
-  await renderInvestments();
-  await updateSummary();
 }
 
 async function renderInvestments() {
   const investmentList = document.getElementById('investment-list');
   const emptyState = document.getElementById('investments-empty-state');
+  const skeleton = document.getElementById('investments-skeleton');
+
   if (!investmentList) return;
+
+  // Show skeleton on initial render if container is empty
+  let isInitialRender = false;
+  if (skeleton && !investmentList.innerHTML.trim()) {
+      isInitialRender = true;
+      investmentList.classList.add('hidden');
+      if (emptyState) emptyState.classList.add('hidden');
+      skeleton.classList.remove('hidden');
+      // Ensure skeleton is visible for at least 600ms
+      await new Promise(resolve => setTimeout(resolve, 600));
+  }
+
   const investments = await Store.get('investments') || [];
   investmentList.innerHTML = '';
   if (investments.length === 0) {
     if (emptyState) emptyState.classList.remove('hidden');
   } else {
     if (emptyState) emptyState.classList.add('hidden');
-    investments.forEach((asset) => {
+    
+    // Sort for display (newest first)
+    const displayInvs = [...investments].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // We need to calculate avg cost basis per symbol chronologically to show realized gain on sell rows
+    const chronological = [...investments].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateA - dateB !== 0) return dateA - dateB;
+        // Same day? Process Deposits first, then Buys, then Sells
+        if (a.type === 'deposit') return -1;
+        if (b.type === 'deposit') return 1;
+        return a.type === 'buy' ? -1 : 1;
+    });
+
+    const runningPositions = {};
+    const realizedGainsOnRows = {};
+
+    chronological.forEach(asset => {
+        const sym = asset.symbol;
+        if (!runningPositions[sym]) runningPositions[sym] = { shares: 0, cost: 0 };
+        
+        if (asset.type === 'buy') {
+            runningPositions[sym].shares += asset.quantity;
+            runningPositions[sym].cost += asset.total;
+        } else if (asset.type === 'sell') {
+            const avgCost = runningPositions[sym].shares > 0 ? (runningPositions[sym].cost / runningPositions[sym].shares) : 0;
+            const costOfSold = avgCost * asset.quantity;
+            realizedGainsOnRows[asset.id] = asset.total - costOfSold;
+            
+            runningPositions[sym].shares -= asset.quantity;
+            runningPositions[sym].cost -= costOfSold;
+        }
+    });
+
+    displayInvs.forEach((asset) => {
       const currentData = marketDataCache[asset.symbol];
       const currentPrice = currentData ? currentData.price : asset.price;
       const currentValue = currentPrice * asset.quantity;
-      const costBasis = asset.total;
-      const gainLoss =
-        asset.type === 'buy'
-          ? currentValue - costBasis
-          : costBasis - currentValue;
-      const isGain = gainLoss >= 0;
-      const gainPct = costBasis > 0 ? (gainLoss / costBasis) * 100 : 0;
-      const card = `<div class="card flex items-center justify-between group"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs ${asset.type === 'buy' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">${asset.symbol}</div><div><p class="text-sm font-semibold text-zinc-200">${asset.symbol}</p><p class="text-[11px] text-muted uppercase tracking-wider">${asset.type} • ${asset.quantity} shares @ $${asset.price.toFixed(2)}</p></div></div><div class="flex items-center gap-4"><div class="text-right"><p class="text-sm font-bold text-zinc-100">$ ${currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p><p class="text-[10px] ${isGain ? 'text-emerald-400' : 'text-rose-400'}">${isGain ? '+' : ''}$${gainLoss.toFixed(2)} (${gainPct.toFixed(2)}%)</p></div><div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button class="btn-edit-inv p-1.5 hover:bg-zinc-800 rounded text-muted hover:text-zinc-100 transition-colors" data-id="${asset.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button class="btn-delete-inv p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors" data-id="${asset.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div></div>`;
+      
+      let gainLoss, isGain, gainPct, displayVal, displaySubtitle;
+
+      if (asset.type === 'deposit') {
+          gainLoss = 0;
+          isGain = true;
+          gainPct = 0;
+          displayVal = `$ ${asset.quantity.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+          displaySubtitle = `Account Funding • Cash Deposit`;
+      } else if (asset.type === 'buy') {
+          gainLoss = currentValue - asset.total;
+          isGain = gainLoss >= 0;
+          gainPct = asset.total > 0 ? (gainLoss / asset.total) * 100 : 0;
+          displayVal = `$ ${currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+          displaySubtitle = `${asset.type} • ${asset.quantity} shares @ $${asset.price.toFixed(2)}`;
+      } else {
+          gainLoss = realizedGainsOnRows[asset.id] || 0;
+          isGain = gainLoss >= 0;
+          const costOfSale = asset.total - gainLoss;
+          gainPct = costOfSale > 0 ? (gainLoss / costOfSale) * 100 : 0;
+          displayVal = `$ ${asset.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+          displaySubtitle = `${asset.type} • ${asset.quantity} shares @ $${asset.price.toFixed(2)}`;
+      }
+
+      const card = `
+        <div class="card flex items-center justify-between group">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs ${asset.type === 'deposit' ? 'bg-blue-500/10 text-blue-400' : (asset.type === 'buy' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400')}">
+                ${asset.symbol === '$CASH' ? 'CASH' : asset.symbol}
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-zinc-200">${asset.symbol === '$CASH' ? 'Cash Deposit' : asset.symbol}</p>
+              <p class="text-[11px] text-muted uppercase tracking-wider">${displaySubtitle}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="text-right">
+              <p class="text-sm font-bold text-zinc-100">${displayVal}</p>
+              ${asset.type !== 'deposit' ? `
+              <p class="text-[10px] ${isGain ? 'text-emerald-400' : 'text-rose-400'}">
+                ${isGain ? '+' : ''}$${gainLoss.toFixed(2)} (${gainPct.toFixed(2)}%)
+              </p>` : `<p class="text-[10px] text-zinc-500 italic">Balance Increase</p>`}
+            </div>
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button class="btn-edit-inv p-1.5 hover:bg-zinc-800 rounded text-muted hover:text-zinc-100 transition-colors" data-id="${asset.id}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+              <button class="btn-delete-inv p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors" data-id="${asset.id}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>`;
+      
       const div = document.createElement('div');
       div.innerHTML = card.trim();
       const finalCard = div.firstChild;
-      finalCard.querySelector('.btn-edit-inv').onclick = async () =>
-        await editTransaction(asset.id);
-      finalCard.querySelector('.btn-delete-inv').onclick = async () =>
-        await deleteTransaction(asset.id);
+      finalCard.querySelector('.btn-edit-inv').onclick = () => editTransaction(asset.id);
+      finalCard.querySelector('.btn-delete-inv').onclick = () => deleteTransaction(asset.id);
       investmentList.appendChild(finalCard);
     });
+  }
+
+  if (isInitialRender && skeleton) {
+      skeleton.classList.add('hidden');
+      investmentList.classList.remove('hidden');
   }
 }
 
 async function updateSummary() {
   const investments = await Store.get('investments') || [];
+  
+  // CRITICAL: Sort chronologically + ensure Deposits happen first
+  const chronological = [...investments].sort((a, b) => {
+    const timeA = new Date(a.date).getTime();
+    const timeB = new Date(b.date).getTime();
+    if (timeA !== timeB) return timeA - timeB;
+    if (a.type === 'deposit') return -1;
+    if (b.type === 'deposit') return 1;
+    return a.type === 'buy' ? -1 : 1;
+  });
 
   const positions = {};
   let realizedGain = 0;
+  let totalDeposited = 0;
+  let cashBalance = 0; // Total liquid cash in the account
 
-  // Step 1: Aggregate transactions by symbol
-  investments.forEach((asset) => {
+  chronological.forEach((asset) => {
+    if (asset.type === 'deposit') {
+        cashBalance += asset.quantity; // Increase cash by deposit amount
+        totalDeposited += asset.quantity;
+        return;
+    }
+
     const symbol = asset.symbol;
     if (!positions[symbol]) {
       positions[symbol] = { shares: 0, costBasis: 0 };
@@ -244,27 +457,23 @@ async function updateSummary() {
     if (asset.type === 'buy') {
       positions[symbol].shares += asset.quantity;
       positions[symbol].costBasis += asset.total;
+      cashBalance -= asset.total; // Decrease cash by total cost
     } else {
-      // Sell: calculate realized gain/loss using average cost
-      const sellQuantity = asset.quantity;
-      const sellProceeds = asset.total;
-
+      cashBalance += asset.total; // Increase cash by proceeds
       if (positions[symbol].shares > 0) {
-        const avgCostPerShare =
-          positions[symbol].costBasis / positions[symbol].shares;
-        const sharesToSell = Math.min(positions[symbol].shares, sellQuantity);
+        const avgCostPerShare = positions[symbol].costBasis / positions[symbol].shares;
+        const sharesToSell = Math.min(positions[symbol].shares, asset.quantity);
         const costOfSharesSold = avgCostPerShare * sharesToSell;
 
         positions[symbol].shares -= sharesToSell;
         positions[symbol].costBasis -= costOfSharesSold;
-
-        realizedGain += sellProceeds - costOfSharesSold;
+        realizedGain += asset.total - costOfSharesSold;
       }
     }
   });
 
-  // Step 2: Calculate current value and unrealized gain
-  let totalCurrent = 0;
+  // Step 2: Calculate current value of assets
+  let totalCurrentAssetValue = 0;
   let totalUnrealized = 0;
 
   Object.keys(positions).forEach((symbol) => {
@@ -274,13 +483,14 @@ async function updateSummary() {
       const currentPrice = currentData ? currentData.price : 0;
       const currentValue = currentPrice * pos.shares;
 
-      totalCurrent += currentValue;
+      totalCurrentAssetValue += currentValue;
       totalUnrealized += currentValue - pos.costBasis;
     }
   });
 
   // Step 3: Update UI elements
-  const netWorth = totalCurrent;
+  // Net Worth = Current Assets + Remaining Cash (from Deposits & Sells)
+  const netWorth = totalCurrentAssetValue + cashBalance;
   const totalReturn = realizedGain + totalUnrealized;
 
   const portfolioUsd = document.getElementById('portfolio-usd');
@@ -302,22 +512,22 @@ async function updateSummary() {
     portfolioPerf.textContent = `$ ${totalReturn.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
     portfolioPerf.className = `text-2xl font-bold font-mono ${totalReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
   }
+  
   const dashVal = document.getElementById('stat-portfolio-val');
   if (dashVal) {
     dashVal.textContent = `$ ${netWorth.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   }
+
   const countEl = document.getElementById('portfolio-holdings-count');
   if (countEl) {
-    const positionCount = Object.keys(positions).filter(
-      (s) => positions[s].shares > 0
-    ).length;
+    const positionCount = Object.keys(positions).filter(s => positions[s].shares > 0).length;
     countEl.textContent = positionCount;
   }
 
-  // Trigger Background Chart + Analytics Rendering
+  // Trigger Analytics
   await renderPortfolioChart();
-  await renderAllocationChart(positions, totalCurrent);
-  await renderHoldingsBreakdown(positions, totalCurrent);
+  await renderAllocationChart(positions, totalCurrentAssetValue);
+  await renderHoldingsBreakdown(positions, totalCurrentAssetValue);
 }
 
 /**

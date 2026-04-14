@@ -47,6 +47,35 @@
       </div>
     </div>
 
+    <!-- Data Sync -->
+    <div class="card">
+      <h3 class="font-semibold text-zinc-100 mb-2">Automated Data Sync</h3>
+      <p class="text-sm text-muted mb-6">
+        Sync your portfolio with a remote TradingView bridge or custom endpoint.
+      </p>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="label" for="settings-sync-url">Remote Source URL</label>
+          <input
+            type="url"
+            id="settings-sync-url"
+            class="input"
+            placeholder="https://your-site.com/api/trades"
+          />
+        </div>
+        
+        <div>
+          <label class="label" for="settings-sync-headers">Custom Headers (JSON)</label>
+          <textarea
+            id="settings-sync-headers"
+            class="input h-20 font-mono text-xs"
+            placeholder='{ "Authorization": "Bearer your-token-here" }'
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
     <!-- Data -->
     <div class="card">
       <h3 class="font-semibold text-zinc-100 mb-2">Data</h3>

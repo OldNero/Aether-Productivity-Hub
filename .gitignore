@@ -11,5 +11,6 @@ Thumbs.db
 GEMINI.md
 .gemini/
 
-# Secrets & Config
-js/config.js
+    # Secrets & Config
+    js/config.js
+    .env
