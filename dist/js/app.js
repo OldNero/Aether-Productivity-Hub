@@ -102,20 +102,17 @@ const ViewManager = {
           Auth.updateProfileUI();
         // Add "View All" listener back after injection
         const viewAllBtn = document.getElementById('dash-view-all-tasks');
-        if (viewAllBtn) viewAllBtn.onclick = () => this.loadView('tasks');
+        if (viewAllBtn) viewAllBtn.onclick = () => this.loadView('routines');
       },
-      tasks: () => {
+      routines: () => {
         if (typeof window.initTasks === 'function') window.initTasks();
+        if (typeof window.initHabits === 'function') window.initHabits();
       },
       investments: () => {
-        if (typeof window.initInvestments === 'function')
-          window.initInvestments();
+        if (typeof window.initInvestments === 'function') window.initInvestments();
       },
       timer: () => {
         if (typeof window.initTimer === 'function') window.initTimer();
-      },
-      habits: () => {
-        if (typeof window.initHabits === 'function') window.initHabits();
       },
       settings: () => {
         if (typeof window.initSettings === 'function') window.initSettings();
@@ -135,7 +132,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 2. Initialize UI & View Layer
   ViewManager.init();
-  if (typeof Palette !== 'undefined') Palette.init();
   if (typeof window.loadProfileSettings === 'function')
     window.loadProfileSettings();
 
@@ -147,14 +143,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Global Keyboard Listeners (Ctrl+K palette, Esc)
+ * Global Keyboard Listeners (Esc to close modals)
  */
 document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && e.key === 'k') {
-    e.preventDefault();
-    if (typeof Palette !== 'undefined') Palette.toggle();
-  }
-
   // Close modals with ESC key
   if (e.key === 'Escape') {
     const modals = document.querySelectorAll('.modal-overlay.open');

@@ -2,9 +2,21 @@
   <!-- Header -->
   <div class="mb-10 flex items-center justify-between">
     <div>
-      <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-100">
-        Portfolio
-      </h1>
+      <div class="flex items-center gap-4">
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-100">
+          Portfolio
+        </h1>
+        <div id="market-status-badge" class="group relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/50 border border-border cursor-pointer self-end mb-1 transition-all">
+          <span id="market-status-dot" class="w-2 h-2 rounded-full bg-zinc-600 animate-pulse"></span>
+          <span id="market-status-text" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Syncing</span>
+          <!-- Tooltip -->
+          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 bg-zinc-800 text-zinc-200 text-[10px] font-medium rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap shadow-xl z-50">
+             <span id="market-status-time">Fetching status...</span>
+             <!-- Caret -->
+             <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-800"></div>
+          </div>
+        </div>
+      </div>
       <p class="text-base text-muted mt-2 max-w-2xl">
         A real-time overview of your global asset positions.
       </p>

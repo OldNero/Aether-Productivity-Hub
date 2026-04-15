@@ -32,18 +32,27 @@ window.initSettings = async function() {
 
     if (!nameInput) return; // Guard
 
+    // Sync fields
+    const syncUrlInput = document.getElementById("settings-sync-url");
+    const syncHeadersInput = document.getElementById("settings-sync-headers");
+
     // Populate
     nameInput.value = saved.name;
     currencyInput.value = saved.currency;
     themeInput.value = saved.theme;
+    if (syncUrlInput) syncUrlInput.value = saved.syncUrl || '';
+    if (syncHeadersInput) syncHeadersInput.value = saved.syncHeaders || '';
 
     // Listeners
     if (saveBtn) {
         saveBtn.onclick = async () => {
             const data = {
+                ...saved,
                 name: nameInput.value,
                 currency: currencyInput.value,
-                theme: themeInput.value
+                theme: themeInput.value,
+                syncUrl: syncUrlInput ? syncUrlInput.value : (saved.syncUrl || ''),
+                syncHeaders: syncHeadersInput ? syncHeadersInput.value : (saved.syncHeaders || '')
             };
             await Store.set("settings", data);
             await window.loadProfileSettings();
