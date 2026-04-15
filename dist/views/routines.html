@@ -11,168 +11,63 @@
     </div>
   </div>
 
-  <!-- ═══ MAIN GRID ═══ -->
-  <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
-    
-    <!-- ═══ LEFT COLUMN: FOCUS LIST ═══ -->
-    <div class="flex flex-col space-y-4">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="text-2xl font-bold text-zinc-100">Focus List</h2>
-        <button class="btn-primary" id="add-task-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          New Task
-        </button>
-      </div>
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <div class="max-w-4xl mx-auto flex flex-col space-y-4">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-2xl font-bold text-zinc-100">Focus List</h2>
+      <button class="btn-primary" id="add-task-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        New Task
+      </button>
+    </div>
 
-      <!-- Search Bar -->
-      <div class="relative w-full">
-        <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-        <input type="text" id="task-search-input" placeholder="Search focused tasks…" class="input pl-11 py-3.5 text-base shadow-sm" />
-      </div>
+    <!-- Search Bar -->
+    <div class="relative w-full">
+      <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+      <input type="text" id="task-search-input" placeholder="Search focused tasks…" class="input pl-11 py-3.5 text-base shadow-sm" />
+    </div>
 
-      <!-- Filter Row -->
-      <div class="flex items-center justify-between mt-2 mb-2">
-        <div class="flex bg-card border border-border rounded-lg p-1 gap-1" id="task-filters">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="active">Active</button>
-          <button class="filter-btn" data-filter="completed">Done</button>
-        </div>
-        <button class="btn-ghost text-xs text-muted hover:text-red-400 font-medium" id="clear-completed-btn">
-          Clear completed
-        </button>
+    <!-- Filter Row -->
+    <div class="flex items-center justify-between mt-2 mb-2">
+      <div class="flex bg-card border border-border rounded-lg p-1 gap-1" id="task-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="active">Active</button>
+        <button class="filter-btn" data-filter="completed">Done</button>
       </div>
+      <button class="btn-ghost text-xs text-muted hover:text-red-400 font-medium" id="clear-completed-btn">
+        Clear completed
+      </button>
+    </div>
 
-      <!-- Task List Container -->
-      <div id="task-list" class="space-y-2">
-        <!-- JS injects tasks here -->
-      </div>
+    <!-- Task List Container -->
+    <div id="task-list" class="space-y-2">
+      <!-- JS injects tasks here -->
+    </div>
 
-      <!-- Skeleton Loader -->
-      <div id="tasks-skeleton" class="space-y-2 hidden">
-        <div class="task-item animate-pulse">
-          <div class="w-5 h-5 rounded border border-white/5 bg-white/5"></div>
-          <div class="flex-1 min-w-0 space-y-2 ml-2">
-            <div class="w-1/3 h-4 bg-white/10 rounded"></div>
-            <div class="w-16 h-3 bg-white/5 rounded"></div>
-          </div>
-          <div class="w-12 h-5 rounded-md bg-white/5"></div>
+    <!-- Skeleton Loader -->
+    <div id="tasks-skeleton" class="space-y-2 hidden">
+      <div class="task-item animate-pulse">
+        <div class="w-5 h-5 rounded border border-white/5 bg-white/5"></div>
+        <div class="flex-1 min-w-0 space-y-2 ml-2">
+          <div class="w-1/3 h-4 bg-white/10 rounded"></div>
+          <div class="w-16 h-3 bg-white/5 rounded"></div>
         </div>
-        <div class="task-item animate-pulse" style="animation-delay: 75ms">
-          <div class="w-5 h-5 rounded border border-white/5 bg-white/5"></div>
-          <div class="flex-1 min-w-0 space-y-2 ml-2">
-            <div class="w-1/2 h-4 bg-white/10 rounded"></div>
-            <div class="w-20 h-3 bg-white/5 rounded"></div>
-          </div>
-          <div class="w-12 h-5 rounded-md bg-white/5"></div>
-        </div>
-        <div class="task-item animate-pulse" style="animation-delay: 150ms">
-          <div class="w-5 h-5 rounded border border-white/5 bg-white/5"></div>
-          <div class="flex-1 min-w-0 space-y-2 ml-2">
-            <div class="w-1/4 h-4 bg-white/10 rounded"></div>
-            <div class="w-12 h-3 bg-white/5 rounded"></div>
-          </div>
-          <div class="w-12 h-5 rounded-md bg-white/5"></div>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div id="tasks-empty-state" class="hidden py-20 flex flex-col items-center text-center">
-        <div class="w-16 h-16 rounded-xl bg-card border border-border flex items-center justify-center text-muted mb-4">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-        </div>
-        <p class="font-semibold text-zinc-300 mb-1">All clear.</p>
-        <p class="text-sm text-muted">Add a task to start building momentum.</p>
+        <div class="w-12 h-5 rounded-md bg-white/5"></div>
       </div>
     </div>
 
-    <!-- ═══ RIGHT COLUMN: CONSISTENCY CANVAS (HABITS) ═══ -->
-    <div class="flex flex-col space-y-6">
-      <div class="flex items-center justify-between mb-0">
-        <h2 class="text-2xl font-bold text-zinc-100">Consistency Canvas</h2>
+    <!-- Empty State -->
+    <div id="tasks-empty-state" class="hidden py-20 flex flex-col items-center text-center">
+      <div class="w-16 h-16 rounded-xl bg-card border border-border flex items-center justify-center text-muted mb-4">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
       </div>
-
-      <!-- Stats Row -->
-      <div class="grid grid-cols-3 gap-4">
-        <div class="card flex flex-col gap-1 items-center py-5">
-          <p class="text-3xl font-bold text-emerald-400 font-mono" id="streak-current">0</p>
-          <p class="label">Current Streak</p>
-        </div>
-        <div class="card flex flex-col gap-1 items-center py-5">
-          <p class="text-3xl font-bold text-violet-400 font-mono" id="streak-longest">0</p>
-          <p class="label">Longest Streak</p>
-        </div>
-        <div class="card flex flex-col gap-1 items-center py-5">
-          <p class="text-3xl font-bold text-sky-400 font-mono" id="streak-total">0</p>
-          <p class="label">Active Days</p>
-        </div>
-      </div>
-
-      <!-- Today's Rituals -->
-      <div class="card flex flex-col">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-semibold text-zinc-100 flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            Today's Rituals
-          </h3>
-          <span class="text-xs text-muted font-mono" id="rituals-counter">0/0</span>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="w-full h-1.5 bg-zinc-800 rounded-full mb-4 overflow-hidden">
-          <div id="rituals-progress" class="h-full bg-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
-        </div>
-
-        <!-- Rituals List -->
-        <div id="rituals-list" class="space-y-2 flex-1">
-          <!-- JS injects ritual items -->
-        </div>
-
-        <!-- Add Custom Ritual -->
-        <div class="mt-4 pt-4 border-t border-white/5 flex gap-2">
-          <input type="text" id="new-ritual-input" class="input flex-1 text-sm" placeholder="Add a ritual...">
-          <button class="btn-primary px-3 py-2 text-sm" id="add-ritual-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Heatmap -->
-      <div class="card">
-        <h3 class="font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-          Activity Grid
-        </h3>
-        <div id="heatmap-grid" class="heatmap-container overflow-x-auto pb-2">
-          <!-- JS renders heatmap -->
-        </div>
-        <!-- Intensity Legend -->
-        <div class="flex items-center justify-end gap-2 mt-3 text-[10px] text-zinc-500">
-          <span>Less</span>
-          <div class="heatmap-cell" data-level="0" style="width:12px;height:12px"></div>
-          <div class="heatmap-cell" data-level="1" style="width:12px;height:12px"></div>
-          <div class="heatmap-cell" data-level="2" style="width:12px;height:12px"></div>
-          <div class="heatmap-cell" data-level="3" style="width:12px;height:12px"></div>
-          <div class="heatmap-cell" data-level="4" style="width:12px;height:12px"></div>
-          <span>More</span>
-        </div>
-      </div>
-
-      <!-- 7-Day History -->
-      <div class="card">
-        <h3 class="font-semibold text-zinc-100 mb-4">Weekly Overview</h3>
-        <div id="ritual-history" class="flex items-end justify-between gap-2 h-32">
-          <!-- JS renders 7-day bar chart -->
-        </div>
-      </div>
-
-    </div> <!-- End Right Column -->
-
-  </div> <!-- End Grid -->
+      <p class="font-semibold text-zinc-300 mb-1">All clear.</p>
+      <p class="text-sm text-muted">Add a task to start building momentum.</p>
+    </div>
+  </div>
 </div>
 
-<!-- Task Modal (Carried over from tasks.html) -->
+<!-- Task Modal -->
 <div id="modal-task" class="modal-overlay">
   <div class="modal-box">
     <div class="p-6 border-b border-white/5 flex items-center justify-between">
@@ -197,9 +92,18 @@
           </select>
         </div>
         <div>
-          <label class="label" for="task-date">Due date</label>
-          <input type="date" id="task-date" class="input [color-scheme:dark]" />
+          <label class="label" for="task-project-input">Project</label>
+          <select id="task-project-input" class="select">
+            <option value="inbox">Inbox</option>
+            <option value="work">Work</option>
+            <option value="personal">Personal</option>
+            <option value="growth">Growth</option>
+          </select>
         </div>
+      </div>
+      <div>
+        <label class="label" for="task-date">Due date</label>
+        <input type="date" id="task-date" class="input [color-scheme:dark]" />
       </div>
       <div class="flex items-center gap-3 pt-2">
         <button type="button" class="btn-secondary flex-1" id="modal-task-cancel">Cancel</button>
@@ -207,4 +111,24 @@
       </div>
     </form>
   </div>
+</div>
+
+<!-- Bulk Actions Bar -->
+<div id="bulk-actions" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-6 translate-y-24 opacity-0 transition-all duration-300 z-50">
+    <div class="flex items-center gap-3 px-3 border-r border-white/5">
+        <span class="text-xs font-bold text-zinc-400 uppercase tracking-widest" id="bulk-count">0 Selected</span>
+    </div>
+    <div class="flex items-center gap-2">
+        <button class="btn-secondary py-2 px-4 text-xs flex items-center gap-2" id="bulk-complete-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Complete
+        </button>
+        <button class="btn-ghost py-2 px-4 text-xs text-rose-400 hover:text-rose-300 flex items-center gap-2" id="bulk-delete-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Delete
+        </button>
+    </div>
+    <button class="btn-icon scale-90" id="bulk-close-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+    </button>
 </div>

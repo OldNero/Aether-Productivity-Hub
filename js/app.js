@@ -11,7 +11,7 @@ const ViewManager = {
   init() {
     this.viewShell = document.getElementById('view-shell');
     this.initNavigation();
-    console.log('Aether: ViewManager initialized.');
+    this.initSubmenus();
   },
 
   initNavigation() {
@@ -22,6 +22,33 @@ const ViewManager = {
         if (view) this.loadView(view);
       };
     });
+  },
+
+  initSubmenus() {
+    const routinesBtn = document.getElementById('nav-routines');
+    const submenu = document.getElementById('routines-submenu');
+    const chevron = document.getElementById('routines-chevron');
+
+    if (routinesBtn && submenu) {
+      routinesBtn.addEventListener('click', () => {
+        const isHidden = submenu.classList.contains('hidden');
+        this.toggleRoutinesSubmenu(isHidden);
+      });
+    }
+  },
+
+  toggleRoutinesSubmenu(show) {
+    const submenu = document.getElementById('routines-submenu');
+    const chevron = document.getElementById('routines-chevron');
+    if (!submenu) return;
+
+    if (show) {
+      submenu.classList.remove('hidden');
+      if (chevron) chevron.style.transform = 'rotate(180deg)';
+    } else {
+      submenu.classList.add('hidden');
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+    }
   },
 
   async loadView(viewId) {
@@ -45,6 +72,12 @@ const ViewManager = {
       document.querySelectorAll('.sidebar__link').forEach((l) => {
         l.classList.toggle('active', l.dataset.view === viewId);
       });
+
+      // Auto-expand Routines submenu if child is active
+      if (['calendar', 'analytics', 'routines'].includes(viewId)) {
+        this.toggleRoutinesSubmenu(true);
+      }
+
       const headerTitle = document.getElementById('header-view-title');
       if (headerTitle) headerTitle.textContent = viewId.charAt(0).toUpperCase() + viewId.slice(1);
 
@@ -73,12 +106,11 @@ const ViewManager = {
 
         // Aether Intelligence: Update Pulse Insight
         (async () => {
-            const [t, s, h] = await Promise.all([
+            const [t, s] = await Promise.all([
                 Store.get('tasks'),
-                Store.get('sessions'),
-                Store.get('habits')
+                Store.get('sessions')
             ]);
-            const insight = typeof generateAetherInsight === 'function' ? generateAetherInsight(t || [], s || [], h) : "Consistency is key.";
+            const insight = typeof generateAetherInsight === 'function' ? generateAetherInsight(t || [], s || []) : "Consistency is key.";
             const insightEl = document.getElementById('dash-insight-text');
             if (insightEl) insightEl.textContent = insight;
         })();
@@ -106,13 +138,18 @@ const ViewManager = {
       },
       routines: () => {
         if (typeof window.initTasks === 'function') window.initTasks();
-        if (typeof window.initHabits === 'function') window.initHabits();
       },
       investments: () => {
         if (typeof window.initInvestments === 'function') window.initInvestments();
       },
       timer: () => {
         if (typeof window.initTimer === 'function') window.initTimer();
+      },
+      calendar: () => {
+        if (typeof window.initCalendar === 'function') window.initCalendar();
+      },
+      analytics: () => {
+        if (typeof window.initAnalytics === 'function') window.initAnalytics();
       },
       settings: () => {
         if (typeof window.initSettings === 'function') window.initSettings();
@@ -143,7 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Global Keyboard Listeners (Esc to close modals)
+ * Global Keyboard Listeners (Esc to close modals, shortcuts)
  */
 document.addEventListener('keydown', (e) => {
   // Close modals with ESC key
@@ -152,6 +189,15 @@ document.addEventListener('keydown', (e) => {
     modals.forEach((modal) => {
       modal.classList.remove('open');
     });
+  }
+
+  // Global Shortcuts (Alt + key to avoid conflict with typing)
+  if (e.altKey) {
+    if (e.key.toLowerCase() === 'c') ViewManager.loadView('calendar');
+    if (e.key.toLowerCase() === 'd') ViewManager.loadView('dashboard');
+    if (e.key.toLowerCase() === 't') ViewManager.loadView('timer');
+    if (e.key.toLowerCase() === 'r') ViewManager.loadView('routines');
+    if (e.key.toLowerCase() === 'a') ViewManager.loadView('analytics');
   }
 });
 

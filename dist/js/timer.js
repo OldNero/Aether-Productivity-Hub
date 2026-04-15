@@ -13,7 +13,7 @@ let isRunning = false;
 let timerMode = 'stopwatch';   // 'stopwatch' | 'focus' | 'short_break' | 'long_break'
 let pomodoroCount = 0;         // Completed focus sessions in current cycle
 
-const MODES = {
+let MODES = {
     stopwatch:   { label: 'Stopwatch',   duration: 0,        color: 'text-zinc-100',    ring: '#e4e4e7' },
     focus:       { label: 'Focus',       duration: 25 * 60000, color: 'text-emerald-400', ring: '#10b981' },
     short_break: { label: 'Short Break', duration: 5 * 60000,  color: 'text-sky-400',     ring: '#38bdf8' },
@@ -382,6 +382,7 @@ window.initTimer = async function() {
     _syncModeUI();
     updateAllTimerDisplays();
     _syncAllButtons();
+    await populateTaskSelector();
     await renderSessions();
 
     // ── Mode Pills ──
@@ -468,17 +469,28 @@ window.initTimer = async function() {
         btn.onclick = () => toggleSound(btn.dataset.sound);
     });
 
-    const volSlider = document.getElementById('ambient-volume');
-    if (volSlider) {
-        volSlider.value = ambientVolume;
-        volSlider.oninput = (e) => setAmbientVolume(e.target.value);
-    }
 
     // Keyboard shortcut: Escape closes Zen Mode
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeZenMode();
     });
 };
+
+
+async function populateTaskSelector() {
+    const selector = document.getElementById('timer-task-selector');
+    if (!selector) return;
+
+    const tasks = await Store.get('tasks') || [];
+    const activeTasks = tasks.filter(t => t.status === 'active');
+    
+    activeTasks.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.title;
+        selector.appendChild(opt);
+    });
+}
 
 // ─── Dashboard Mini-Timer Initialization ─────────────────────────────
 window.initDashboardTimer = function() {
@@ -501,10 +513,16 @@ async function getSessions() { return await Store.get('sessions') || []; }
 
 async function saveSession() {
     if (elapsed === 0) return;
+    const taskSelector = document.getElementById('timer-task-selector');
+    const taskId = taskSelector?.value || null;
+    const taskTitle = taskId ? taskSelector.options[taskSelector.selectedIndex].text : null;
+
     const session = {
         id: Store.generateUUID(),
         duration: elapsed,
         mode: timerMode,
+        task_id: taskId,
+        task_title: taskTitle,
         created_at: new Date().toISOString()
     };
     const sessions = await getSessions();
@@ -546,7 +564,9 @@ async function renderSessions() {
                     #${sessions.length - idx}
                 </div>
                 <div>
-                    <p class="text-xs font-semibold text-zinc-300">${modeLabel} Session</p>
+                    <p class="text-xs font-semibold text-zinc-300">
+                        ${(s.task_title || s.taskTitle) ? `<span class="text-emerald-400 mr-2">🎯 ${s.task_title || s.taskTitle}</span>` : `${modeLabel} Session`}
+                    </p>
                     <p class="text-[10px] text-muted">${timeElapsed(s.created_at)}</p>
                 </div>
             </div>

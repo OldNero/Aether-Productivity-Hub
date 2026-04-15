@@ -55,7 +55,11 @@ const Store = {
             const { data, error } = await supabaseClient
                 .from(key)
                 .select('*');
-            if (!error) return data;
+            if (!error) {
+                // Return first item for single-record tables
+                if (["profiles"].includes(key)) return data[0] || null;
+                return data;
+            }
             console.error(`Supabase Fetch Error [${key}]:`, error);
         }
 
@@ -77,18 +81,35 @@ const Store = {
         const { data: { session } } = supabaseClient ? await supabaseClient.auth.getSession() : { data: { session: null } };
         
         if (session && ["tasks", "investments", "profiles", "sessions"].includes(key)) {
-            // Inject user_id into every row so RLS policies pass
+            // Whitelist of valid database columns to prevent "Unknown Column" errors
+            const SCHEMA = {
+                tasks: ["id", "user_id", "title", "priority", "status", "subtasks", "project_id", "created_at", "updated_at"],
+                sessions: ["id", "user_id", "duration", "mode", "task_id", "task_title", "created_at"],
+                investments: ["id", "user_id", "symbol", "price", "quantity", "commission", "date", "notes", "type", "total", "created_at"],
+                profiles: ["id", "user_id", "username", "avatar_url", "updated_at"]
+            };
+
             const uid = session.user.id;
-            const stamp = (row) => ({ ...row, user_id: uid });
-            const payload = Array.isArray(value) ? value.map(stamp) : stamp(value);
+            const allowed = SCHEMA[key];
+            
+            const prepareRow = (row) => {
+                const clean = { ...row, user_id: uid };
+                if (allowed) {
+                    for (let prop in clean) {
+                        if (!allowed.includes(prop)) delete clean[prop];
+                    }
+                }
+                return clean;
+            };
+
+            const payload = Array.isArray(value) ? value.map(prepareRow) : prepareRow(value);
 
             const { error } = await supabaseClient
                 .from(key)
-                .upsert(payload);
+                .upsert(payload, ["profiles"].includes(key) ? { onConflict: 'user_id' } : {});
             
             if (error) {
                 console.error(`Supabase Upsert Error [${key}]:`, error);
-                // We logicially "fail over" to local storage below, but the cloud sync is the primary goal
             } else {
                 return; // Successfully persisted to cloud
             }

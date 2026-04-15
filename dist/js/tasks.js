@@ -30,7 +30,10 @@ function createTask(title, priority = 'medium') {
     title: title,
     priority: priority,
     status: 'active',
+    subtasks: [],
+    project_id: 'inbox',
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 }
 
@@ -42,9 +45,10 @@ async function saveTasks(taskArray) {
   await Store.set('tasks', taskArray);
 }
 
-async function addTask(title, priority) {
+async function addTask(title, priority, project_id = 'inbox') {
   const tasks = await getTasks();
   const newTask = createTask(title, priority);
+  newTask.project_id = project_id;
   tasks.push(newTask);
   await saveTasks(tasks);
   return newTask;
@@ -59,8 +63,45 @@ async function toggleTask(id) {
   const task = tasks.find((t) => t.id === id);
   if (task) {
     task.status = task.status === 'active' ? 'completed' : 'active';
+    task.updated_at = new Date().toISOString();
+    // Auto-complete all subtasks if task is completed
+    if (task.status === 'completed' && task.subtasks) {
+        task.subtasks.forEach(s => s.completed = true);
+    }
     await saveTasks(tasks);
   }
+}
+
+async function addSubtask(taskId, title) {
+    const tasks = await getTasks();
+    const task = tasks.find(t => t.id === taskId);
+    if (task && title.trim()) {
+        if (!task.subtasks) task.subtasks = [];
+        task.subtasks.push({
+            id: Store.generateUUID(),
+            title: title.trim(),
+            completed: false
+        });
+        task.updated_at = new Date().toISOString();
+        await saveTasks(tasks);
+    }
+}
+
+async function toggleSubtask(taskId, subtaskId) {
+    const tasks = await getTasks();
+    const task = tasks.find(t => t.id === taskId);
+    if (task && task.subtasks) {
+        const sub = task.subtasks.find(s => s.id === subtaskId);
+        if (sub) {
+            sub.completed = !sub.completed;
+            task.updated_at = new Date().toISOString();
+            
+            // Auto-complete parent if all subtasks are done? (Optional UX choice)
+            // For now, let's just keep them independent.
+            
+            await saveTasks(tasks);
+        }
+    }
 }
 
 async function updateTaskStatus() {
@@ -142,21 +183,64 @@ async function renderTasks(filterType = 'all') {
     const div = document.createElement('div');
     div.className = `task-item group ${task.status === 'completed' ? 'task-item--completed' : ''}`;
     div.dataset.id = task.id;
+    
+    const subtasks = task.subtasks || [];
+    const subtasksDone = subtasks.filter(s => s.completed).length;
+    const subtasksTotal = subtasks.length;
+    const progressPercent = subtasksTotal > 0 ? (subtasksDone / subtasksTotal) * 100 : 0;
+
     div.innerHTML = `
-      <label class="task-item__checkbox">
-        <input type="checkbox" ${task.status === 'completed' ? 'checked' : ''} />
-        <span class="task-item__checkmark"></span>
-      </label>
-      <div class="task-item__content">
-        <span class="task-item__title">${task.title}</span>
-        <span class="task-item__meta">${timeElapsed(task.created_at)}</span>
+      <div class="task-item__header">
+        <label class="task-item__checkbox">
+            <input type="checkbox" ${task.status === 'completed' ? 'checked' : ''} class="main-task-toggle" />
+            <span class="task-item__checkmark"></span>
+        </label>
+        <div class="task-item__content">
+            <span class="task-item__title">${task.title}</span>
+            <div class="flex items-center gap-2 mt-1">
+                <span class="task-item__meta">${timeElapsed(task.created_at)}</span>
+                ${subtasksTotal > 0 ? `
+                    <span class="text-[10px] text-muted flex items-center gap-1">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                        ${subtasksDone}/${subtasksTotal}
+                    </span>
+                ` : ''}
+            </div>
+        </div>
+        <span class="badge badge--${task.priority} mr-3">${task.priority}</span>
+        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button class="p-1.5 hover:bg-white/5 rounded text-muted hover:text-white transition-colors add-subtask-btn" title="Add subtask">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            </button>
+            <button class="p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors delete-task-btn" title="Delete task">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+        </div>
       </div>
-      <span class="badge badge--${task.priority} mr-3">${task.priority}</span>
-      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button class="p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors delete-task-btn" title="Delete task">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
+
+      <!-- Subtask Progress -->
+      ${subtasksTotal > 0 ? `
+        <div class="w-full pl-13 pr-5 mb-2">
+            <div class="h-1 bg-white/5 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500/50 rounded-full transition-all duration-500" style="width: ${progressPercent}%"></div>
+            </div>
+        </div>
+      ` : ''}
+ 
+      <!-- Subtasks List -->
+      <div class="subtask-list w-full pl-13 pr-5 space-y-1.5 ${subtasks.length > 0 ? 'mb-3' : ''}">
+        ${subtasks.map(sub => `
+            <div class="flex items-center gap-2.5 py-0.5 group/sub" data-sub-id="${sub.id}">
+                <input type="checkbox" ${sub.completed ? 'checked' : ''} class="sub-task-toggle w-3.5 h-3.5 rounded bg-zinc-800 border-white/10 text-emerald-500 focus:ring-0" />
+                <span class="text-xs ${sub.completed ? 'text-zinc-600 line-through' : 'text-zinc-400'} flex-1 truncate">${sub.title}</span>
+            </div>
+        `).join('')}
+      </div>
+ 
+      <!-- Subtask Quick Add Input (hidden by default) -->
+      <div class="subtask-add-container w-full pl-13 pb-4 pr-5 hidden">
+        <input type="text" class="input py-1.5 text-[10px] subtask-quick-input" placeholder="Enter subtask title..." />
       </div>
     `;
     container.appendChild(div);
@@ -203,9 +287,10 @@ window.initTasks = async function() {
             e.preventDefault();
             const title = document.getElementById('task-title-input').value;
             const priority = document.getElementById('task-priority-input').value;
+            const projectId = document.getElementById('task-project-input').value;
             
             if (title.trim()) {
-                await addTask(title, priority);
+                await addTask(title, priority, projectId);
                 await renderTasks();
                 taskForm.reset();
                 taskModal?.classList.remove('open');
@@ -232,13 +317,97 @@ window.initTasks = async function() {
             if (!taskItem) return;
             const id = taskItem.dataset.id;
 
-            if (e.target.type === 'checkbox') {
+            // Main Task Toggle
+            if (e.target.classList.contains('main-task-toggle')) {
                 await toggleTask(id);
+                updateBulkBar();
                 await renderTasks();
-            } else if (e.target.closest('.delete-task-btn')) {
+            } 
+            // Subtask Toggle
+            else if (e.target.classList.contains('sub-task-toggle')) {
+                const subId = e.target.closest('[data-sub-id]').dataset.subId;
+                await toggleSubtask(id, subId);
+                await renderTasks();
+            }
+            // Add Subtask Logic
+            else if (e.target.closest('.add-subtask-btn')) {
+                const inputContainer = taskItem.querySelector('.subtask-add-container');
+                inputContainer.classList.toggle('hidden');
+                if (!inputContainer.classList.contains('hidden')) {
+                    inputContainer.querySelector('input').focus();
+                }
+            }
+            // Delete Task
+            else if (e.target.closest('.delete-task-btn')) {
                 await deleteTask(id);
                 await renderTasks();
             }
+        };
+
+        // Handle subtask quick-add (Enter key)
+        taskList.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter' && e.target.classList.contains('subtask-quick-input')) {
+                const taskItem = e.target.closest('.task-item');
+                const id = taskItem.dataset.id;
+                await addSubtask(id, e.target.value);
+                await renderTasks();
+            }
+        });
+    }
+
+    // --- BATCH OPERATIONS LOGIC ---
+    const bulkBar = document.getElementById('bulk-actions');
+    const bulkCountDisp = document.getElementById('bulk-count');
+    const bulkCompleteBtn = document.getElementById('bulk-complete-btn');
+    const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+    const bulkCloseBtn = document.getElementById('bulk-close-btn');
+
+    function updateBulkBar() {
+        const selected = Array.from(document.querySelectorAll('.main-task-toggle:checked'));
+        if (selected.length > 0) {
+            bulkCountDisp.textContent = `${selected.length} Selected`;
+            bulkBar.classList.remove('translate-y-24', 'opacity-0');
+        } else {
+            bulkBar.classList.add('translate-y-24', 'opacity-0');
+        }
+    }
+
+    if (bulkCloseBtn) {
+        bulkCloseBtn.onclick = () => {
+            document.querySelectorAll('.main-task-toggle:checked').forEach(cb => cb.checked = false);
+            updateBulkBar();
+        };
+    }
+
+    if (bulkCompleteBtn) {
+        bulkCompleteBtn.onclick = async () => {
+            const selectedIds = Array.from(document.querySelectorAll('.main-task-toggle:checked'))
+                .map(cb => cb.closest('.task-item').dataset.id);
+            
+            const tasks = await getTasks();
+            tasks.forEach(t => {
+                if (selectedIds.includes(t.id)) {
+                    t.status = 'completed';
+                    t.subtasks.forEach(s => s.completed = true);
+                }
+            });
+            await saveTasks(tasks);
+            updateBulkBar();
+            await renderTasks();
+        };
+    }
+
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.onclick = async () => {
+            if (!confirm('Delete selected tasks?')) return;
+            const selectedIds = Array.from(document.querySelectorAll('.main-task-toggle:checked'))
+                .map(cb => cb.closest('.task-item').dataset.id);
+            
+            let tasks = await getTasks();
+            tasks = tasks.filter(t => !selectedIds.includes(t.id));
+            await saveTasks(tasks);
+            updateBulkBar();
+            await renderTasks();
         };
     }
 };

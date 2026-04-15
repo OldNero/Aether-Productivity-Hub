@@ -26,7 +26,7 @@ function build() {
         fs.mkdirSync(distPath, { recursive: true });
 
         // 4. Copy Assets
-        const assets = ['index.html', 'js', 'css', 'views'];
+        const assets = ['index.html', 'js', 'css', 'views', 'favicon.svg'];
         assets.forEach(asset => {
             const src = path.join(__dirname, '..', asset);
             const dest = path.join(distPath, asset);

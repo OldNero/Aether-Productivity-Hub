@@ -92,13 +92,17 @@ const SearchController = (() => {
         const resultsContainer = document.getElementById('global-search-results');
 
         // Fetch data concurrently
-        const [tasks, investments] = await Promise.all([
+        const [tasks, investments, habits, events] = await Promise.all([
             Store.get('tasks').catch(() => []),
-            Store.get('investments').catch(() => [])
+            Store.get('investments').catch(() => []),
+            Store.get('habits').catch(() => ({ customRituals: [] })),
+            Store.get('events').catch(() => [])
         ]);
 
         const safeTasks = tasks || [];
         const safeInvestments = investments || [];
+        const safeHabits = habits?.customRituals || [];
+        const safeEvents = events || [];
 
         // Filter Tasks
         const matchedTasks = safeTasks
@@ -129,7 +133,65 @@ const SearchController = (() => {
                 view: 'investments'
             }));
 
-        currentResults = [...matchedTasks, ...matchedInvestments];
+        // Filter Habits
+        const matchedHabits = safeHabits
+            .filter(h => h.label && h.label.toLowerCase().includes(query))
+            .slice(0, 3)
+            .map(h => ({
+                type: 'habit',
+                title: h.label,
+                subtitle: `Type: ${h.type || 'Binary'} · Target: ${h.target || 1}`,
+                icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>`,
+                iconColor: 'text-amber-400 bg-amber-500/10',
+                view: 'routines'
+            }));
+
+        // Filter Calendar Events
+        const matchedEvents = safeEvents
+            .filter(e => e.title && e.title.toLowerCase().includes(query))
+            .slice(0, 5)
+            .map(e => ({
+                type: 'event',
+                title: e.title,
+                subtitle: `${e.date} · ${e.time || ''}`,
+                icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>`,
+                iconColor: 'text-sky-400 bg-sky-500/10',
+                view: 'calendar'
+            }));
+
+        // --- QUICK ACTION COMMANDS ---
+        let commands = [];
+        if (query.startsWith('/task ')) {
+            const title = query.slice(6);
+            commands.push({
+                type: 'command',
+                title: `Create task: "${title}"`,
+                subtitle: 'Press Enter to capture as new focused task',
+                icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>`,
+                iconColor: 'text-white bg-white/20',
+                action: async () => {
+                    const { addTask } = await import('./tasks.js');
+                    await addTask(title, 'medium');
+                }
+            });
+        }
+        if (query.startsWith('/habit ')) {
+            const label = query.slice(7);
+            commands.push({
+                type: 'command',
+                title: `Create habit: "${label}"`,
+                subtitle: 'Press Enter to evolve a new routine',
+                icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>`,
+                iconColor: 'text-white bg-white/20',
+                action: async () => {
+                   const data = await Store.get('habits') || { customRituals: [] };
+                   data.customRituals.push({ id: 'adv_'+Store.generateUUID().slice(0,8), label, type: 'binary' });
+                   await Store.set('habits', data);
+                }
+            });
+        }
+
+        currentResults = [...commands, ...matchedTasks, ...matchedHabits, ...matchedEvents, ...matchedInvestments];
         selectedIndex = currentResults.length > 0 ? 0 : -1;
 
         renderResults(resultsContainer, dropdown, query);
@@ -146,16 +208,42 @@ const SearchController = (() => {
             return;
         }
 
-        // Group results by type
+        const commands = currentResults.filter(r => r.type === 'command');
         const tasks = currentResults.filter(r => r.type === 'task');
+        const habits = currentResults.filter(r => r.type === 'habit');
+        const events = currentResults.filter(r => r.type === 'event');
         const investments = currentResults.filter(r => r.type === 'investment');
 
         let html = '';
         let globalIndex = 0;
 
+        if (commands.length > 0) {
+            html += `<p class="text-[10px] font-bold text-white uppercase tracking-widest px-4 pt-3 pb-1">Commands</p>`;
+            commands.forEach(res => {
+                html += buildResultItem(res, globalIndex, globalIndex === selectedIndex);
+                globalIndex++;
+            });
+        }
+
         if (tasks.length > 0) {
             html += `<p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 pt-3 pb-1">Tasks</p>`;
             tasks.forEach(res => {
+                html += buildResultItem(res, globalIndex, globalIndex === selectedIndex);
+                globalIndex++;
+            });
+        }
+
+        if (habits.length > 0) {
+            html += `<p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 pt-3 pb-1">Habits</p>`;
+            habits.forEach(res => {
+                html += buildResultItem(res, globalIndex, globalIndex === selectedIndex);
+                globalIndex++;
+            });
+        }
+
+        if (events.length > 0) {
+            html += `<p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 pt-3 pb-1">Events</p>`;
+            events.forEach(res => {
                 html += buildResultItem(res, globalIndex, globalIndex === selectedIndex);
                 globalIndex++;
             });
@@ -205,7 +293,9 @@ const SearchController = (() => {
                     <p class="text-sm font-semibold truncate ${isSelected ? 'text-white' : 'text-zinc-300'}">${res.title}</p>
                     <p class="text-[10px] text-zinc-500 truncate">${res.subtitle}</p>
                 </div>
-                <span class="text-[10px] font-bold uppercase tracking-wider shrink-0 ${isSelected ? 'text-emerald-400' : 'text-zinc-700'}">${res.type === 'task' ? 'Task' : 'Portfolio'}</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider shrink-0 ${isSelected ? 'text-emerald-400' : 'text-zinc-700'}">
+                    ${res.type.charAt(0).toUpperCase() + res.type.slice(1)}
+                </span>
             </div>`;
     }
 
@@ -241,13 +331,20 @@ const SearchController = (() => {
         }
     }
 
-    function selectCurrent() {
+    async function selectCurrent() {
         if (selectedIndex >= 0 && selectedIndex < currentResults.length) {
             const result = currentResults[selectedIndex];
+            
+            // Execute command if exists
+            if (result.type === 'command' && result.action) {
+                await result.action();
+            }
+
             closeDropdown();
             document.getElementById('global-search-input').value = '';
             document.getElementById('global-search-input').blur();
-            if (typeof ViewManager !== 'undefined') {
+            
+            if (result.view && typeof ViewManager !== 'undefined') {
                 ViewManager.loadView(result.view);
             }
         }
