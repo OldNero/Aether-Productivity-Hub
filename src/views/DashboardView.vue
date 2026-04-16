@@ -2,9 +2,13 @@
 import { onMounted, ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useTaskStore } from '@/stores/tasks';
+import { useTimerStore } from '@/stores/timer';
+import { useInvestmentStore } from '@/stores/investments';
 
 const authStore = useAuthStore();
 const taskStore = useTaskStore();
+const timerStore = useTimerStore();
+const investmentStore = useInvestmentStore();
 
 const quote = ref({ text: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' });
 const insight = ref('Analyzing your productivity rhythm...');
@@ -25,10 +29,26 @@ const glowClass = computed(() => {
   }
 });
 
+const formatCurrency = (val: number) => {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+};
+
+const dashOffset = computed(() => {
+  // SVG Circle circumference for r=52 is ~326.73
+  const circumference = 326.73;
+  if (timerStore.mode === 'stopwatch') return circumference;
+  const p = timerStore.secondsElapsed / timerStore.targetSeconds;
+  return circumference * (1 - p);
+});
+
 onMounted(async () => {
-  await taskStore.fetchTasks();
+  await Promise.all([
+    taskStore.fetchTasks(),
+    timerStore.init(),
+    investmentStore.fetchInvestments()
+  ]);
   
-  // Fetch Quote (Mocking the API for now, would use a utility)
+  // Fetch Quote
   try {
     const response = await fetch('https://quoteslate.vercel.app/api/quotes/random');
     if (response.ok) {
@@ -39,7 +59,7 @@ onMounted(async () => {
     console.warn("Quote fetch failed, using default.");
   }
 
-  // Set Insight (Mock logic)
+  // Set Insight
   insight.value = taskStore.activeCount > 3 
     ? "You have a busy day ahead. Focus on high-priority tasks first."
     : "Consistency is key. You're making great progress!";
@@ -152,7 +172,9 @@ onMounted(async () => {
         </div>
         <div>
           <p class="label">Portfolio (USD)</p>
-          <p class="text-2xl font-bold tracking-tight text-zinc-100 truncate">$0.00</p>
+          <p class="text-2xl font-bold tracking-tight text-zinc-100 truncate">
+            {{ formatCurrency(investmentStore.netWorth) }}
+          </p>
         </div>
       </div>
 
@@ -166,7 +188,7 @@ onMounted(async () => {
           <div v-for="task in taskStore.activeTasks.slice(0, 5)" :key="task.id" class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
             <div class="w-1.5 h-1.5 rounded-full bg-zinc-500"></div>
             <span class="text-sm text-zinc-300 flex-1 truncate">{{ task.title }}</span>
-            <span class="badge scale-90Origin" :class="`badge--${task.priority}`">{{ task.priority }}</span>
+            <span class="badge" :class="`badge--${task.priority}`">{{ task.priority }}</span>
           </div>
           <p v-if="taskStore.activeCount === 0" class="text-xs text-muted py-4">No active tasks. Time to focus?</p>
         </div>
@@ -177,18 +199,47 @@ onMounted(async () => {
         <div class="relative w-44 h-44 flex items-center justify-center">
           <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 112 112">
             <circle class="text-zinc-800" stroke-width="6" stroke="currentColor" fill="none" r="52" cx="56" cy="56" />
-            <circle class="text-zinc-100 transition-all duration-300" stroke-width="6" stroke-dasharray="326.73" stroke-dashoffset="326.73" stroke-linecap="round" stroke="currentColor" fill="none" r="52" cx="56" cy="56" />
+            <circle 
+                class="text-zinc-100 transition-all duration-300" 
+                stroke-width="6" 
+                :stroke-dasharray="326.73" 
+                :stroke-dashoffset="dashOffset" 
+                stroke-linecap="round" 
+                stroke="currentColor" 
+                fill="none" 
+                r="52" cx="56" cy="56" 
+            />
           </svg>
-          <span class="text-2xl font-bold font-mono tracking-tighter text-zinc-100">00:00:00</span>
+          <span class="text-2xl font-bold font-mono tracking-tighter text-zinc-100">{{ timerStore.formattedTime }}</span>
         </div>
         <div>
-          <p class="label mb-3">Ready to focus</p>
-          <button class="btn-primary px-8 py-2.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-            Start Session
-          </button>
+          <p class="label mb-3 capitalize">{{ timerStore.isActive ? (timerStore.mode === 'stopwatch' ? 'Recording' : 'Focusing') : 'Ready to focus' }}</p>
+          <div class="flex items-center gap-3">
+              <button 
+                @click="timerStore.isActive ? timerStore.pause() : timerStore.start()" 
+                class="btn-primary px-8 py-2.5 min-w-[160px]"
+              >
+                <template v-if="!timerStore.isActive">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    Start Session
+                </template>
+                <template v-else>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" />
+                    </svg>
+                    Pause
+                </template>
+              </button>
+              <button 
+                v-if="timerStore.isActive || timerStore.secondsElapsed > 0"
+                @click="timerStore.completeSession"
+                class="btn-secondary p-2.5 rounded-full"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+          </div>
         </div>
       </div>
     </div>
