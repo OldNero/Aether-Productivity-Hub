@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { useTimerStore, type TimerMode } from '@/stores/timer';
 import { useTaskStore } from '@/stores/tasks';
 import { formatDistanceToNow } from 'date-fns';
@@ -7,7 +7,14 @@ import { formatDistanceToNow } from 'date-fns';
 const timerStore = useTimerStore();
 const taskStore = useTaskStore();
 
-const isZenMode = ref(false);
+const showControls = ref(true);
+let controlTimer: number | null = null;
+
+const handleFullscreenChange = () => {
+  if (!document.fullscreenElement) {
+    timerStore.isZenMode = false;
+  }
+};
 
 onMounted(async () => {
   await timerStore.init();
@@ -16,7 +23,24 @@ onMounted(async () => {
   if (Notification.permission === "default") {
     Notification.requestPermission();
   }
+
+  window.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
 });
+
+onUnmounted(() => {
+    window.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+});
+
+const handleMouseMove = () => {
+    if (!timerStore.isZenMode) return;
+    showControls.value = true;
+    if (controlTimer) clearTimeout(controlTimer);
+    controlTimer = window.setTimeout(() => {
+        showControls.value = false;
+    }, 3000);
+};
 
 const modes: { id: TimerMode; label: string }[] = [
   { id: 'stopwatch', label: 'Stopwatch' },
@@ -25,8 +49,24 @@ const modes: { id: TimerMode; label: string }[] = [
   { id: 'long_break', label: 'Long Break' },
 ];
 
-const toggleZen = () => {
-  isZenMode.value = !isZenMode.value;
+const toggleZen = async () => {
+  if (!timerStore.isZenMode) {
+    try {
+      if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+      }
+      timerStore.isZenMode = true;
+      showControls.value = false;
+    } catch (err) {
+      console.error("Fullscreen failed", err);
+      timerStore.isZenMode = true;
+    }
+  } else {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    }
+    timerStore.isZenMode = false;
+  }
 };
 
 const formatDuration = (seconds: number) => {
@@ -42,8 +82,9 @@ const getTaskTitle = (id?: string) => {
 </script>
 
 <template>
-  <div class="p-6 max-w-screen-2xl mx-auto page-transition" :class="{ 'zen-active': isZenMode }">
-    <div class="mb-10 flex items-end justify-between transition-all duration-500" :class="{ 'opacity-0 pointer-events-none translate-y-[-20px]': isZenMode }">
+  <div :class="[timerStore.isZenMode ? '' : 'p-6 max-w-screen-2xl mx-auto page-transition']">
+    <!-- Header -->
+    <div v-if="!timerStore.isZenMode" class="mb-10 flex items-end justify-between transition-all duration-700">
       <div>
         <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-100">
           Deep Work
@@ -60,113 +101,67 @@ const getTaskTitle = (id?: string) => {
       </button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 transition-all duration-700">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Timer Card -->
       <div 
-        class="card flex flex-col items-center justify-center gap-8 py-16 relative overflow-hidden transition-all duration-700"
-        :class="{ 'fixed inset-0 z-[100] border-0 bg-zinc-950 rounded-none py-0': isZenMode }"
+        class="card flex flex-col items-center justify-center gap-12 py-16 relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
+        :class="{ 'shadow-2xl shadow-white/5': !timerStore.isZenMode }"
       >
-        <!-- Zen Mode Exit -->
-        <button v-if="isZenMode" @click="toggleZen" class="absolute top-8 right-8 btn-ghost text-zinc-500 hover:text-white">
-            Exit Zen
-        </button>
+        <!-- Standard Visual -->
+        <template v-if="!timerStore.isZenMode">
+            <!-- Mode Selector Pills -->
+            <div class="flex flex-wrap items-center justify-center gap-2 z-10">
+                <button 
+                    v-for="mode in modes" 
+                    :key="mode.id" 
+                    @click="timerStore.setMode(mode.id)" 
+                    class="mode-pill" 
+                    :class="{ 'mode-pill--active': timerStore.mode === mode.id }"
+                    :disabled="timerStore.isActive"
+                >
+                    {{ mode.label }}
+                </button>
+            </div>
 
-        <!-- Task Labeling -->
-        <div class="w-full max-w-sm transition-all duration-500" :class="{ 'opacity-0 translate-y-4': isZenMode }">
-          <label class="label mb-2 flex items-center gap-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-              Tag Task for Focus
-          </label>
-          <select v-model="timerStore.linkedTaskId" class="select text-xs bg-zinc-900/50" :disabled="timerStore.isActive">
-              <option :value="null">No task linked (Stopwatch mode)</option>
-              <option v-for="task in taskStore.activeTasks" :key="task.id" :value="task.id">
-                {{ task.title }}
-              </option>
-          </select>
-        </div>
+            <!-- Timer Visual -->
+            <div class="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center group z-10">
+                <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 240 240">
+                    <circle class="text-zinc-900/40" stroke-width="1.5" stroke="currentColor" fill="none" r="110" cx="120" cy="120" />
+                    <circle 
+                        class="transition-all duration-1000 ease-out" 
+                        stroke-width="1.5" 
+                        :stroke-dasharray="691.15" 
+                        :stroke-dashoffset="timerStore.dashOffset * 1.047" 
+                        stroke-linecap="round" 
+                        stroke="white" 
+                        fill="none" 
+                        r="110" cx="120" cy="120" 
+                    />
+                </svg>
+                <div class="text-center z-10">
+                    <p class="text-5xl md:text-7xl font-bold font-mono tracking-tighter text-zinc-100">{{ timerStore.formattedTime }}</p>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.4em] text-muted mt-4">Ready</p>
+                </div>
+            </div>
 
-        <!-- Mode Selector Pills -->
-        <div class="flex flex-wrap items-center justify-center gap-2 transition-all duration-500" :class="{ 'opacity-0': isZenMode }">
-          <button 
-            v-for="mode in modes" 
-            :key="mode.id" 
-            @click="timerStore.setMode(mode.id)" 
-            class="mode-pill" 
-            :class="{ 'mode-pill--active': timerStore.mode === mode.id }"
-            :disabled="timerStore.isActive"
-          >
-            {{ mode.label }}
-          </button>
-        </div>
-
-        <!-- Timer Visual -->
-        <div class="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center group">
-          <!-- Outer Breathing Ring (Zen Mode only) -->
-          <div v-if="isZenMode && timerStore.isActive" class="absolute inset-0 rounded-full border-2 border-white/5 animate-ping opacity-20"></div>
-          
-          <svg class="absolute inset-0 w-full h-full -rotate-90 scale-110 md:scale-125 transition-transform duration-700" viewBox="0 0 240 240">
-            <circle class="text-zinc-900" stroke-width="4" stroke="currentColor" fill="none" r="105" cx="120" cy="120" />
-            <circle 
-                class="transition-all duration-500 ease-out" 
-                stroke-width="4" 
-                :stroke-dasharray="659.7" 
-                :stroke-dashoffset="timerStore.dashOffset" 
-                stroke-linecap="round" 
-                stroke="white" 
-                fill="none" 
-                r="105" cx="120" cy="120" 
-            />
-          </svg>
-          
-          <div class="text-center z-10">
-            <p class="text-6xl md:text-7xl font-bold font-mono tracking-tighter text-zinc-100 transition-all duration-500" :class="{ 'scale-110': timerStore.isActive }">
-                {{ timerStore.formattedTime }}
-            </p>
-            <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-muted mt-4">
-                {{ timerStore.isActive ? (timerStore.mode === 'stopwatch' ? 'Recording' : 'Focusing') : 'Ready' }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Controls -->
-        <div class="flex items-center gap-6 z-10">
-          <button 
-            @click="timerStore.reset" 
-            class="btn-icon w-12 h-12 rounded-full hover:bg-rose-500/10 hover:text-rose-400 transition-all"
-            :class="{ 'opacity-0 translate-y-4': isZenMode && !timerStore.isActive }"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8" />
-            </svg>
-          </button>
-          
-          <button 
-            @click="timerStore.isActive ? timerStore.pause() : timerStore.start()"
-            class="w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl active:scale-95"
-            :class="timerStore.isActive ? 'bg-zinc-100 text-zinc-950 hover:bg-white' : 'bg-white text-zinc-950 hover:scale-105 shadow-white/10'"
-          >
-            <svg v-if="!timerStore.isActive" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-            <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" />
-            </svg>
-          </button>
-
-          <button 
-            @click="timerStore.completeSession"
-            class="btn-icon w-12 h-12 rounded-full hover:bg-emerald-500/10 hover:text-emerald-400 transition-all"
-            :class="{ 'opacity-0 translate-y-4': isZenMode && !timerStore.isActive }"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </button>
-        </div>
+            <!-- Controls -->
+            <div class="flex items-center gap-8 z-10">
+                <button @click="timerStore.reset" class="btn-icon w-12 h-12 rounded-full hover:bg-rose-500/10 hover:text-rose-400 transition-all">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8" /></svg>
+                </button>
+                <button @click="timerStore.isActive ? timerStore.pause() : timerStore.start()" class="w-20 h-20 rounded-full flex items-center justify-center bg-white text-zinc-950 hover:scale-105 transition-all">
+                    <svg v-if="!timerStore.isActive" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                    <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                </button>
+                <button @click="timerStore.completeSession" class="btn-icon w-12 h-12 rounded-full hover:bg-emerald-500/10 hover:text-emerald-400 transition-all">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                </button>
+            </div>
+        </template>
       </div>
 
       <!-- History Column -->
-      <div class="flex flex-col gap-6 transition-all duration-500" :class="{ 'opacity-0 translate-x-10 pointer-events-none': isZenMode }">
+      <div v-if="!timerStore.isZenMode" class="flex flex-col gap-6">
         <div class="card flex flex-col flex-1 min-h-[500px]">
           <div class="flex items-center justify-between mb-8">
             <h3 class="font-bold text-zinc-100 tracking-tight flex items-center gap-2">
@@ -217,6 +212,69 @@ const getTaskTitle = (id?: string) => {
         </div>
       </div>
     </div>
+
+    <!-- ═══ ZEN OVERLAY (TELEPORTED) ═══ -->
+    <Teleport to="body">
+      <div 
+        v-if="timerStore.isZenMode"
+        class="fixed inset-0 z-[9999] bg-zinc-950 flex flex-col items-center justify-center overflow-hidden"
+      >
+        <!-- Animated Aether Background -->
+        <div class="absolute inset-0 pointer-events-none opacity-40">
+            <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/10 rounded-full blur-[120px] animate-pulse"></div>
+            <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/5 rounded-full blur-[120px] animate-pulse" style="animation-delay: 2s"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_70%)]"></div>
+        </div>
+
+        <!-- Exit Button -->
+        <button 
+            @click="toggleZen" 
+            class="absolute top-12 right-12 btn-ghost text-zinc-500 hover:text-white transition-all duration-500 z-[110]"
+            :class="{ 'opacity-0 translate-y-[-10px] pointer-events-none': !showControls }"
+        >
+            Exit Zen
+        </button>
+
+        <!-- Status & Mode -->
+        <div class="absolute top-24 transition-all duration-500 z-10" :class="{ 'opacity-0 translate-y-[-10px] pointer-events-none': !showControls }">
+            <label class="label mb-2 flex items-center gap-2 justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                Focusing on
+            </label>
+            <div class="text-center font-bold text-zinc-100 text-lg tracking-tight">
+                {{ getTaskTitle(timerStore.linkedTaskId) }}
+            </div>
+        </div>
+
+        <div class="absolute top-48 flex flex-wrap items-center justify-center gap-2 transition-all duration-500 z-10" :class="{ 'opacity-0 translate-y-[-10px] pointer-events-none': !showControls }">
+            <button v-for="mode in modes" :key="mode.id" @click="timerStore.setMode(mode.id)" class="mode-pill" :class="{ 'mode-pill--active': timerStore.mode === mode.id }" :disabled="timerStore.isActive">
+                {{ mode.label }}
+            </button>
+        </div>
+
+        <!-- Main Timer (Centered) -->
+        <div class="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center z-10 transition-all duration-1000">
+            <div v-if="timerStore.isActive" class="absolute inset-[-10%] rounded-full border border-white/5 animate-pulse opacity-20"></div>
+            <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 240 240">
+                <circle class="text-zinc-900/40" stroke-width="1.5" stroke="currentColor" fill="none" r="110" cx="120" cy="120" />
+                <circle class="transition-all duration-1000 ease-out" stroke-width="1.5" :stroke-dasharray="691.15" :stroke-dashoffset="timerStore.dashOffset * 1.047" stroke-linecap="round" stroke="white" fill="none" r="110" cx="120" cy="120" />
+            </svg>
+            <div class="text-center">
+                <p class="text-6xl md:text-8xl font-bold font-mono tracking-tighter text-zinc-100">{{ timerStore.formattedTime }}</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.4em] text-muted mt-4 transition-all duration-500" :class="{ 'opacity-0': !showControls }">
+                    {{ timerStore.isActive ? (timerStore.mode === 'stopwatch' ? 'Recording' : 'Focusing') : 'Ready' }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="absolute bottom-24 flex items-center gap-8 z-10 transition-all duration-500" :class="{ 'opacity-0 translate-y-12 pointer-events-none': !showControls }">
+            <button @click="timerStore.reset" class="btn-icon w-12 h-12 rounded-full hover:bg-rose-500/10 hover:text-rose-400 transition-all"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8" /></svg></button>
+            <button @click="timerStore.isActive ? timerStore.pause() : timerStore.start()" class="w-24 h-24 rounded-full flex items-center justify-center bg-white text-zinc-950 hover:scale-105 transition-all shadow-2xl"><svg v-if="!timerStore.isActive" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg><svg v-else width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg></button>
+            <button @click="timerStore.completeSession" class="btn-icon w-12 h-12 rounded-full hover:bg-emerald-500/10 hover:text-emerald-400 transition-all"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg></button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 

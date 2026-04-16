@@ -18,6 +18,7 @@ export const useTimerStore = defineStore('timer', {
     mode: 'focus' as TimerMode,
     secondsElapsed: 0,
     isActive: false,
+    isZenMode: false,
     timerInterval: null as number | null,
     targetSeconds: 25 * 60, // Default 25m for focus
     linkedTaskId: null as string | null,

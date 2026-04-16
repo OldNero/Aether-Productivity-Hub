@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, computed, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useTimerStore } from '@/stores/timer';
 import { useRoute } from 'vue-router';
 import Sidebar from '@/components/Sidebar.vue';
 import Header from '@/components/Header.vue';
@@ -8,6 +9,7 @@ import AuthOverlay from '@/components/AuthOverlay.vue';
 import SearchPalette from '@/components/SearchPalette.vue';
 
 const authStore = useAuthStore();
+const timerStore = useTimerStore();
 const route = useRoute();
 const isSidebarOpen = ref(false);
 
@@ -28,29 +30,39 @@ const closeSidebar = () => {
 
 <template>
   <div class="bg-background text-zinc-100 flex h-screen overflow-hidden antialiased" :class="{ 'auth-required': isAuthRequired }">
-    <!-- ===== SIDEBAR ===== -->
-    <Sidebar :is-open="isSidebarOpen" @close="closeSidebar" />
-
-    <!-- Mobile Overlay -->
-    <div
-      v-if="isSidebarOpen"
-      class="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-20 md:hidden"
-      @click="closeSidebar"
-    ></div>
-
-    <!-- ===== MAIN ===== -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <Header @toggle-sidebar="toggleSidebar" />
-
-      <!-- ═══ VIEW SHELL ═══ -->
-      <main id="view-shell" class="flex-1 overflow-y-auto">
+    
+    <!-- Zen Mode Layout: Pure Fullscreen -->
+    <template v-if="timerStore.isZenMode">
+      <main class="fixed inset-0 z-[100] bg-zinc-950">
         <router-view v-slot="{ Component }">
-          <transition name="page" mode="out-in">
-            <component :is="Component" :key="route.path" />
-          </transition>
+          <component :is="Component" :key="route.path" />
         </router-view>
       </main>
-    </div>
+    </template>
+
+    <!-- Standard Layout: Sidebar + Header + Content -->
+    <template v-else>
+      <Sidebar :is-open="isSidebarOpen" @close="closeSidebar" />
+
+      <!-- Mobile Overlay -->
+      <div
+        v-if="isSidebarOpen"
+        class="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-20 md:hidden"
+        @click="closeSidebar"
+      ></div>
+
+      <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <Header @toggle-sidebar="toggleSidebar" />
+
+        <main id="view-shell" class="flex-1 overflow-y-auto">
+          <router-view v-slot="{ Component }">
+            <transition name="page" mode="out-in">
+              <component :is="Component" :key="route.path" />
+            </transition>
+          </router-view>
+        </main>
+      </div>
+    </template>
 
     <!-- ═══ MODALS ═══ -->
     <AuthOverlay v-if="isAuthRequired" />
