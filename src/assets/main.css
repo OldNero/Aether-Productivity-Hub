@@ -1,0 +1,251 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Geist', 'sans-serif';
+  --font-mono: 'Geist Mono', 'monospace';
+
+  --color-background: #09090b;
+  --color-card: #111113;
+  --color-card-hover: #161618;
+  --color-border: #27272a;
+  --color-muted: #71717a;
+  --color-subtle: #3f3f46;
+
+  --radius-card: 1rem;
+}
+
+/* --- PROTECTION FROM TREE-SHAKING --- */
+/* These must be outside @layer to ensure they survive the Tailwind build process */
+#auth-overlay.open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.auth-required main,
+body.auth-required #sidebar,
+body.auth-required header,
+body.auth-required aside {
+  filter: blur(20px) grayscale(100%);
+  pointer-events: none !important;
+  opacity: 0.3 !important;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-zinc-100 antialiased;
+    font-family: var(--font-sans);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
+@layer components {
+  /* Layout */
+  .view {
+    @apply hidden;
+  }
+  .view.active {
+    @apply block;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-card/60 backdrop-blur-md border border-white/10 rounded-card p-6 
+           transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.4)];
+    background-image: linear-gradient(to bottom right, rgba(255,255,255,0.03), transparent);
+  }
+  .card:hover {
+    @apply border-white/20 bg-card/80;
+    transform: translateY(-2px);
+  }
+
+  /* Sidebar Nav */
+  .nav-item {
+    @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted
+           transition-colors duration-150 hover:bg-[#1c1c1f] hover:text-zinc-100;
+  }
+  .nav-item.active {
+    @apply bg-white/10 text-white border border-white/10 backdrop-blur-xl shadow-lg;
+    box-shadow: 0 0 20px rgba(161, 161, 170, 0.1);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           bg-white text-zinc-950 text-sm font-bold
+           hover:bg-zinc-100 active:scale-[0.98] transition-all duration-200
+           shadow-[0_4px_12px_rgba(255,255,255,0.1)];
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           border border-border bg-card text-zinc-300 text-sm font-medium
+           hover:bg-card-hover hover:text-white transition-all duration-150;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-md
+           text-muted text-sm font-medium hover:text-zinc-100 transition-colors;
+  }
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border
+           text-muted hover:text-zinc-100 hover:bg-card-hover transition-all;
+  }
+
+  /* Form Elements */
+  .input {
+    @apply w-full bg-background border border-border rounded-lg px-4 py-2.5
+           text-sm text-zinc-100 placeholder-muted
+           focus:outline-none focus:ring-1 focus:ring-zinc-600 focus:border-zinc-600
+           transition-all duration-150;
+  }
+  .select {
+    @apply w-full bg-background border border-border rounded-lg px-4 py-2.5
+           text-sm text-zinc-100 cursor-pointer appearance-none
+           focus:outline-none focus:ring-1 focus:ring-zinc-600 transition-all;
+  }
+  .label {
+    @apply block text-[11px] font-semibold uppercase tracking-wider text-muted mb-2;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide;
+  }
+  .badge-high,
+  .badge--high {
+    @apply bg-red-500/10 text-red-400 border border-red-500/20;
+  }
+  .badge-medium,
+  .badge--medium {
+    @apply bg-amber-500/10 text-amber-400 border border-amber-500/20;
+  }
+  .badge-low,
+  .badge--low {
+    @apply bg-zinc-700/50 text-zinc-400 border border-zinc-700;
+  }
+
+  .task-item {
+    @apply flex flex-col items-stretch p-0 rounded-xl border border-border bg-card
+            hover:bg-card-hover transition-all duration-150 cursor-pointer overflow-hidden;
+  }
+  .task-item__header {
+    @apply flex items-center gap-4 px-5 py-4 w-full;
+  }
+  .task-item--completed .task-item__title,
+  .task-item.completed .task-item__title {
+    @apply line-through text-muted;
+  }
+  .task-item--completed,
+  .task-item.completed {
+    @apply opacity-60;
+  }
+  .task-item__title {
+    @apply text-base font-semibold text-zinc-100 leading-tight;
+  }
+  .task-item__meta {
+    @apply text-xs text-muted mt-0.5;
+  }
+
+  /* Filter Tabs */
+  .filter-btn {
+    @apply px-3 py-1.5 rounded-md text-xs font-semibold text-muted
+           transition-colors hover:text-zinc-100;
+  }
+  .filter-btn.active {
+    @apply bg-zinc-800 text-zinc-100;
+  }
+
+  /* Toast */
+  .toast {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg border border-border
+           bg-card shadow-2xl text-sm text-zinc-200 min-w-[280px];
+  }
+
+  /* Animations */
+  .animate-in {
+    animation: animate-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes animate-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Skeleton Loaders */
+  .skeleton {
+    @apply bg-zinc-800/50 animate-pulse rounded;
+    min-height: 1em;
+    display: block;
+  }
+
+  /* ═══ Global Modals ═══ */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    padding-top: 15vh;
+    background: rgba(9, 9, 11, 0.60);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+
+  .modal-overlay.open {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-box {
+    @apply rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl;
+    width: 32rem !important;
+    max-width: calc(100vw - 2rem) !important;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    transform: scale(0.97) translateY(-8px);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modal-overlay.open .modal-box {
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ─── Seamless View Transitions ─── */
+@keyframes view-entrance {
+  from { 
+    opacity: 0; 
+    transform: translateY(15px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.page-transition {
+  animation: view-entrance 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
