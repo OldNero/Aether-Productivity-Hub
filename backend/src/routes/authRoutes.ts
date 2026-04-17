@@ -85,6 +85,24 @@ authRoutes.post('/logout', async (c) => {
   return c.json({ success: true });
 });
 
+authRoutes.patch('/profile', async (c) => {
+  const user = c.get('user');
+  const db = c.env.DB as D1Database;
+  if (!user) return c.json({ error: 'Not logged in' }, 401);
+
+  const { username } = await c.req.json();
+  if (!username) return c.json({ error: 'Missing username' }, 400);
+
+  try {
+    await db.prepare(`UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(username, user.id)
+      .run();
+    return c.json({ success: true, user: { ...user, username } });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 400);
+  }
+});
+
 authRoutes.get('/me', async (c) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Not logged in' }, 401);

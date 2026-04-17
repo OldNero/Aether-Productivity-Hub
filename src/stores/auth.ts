@@ -54,5 +54,17 @@ export const useAuthStore = defineStore('auth', {
       this.currentUser = null;
       window.location.reload();
     },
+
+    async updateProfile(username: string) {
+      if (!this.currentUser) return;
+      const data = await apiClient('/auth/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ username })
+      });
+      if (data.success) {
+        this.currentUser.username = username;
+      }
+      return data;
+    }
   },
 });
