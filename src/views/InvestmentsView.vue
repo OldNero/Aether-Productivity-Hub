@@ -53,12 +53,13 @@ const handleAddInvestment = async () => {
   const payload = {
     ...newInvestment.value,
     symbol: newInvestment.value.symbol.toUpperCase(),
+    notes: '',
     date: new Date(newInvestment.value.date).toISOString()
   };
   if (editingTransactionId.value) {
-      await investmentStore.updateInvestment(editingTransactionId.value, payload);
+      await investmentStore.updateInvestment(editingTransactionId.value, payload as any);
   } else {
-      await investmentStore.addInvestment(payload);
+      await investmentStore.addInvestment(payload as any);
   }
   showAddModal.value = false;
   editingTransactionId.value = null;
@@ -135,7 +136,7 @@ const handleFileUpload = async (event: Event) => {
             <!-- Market Status Indicator -->
             <div class="group relative inline-flex mt-2">
                 <div class="flex items-center gap-2 px-2 py-1 rounded-full bg-accent/50 border border-border cursor-help">
-                    <div class="w-1.5 h-1.5 rounded-full" :class="marketStatus.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></div>
+                    <div class="w-1.5 h-1.5 rounded-full" :class="marketStatus.status === 'open' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></div>
                     <span class="text-[10px] font-bold text-foreground uppercase tracking-tight">{{ marketStatus.label }}</span>
                 </div>
                 <!-- Tooltip Content -->

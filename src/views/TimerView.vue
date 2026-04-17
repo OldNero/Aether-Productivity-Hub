@@ -75,7 +75,7 @@ const formatDuration = (seconds: number) => {
   return `${m}m ${s}s`;
 };
 
-const getTaskTitle = (id?: string) => {
+const getTaskTitle = (id?: string | null) => {
   if (!id) return 'General Session';
   return taskStore.tasks.find(t => t.id === id)?.title || 'Unknown Task';
 };

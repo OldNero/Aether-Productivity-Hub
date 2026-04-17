@@ -55,16 +55,29 @@ const queuedFetch = (symbol: string, apiKey: string): Promise<any> => {
     });
 };
 
+export interface HoldingData {
+  qty: number;
+  totalCost: number;
+  realizedPL: number;
+}
+
+export interface InvestmentStoreState {
+  investments: Investment[];
+  isLoaded: boolean;
+  realTimePrices: Record<string, RealTimePrice>;
+  isFetchingPrices: boolean;
+}
+
 export const useInvestmentStore = defineStore('investments', {
-  state: () => ({
-    investments: [] as Investment[],
+  state: (): InvestmentStoreState => ({
+    investments: [],
     isLoaded: false,
-    realTimePrices: {} as Record<string, RealTimePrice>,
+    realTimePrices: {},
     isFetchingPrices: false,
   }),
   getters: {
-    totalHoldings: (state) => {
-        const holdings: Record<string, { qty: number, totalCost: number, realizedPL: number }> = {};
+    totalHoldings: (state): Record<string, HoldingData> => {
+        const holdings: Record<string, HoldingData> = {};
         const sorted = [...state.investments].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         
         sorted.forEach(inv => {
@@ -89,7 +102,7 @@ export const useInvestmentStore = defineStore('investments', {
         });
         return holdings;
     },
-    cashBalance: (state) => {
+    cashBalance: (state): number => {
         return state.investments.reduce((acc, inv) => {
             if (inv.symbol === 'CASH') return acc + (Number(inv.quantity) || 0);
             const tradeValue = (Number(inv.price) || 0) * (Number(inv.quantity) || 0);
@@ -97,51 +110,48 @@ export const useInvestmentStore = defineStore('investments', {
             return inv.type === 'buy' ? acc - (tradeValue + comm) : acc + (tradeValue - comm);
         }, 0);
     },
-    portfolioValue: (state) => {
+    portfolioValue(): number {
         let total = 0;
-        const holdings = useInvestmentStore().totalHoldings;
+        const holdings = this.totalHoldings;
         Object.entries(holdings).forEach(([symbol, data]) => {
-            const currentPrice = state.realTimePrices[symbol]?.price || 0;
+            const currentPrice = this.realTimePrices[symbol]?.price || 0;
             total += (data.qty * currentPrice);
         });
         return total;
     },
-    netWorth: (state) => {
-        const store = useInvestmentStore();
-        return store.cashBalance + store.portfolioValue;
+    netWorth(): number {
+        return this.cashBalance + this.portfolioValue;
     },
-    unrealizedGain: (state) => {
+    unrealizedGain(): number {
         let gain = 0;
-        const holdings = useInvestmentStore().totalHoldings;
+        const holdings = this.totalHoldings;
         Object.entries(holdings).forEach(([symbol, data]) => {
-            const currentPrice = state.realTimePrices[symbol]?.price || 0;
+            const currentPrice = this.realTimePrices[symbol]?.price || 0;
             if (currentPrice > 0 && data.qty > 0) {
                 gain += (currentPrice * data.qty) - data.totalCost;
             }
         });
         return gain;
     },
-    realizedGain: (state) => {
+    realizedGain(): number {
         let gain = 0;
-        const holdings = useInvestmentStore().totalHoldings;
-        Object.entries(holdings).forEach(([_, data]) => gain += data.realizedPL);
+        const holdings = this.totalHoldings;
+        Object.entries(holdings).forEach(([_, data]) => gain += (data as HoldingData).realizedPL);
         return gain;
     },
-    totalGain: (state) => {
-        const store = useInvestmentStore();
-        return store.unrealizedGain + store.realizedGain;
+    totalGain(): number {
+        return this.unrealizedGain + this.realizedGain;
     },
-    totalGainPercent: (state) => {
-        const store = useInvestmentStore();
-        const activeCost = store.portfolioValue - store.unrealizedGain;
-        return activeCost > 0 ? (store.totalGain / activeCost) * 100 : 0;
+    totalGainPercent(): number {
+        const activeCost = this.portfolioValue - this.unrealizedGain;
+        return activeCost > 0 ? (this.totalGain / activeCost) * 100 : 0;
     },
-    dayChange: (state) => {
+    dayChange(): { value: number, percent: number } {
         let totalChange = 0;
         let totalValue = 0;
-        const holdings = useInvestmentStore().totalHoldings;
+        const holdings = this.totalHoldings;
         Object.entries(holdings).forEach(([symbol, data]) => {
-            const priceInfo = state.realTimePrices[symbol];
+            const priceInfo = this.realTimePrices[symbol];
             if (priceInfo && data.qty > 0) {
                 totalValue += priceInfo.price * data.qty;
                 totalChange += priceInfo.change * data.qty;
@@ -150,12 +160,12 @@ export const useInvestmentStore = defineStore('investments', {
         const prev = totalValue - totalChange;
         return { value: totalChange, percent: (totalValue > 0 && prev > 0) ? (totalChange / prev) * 100 : 0 };
     },
-    holdings: (state) => {
-        const rawHoldings = useInvestmentStore().totalHoldings;
+    holdings(): any[] {
+        const rawHoldings = this.totalHoldings;
         return Object.entries(rawHoldings)
             .filter(([symbol, data]) => symbol !== 'CASH' && data.qty > 0)
             .map(([symbol, data]) => {
-                const p = state.realTimePrices[symbol];
+                const p = this.realTimePrices[symbol];
                 const currentPrice = p?.price || 0;
                 const totalValue = data.qty * currentPrice;
                 const pl = currentPrice > 0 ? totalValue - data.totalCost : 0;
@@ -167,10 +177,11 @@ export const useInvestmentStore = defineStore('investments', {
                     totalValue,
                     pl,
                     plPercent: data.totalCost > 0 ? (pl / data.totalCost) * 100 : 0,
+                    ytd: 0 // Placeholder to fix template error
                 };
             }).sort((a, b) => b.totalValue - a.totalValue);
     },
-    prices: (state) => {
+    prices: (state): Record<string, number> => {
         const p: Record<string, number> = {};
         Object.entries(state.realTimePrices).forEach(([s, info]) => p[s] = info.price);
         return p;

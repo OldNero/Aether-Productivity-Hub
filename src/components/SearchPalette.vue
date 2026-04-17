@@ -18,7 +18,7 @@ const results = computed(() => {
   
   const matches = [
     ...taskStore.tasks.map(t => ({ id: t.id, title: t.title, type: 'Task', path: '/routines' })),
-    ...investmentStore.holdings.map(h => ({ id: h.symbol, title: h.symbol, type: 'Investment', path: '/investments' })),
+    ...investmentStore.holdings.map((h: any) => ({ id: h.symbol, title: h.symbol, type: 'Investment', path: '/investments' })),
     { id: 'dash', title: 'Dashboard', type: 'Page', path: '/' },
     { id: 'port', title: 'Portfolio', type: 'Page', path: '/investments' },
     { id: 'time', title: 'Timer', type: 'Page', path: '/timer' },
