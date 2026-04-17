@@ -1,15 +1,14 @@
 import { defineStore } from 'pinia';
-import { Storage } from '@/utils/storage';
+import { apiClient } from '@/utils/api';
 
 export type TimerMode = 'stopwatch' | 'focus' | 'short_break' | 'long_break';
 
 export interface TimerSession {
   id: string;
   mode: TimerMode;
-  startTime: string;
-  endTime: string;
+  start_time: string;
   duration: number; // in seconds
-  taskId?: string;
+  task_id?: string;
   notes?: string;
 }
 
@@ -52,8 +51,12 @@ export const useTimerStore = defineStore('timer', {
 
   actions: {
     async init() {
-      const data = await Storage.get<TimerSession[]>('sessions');
-      this.sessions = data || [];
+      try {
+        const data = await apiClient('/sessions');
+        this.sessions = data || [];
+      } catch (err) {
+        this.sessions = [];
+      }
       
       // Handle background persistence check
       const lastActive = localStorage.getItem('timer_active_state');
@@ -123,17 +126,22 @@ export const useTimerStore = defineStore('timer', {
     },
 
     async completeSession() {
-      const session: TimerSession = {
-        id: Storage.generateUUID(),
+      const sessionData = {
         mode: this.mode,
-        startTime: new Date(Date.now() - this.secondsElapsed * 1000).toISOString(),
-        endTime: new Date().toISOString(),
+        start_time: new Date(Date.now() - this.secondsElapsed * 1000).toISOString(),
         duration: this.secondsElapsed,
-        taskId: this.linkedTaskId || undefined
+        task_id: this.linkedTaskId || null
       };
 
-      this.sessions.unshift(session);
-      await Storage.set('sessions', this.sessions);
+      try {
+        const session = await apiClient('/sessions', {
+          method: 'POST',
+          body: JSON.stringify(sessionData)
+        });
+        this.sessions.unshift(session);
+      } catch (err) {
+        console.error('Failed to save session:', err);
+      }
       
       // Notification
       if (Notification.permission === "granted") {
@@ -155,8 +163,8 @@ export const useTimerStore = defineStore('timer', {
     },
 
     async deleteSession(id: string) {
+        await apiClient(`/sessions/${id}`, { method: 'DELETE' });
         this.sessions = this.sessions.filter(s => s.id !== id);
-        await Storage.remove('sessions', id);
     }
   }
 });

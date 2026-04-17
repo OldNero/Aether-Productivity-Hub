@@ -584,7 +584,12 @@ const handleFileUpload = async (event: Event) => {
 
     <!-- Modals -->
     <ConfirmModal 
-        v-bind="confirmModal" 
+        :show="confirmModal.show"
+        :title="confirmModal.title"
+        :message="confirmModal.message"
+        :confirm-label="confirmModal.confirmLabel"
+        :loading="confirmModal.loading"
+        :variant="confirmModal.variant"
         @close="confirmModal.show = false" 
         @confirm="confirmModal.action?.()" 
     />

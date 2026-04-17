@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { Storage } from '@/utils/storage';
+import { apiClient } from '@/utils/api';
 import { parseTradingViewCSV } from '@/utils/csvParser';
 
 export interface Investment {
@@ -115,7 +115,7 @@ export const useInvestmentStore = defineStore('investments', {
         let total = 0;
         const holdings = this.totalHoldings;
         Object.entries(holdings).forEach(([symbol, data]) => {
-            const currentPrice = this.realTimePrices[symbol]?.price || 0;
+            const currentPrice = this.realTimePrices[symbol]?.price || (data.qty > 0 ? data.totalCost / data.qty : 0);
             total += (data.qty * currentPrice);
         });
         return total;
@@ -127,8 +127,8 @@ export const useInvestmentStore = defineStore('investments', {
         let gain = 0;
         const holdings = this.totalHoldings;
         Object.entries(holdings).forEach(([symbol, data]) => {
-            const currentPrice = this.realTimePrices[symbol]?.price || 0;
-            if (currentPrice > 0 && data.qty > 0) {
+            const currentPrice = this.realTimePrices[symbol]?.price;
+            if (currentPrice && currentPrice > 0 && data.qty > 0) {
                 gain += (currentPrice * data.qty) - data.totalCost;
             }
         });
@@ -167,18 +167,21 @@ export const useInvestmentStore = defineStore('investments', {
             .filter(([symbol, data]) => symbol !== 'CASH' && data.qty > 0)
             .map(([symbol, data]) => {
                 const p = this.realTimePrices[symbol];
-                const currentPrice = p?.price || 0;
+                const avg = data.qty > 0 ? data.totalCost / data.qty : 0;
+                const currentPrice = (p?.price && p.price > 0) ? p.price : avg;
                 const totalValue = data.qty * currentPrice;
-                const pl = currentPrice > 0 ? totalValue - data.totalCost : 0;
+                const pl = (p?.price && p.price > 0) ? totalValue - data.totalCost : 0;
+                
                 return {
                     symbol,
                     quantity: data.qty,
-                    avgPrice: data.qty > 0 ? data.totalCost / data.qty : 0,
+                    avgPrice: avg,
                     currentPrice,
                     totalValue,
                     pl,
-                    plPercent: data.totalCost > 0 ? (pl / data.totalCost) * 100 : 0,
-                    ytd: 0 // Placeholder to fix template error
+                    plPercent: (data.totalCost > 0 && (p?.price && p.price > 0)) ? (pl / data.totalCost) * 100 : 0,
+                    isLive: !!(p?.price && p.price > 0),
+                    ytd: 0
                 };
             }).sort((a, b) => b.totalValue - a.totalValue);
     },
@@ -193,15 +196,22 @@ export const useInvestmentStore = defineStore('investments', {
   },
   actions: {
     async fetchInvestments() {
-      const data = await Storage.get<Investment[]>('investments');
-      this.investments = data || [];
+      try {
+        const data = await apiClient('/investments');
+        this.investments = data || [];
+      } catch (err) {
+        this.investments = [];
+      }
       this.isLoaded = true;
       await this.fetchRealTimePrices();
     },
     async fetchRealTimePrices() {
         if (this.isFetchingPrices) return;
-        const apiKey = import.meta.env.VITE_FINNHUB_KEY;
-        if (!apiKey) return;
+        
+        const finnhubKey = import.meta.env.VITE_FINNHUB_KEY;
+        const alphaKey = import.meta.env.VITE_ALPHA_VANTAGE_KEY;
+        
+        if (!finnhubKey && !alphaKey) return;
         
         const userSymbols = Object.keys(this.totalHoldings).filter(s => s !== 'CASH');
         const now = Date.now();
@@ -209,51 +219,79 @@ export const useInvestmentStore = defineStore('investments', {
         if (staleSymbols.length === 0) return;
         
         this.isFetchingPrices = true;
-        await Promise.all(staleSymbols.map(async (symbol) => {
-            try {
-                const data = await queuedFetch(symbol, apiKey);
-                if (data && data.c) {
-                    this.realTimePrices[symbol] = {
-                        price: data.c,
-                        change: data.d,
-                        changePercent: data.dp + '%',
-                        previousClose: data.pc,
-                        timestamp: Date.now()
-                    };
-                }
-            } catch (err) { console.error(`Fetch failed for ${symbol}:`, err); }
-        }));
+        
+        // Priority to Finnhub if key provided
+        if (finnhubKey) {
+            await Promise.all(staleSymbols.map(async (symbol) => {
+                try {
+                    const data = await queuedFetch(symbol, finnhubKey);
+                    if (data && data.c) {
+                        this.realTimePrices[symbol] = {
+                            price: data.c,
+                            change: data.d,
+                            changePercent: data.dp + '%',
+                            previousClose: data.pc,
+                            timestamp: Date.now()
+                        };
+                    }
+                } catch (err) { console.error(`Finnhub failed for ${symbol}:`, err); }
+            }));
+        } else if (alphaKey) {
+            // Fallback to Alpha Vantage (Single request per symbol, 5 per min limit)
+            for (const symbol of staleSymbols) {
+                try {
+                    const resp = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${alphaKey}`);
+                    const data = await resp.json();
+                    const quote = data['Global Quote'];
+                    if (quote && quote['05. price']) {
+                        this.realTimePrices[symbol] = {
+                            price: parseFloat(quote['05. price']),
+                            change: parseFloat(quote['09. change']),
+                            changePercent: quote['10. change percent'],
+                            previousClose: parseFloat(quote['08. previous close']),
+                            timestamp: Date.now()
+                        };
+                    }
+                    // Wait 12 seconds between requests to respect 5/min limit if not premium
+                    if (staleSymbols.length > 1) await new Promise(r => setTimeout(r, 12000));
+                } catch (err) { console.error(`Alpha Vantage failed for ${symbol}:`, err); }
+            }
+        }
         this.isFetchingPrices = false;
     },
     async addInvestment(investment: Omit<Investment, 'id'>) {
-      const newInv: Investment = { ...investment, id: Storage.generateUUID(), notes: '' };
+      const newInv = await apiClient('/investments', {
+        method: 'POST',
+        body: JSON.stringify(investment)
+      });
       this.investments.push(newInv);
-      await Storage.add('investments', newInv);
       await this.fetchRealTimePrices();
     },
     async deleteInvestment(id: string) {
+      await apiClient(`/investments/${id}`, { method: 'DELETE' });
       this.investments = this.investments.filter(i => i.id !== id);
-      await Storage.remove('investments', id);
     },
     async batchDelete(ids: string[]) {
       if (ids.length === 0) return;
+      await apiClient('/investments/batch-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids })
+      });
       this.investments = this.investments.filter(i => !ids.includes(i.id));
-      await Storage.remove('investments', ids);
     },
     async deleteAsset(symbol: string) {
       const targetSymbol = symbol.trim().toUpperCase();
-      const idsToRemove = this.investments
-        .filter(i => i.symbol.trim().toUpperCase() === targetSymbol)
-        .map(i => i.id);
-        
+      await apiClient(`/investments/asset/${targetSymbol}`, { method: 'DELETE' });
       this.investments = this.investments.filter(i => i.symbol.trim().toUpperCase() !== targetSymbol);
-      await Storage.remove('investments', idsToRemove);
     },
     async updateInvestment(id: string, updates: Partial<Investment>) {
       const idx = this.investments.findIndex(i => i.id === id);
       if (idx !== -1) {
+          await apiClient(`/investments/${id}`, {
+              method: 'PUT',
+              body: JSON.stringify(updates)
+          });
           this.investments[idx] = { ...this.investments[idx], ...updates };
-          await Storage.set('investments', this.investments);
           await this.fetchRealTimePrices();
       }
     },
@@ -270,9 +308,13 @@ export const useInvestmentStore = defineStore('investments', {
         }
     },
     async addInvestments(investments: Omit<Investment, 'id'>[]) {
-        const newEntries = investments.map(inv => ({ ...inv, id: Storage.generateUUID(), notes: inv.notes || '' }));
-        this.investments.push(...newEntries);
-        await Storage.addMultiple('investments', newEntries);
+        for (const entry of investments) {
+            const newItem = await apiClient('/investments', {
+                method: 'POST',
+                body: JSON.stringify(entry)
+            });
+            this.investments.push(newItem);
+        }
         await this.fetchRealTimePrices();
     }
   },

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { Storage } from '@/utils/storage';
+import { apiClient } from '@/utils/api';
 
 export interface Subtask {
   id: string;
@@ -32,51 +32,57 @@ export const useTaskStore = defineStore('tasks', {
   },
   actions: {
     async fetchTasks() {
-      const tasks = await Storage.get<Task[]>('tasks');
-      this.tasks = tasks || [];
+      try {
+        const tasks = await apiClient('/tasks');
+        // Parse subtasks since SQLite might return them as JSON strings if we store them that way
+        this.tasks = tasks.map((t: any) => ({
+          ...t,
+          subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks) : (t.subtasks || [])
+        }));
+      } catch (err) {
+        this.tasks = [];
+      }
       this.isLoaded = true;
     },
     async addTask(data: { title: string, priority: Task['priority'], subtasks?: any[], project_id?: string }) {
-      const newTask: Task = {
-        id: Storage.generateUUID(),
-        title: data.title,
-        priority: data.priority,
-        status: 'active',
-        subtasks: data.subtasks || [],
-        project_id: data.project_id || 'inbox',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      this.tasks.push(newTask);
-      await Storage.set('tasks', this.tasks);
+      const newTask = await apiClient('/tasks', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      this.tasks.unshift({
+        ...newTask,
+        subtasks: typeof newTask.subtasks === 'string' ? JSON.parse(newTask.subtasks) : (newTask.subtasks || [])
+      });
       return newTask;
     },
     async toggleTask(id: string) {
+      const result = await apiClient(`/tasks/${id}/toggle`, { method: 'PATCH' });
       const task = this.tasks.find((t) => t.id === id);
       if (task) {
-        task.status = task.status === 'active' ? 'completed' : 'active';
+        task.status = result.completed ? 'completed' : 'active';
         task.updated_at = new Date().toISOString();
         if (task.status === 'completed' && task.subtasks) {
           task.subtasks.forEach((s) => (s.completed = true));
         }
-        await Storage.set('tasks', this.tasks);
       }
     },
     async deleteTask(id: string) {
+      await apiClient(`/tasks/${id}`, { method: 'DELETE' });
       this.tasks = this.tasks.filter((t) => t.id !== id);
-      await Storage.remove('tasks', id);
     },
     async addSubtask(taskId: string, title: string) {
+      // Subtasks API would ideally handle this, doing local for now
       const task = this.tasks.find((t) => t.id === taskId);
       if (task && title.trim()) {
-        if (!task.subtasks) task.subtasks = [];
         task.subtasks.push({
-          id: Storage.generateUUID(),
+          id: crypto.randomUUID(),
           title: title.trim(),
           completed: false,
         });
-        task.updated_at = new Date().toISOString();
-        await Storage.set('tasks', this.tasks);
+        await apiClient(`/tasks/${taskId}`, { 
+          method: 'PATCH', 
+          body: JSON.stringify({ subtasks: task.subtasks }) 
+        });
       }
     },
     async toggleSubtask(taskId: string, subtaskId: string) {
@@ -85,23 +91,31 @@ export const useTaskStore = defineStore('tasks', {
         const sub = task.subtasks.find((s) => s.id === subtaskId);
         if (sub) {
           sub.completed = !sub.completed;
-          task.updated_at = new Date().toISOString();
-          await Storage.set('tasks', this.tasks);
+          await apiClient(`/tasks/${taskId}`, { 
+            method: 'PATCH', 
+            body: JSON.stringify({ subtasks: task.subtasks }) 
+          });
         }
       }
     },
     async batchComplete(ids: string[]) {
+      await apiClient('/tasks/batch-complete', {
+        method: 'POST',
+        body: JSON.stringify({ ids })
+      });
       this.tasks.forEach((t) => {
         if (ids.includes(t.id)) {
           t.status = 'completed';
           t.subtasks.forEach((s) => (s.completed = true));
         }
       });
-      await Storage.set('tasks', this.tasks);
     },
     async batchDelete(ids: string[]) {
+      await apiClient('/tasks/batch-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids })
+      });
       this.tasks = this.tasks.filter((t) => !ids.includes(t.id));
-      await Storage.remove('tasks', ids);
     }
   },
 });

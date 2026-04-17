@@ -234,8 +234,12 @@ const openDeleteConfirm = (id: string) => {
                         {{ session.mode.charAt(0) }}
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-foreground">{{ getTaskTitle(session.taskId) }}</p>
-                        <p class="text-[10px] text-muted-foreground uppercase mt-0.5">{{ formatDistanceToNow(new Date(session.startTime), { addSuffix: true }) }}</p>
+                        <p class="text-sm font-bold text-foreground">{{ getTaskTitle(session.task_id) }}</p>
+                        <p class="text-[10px] text-muted-foreground uppercase mt-0.5">
+                            {{ session.start_time && !isNaN(new Date(session.start_time).getTime()) 
+                                ? formatDistanceToNow(new Date(session.start_time), { addSuffix: true }) 
+                                : 'Recently' }}
+                        </p>
                     </div>
                 </div>
                 <div class="text-right flex items-center gap-4">
@@ -323,7 +327,12 @@ const openDeleteConfirm = (id: string) => {
 
     <!-- Confirmation Modal -->
     <ConfirmModal 
-        v-bind="confirmModal" 
+        :show="confirmModal.show"
+        :title="confirmModal.title"
+        :message="confirmModal.message"
+        :confirm-label="confirmModal.confirmLabel"
+        :loading="confirmModal.loading"
+        :variant="confirmModal.variant"
         @close="confirmModal.show = false" 
         @confirm="confirmModal.action?.()" 
     />

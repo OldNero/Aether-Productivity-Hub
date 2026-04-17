@@ -1,0 +1,18 @@
+name = "aether-backend"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aether-db"
+database_id = "53becec3-80dc-41e0-9cd4-c6797001aeea" # Replace in production
+
+[vars]
+# For Local Development
+#FRONTEND_URL = "http://localhost:5173"
+#BACKEND_URL = "http://localhost:8787"
+# For Production (Uncomment these before your next deploy!)
+FRONTEND_URL = "https://aether-hub-v1.pages.dev"
+BACKEND_URL = "https://aether-backend.oldnero.workers.dev"
+#BACKEND_URL_LOCAL = "http://localhost:8787"
