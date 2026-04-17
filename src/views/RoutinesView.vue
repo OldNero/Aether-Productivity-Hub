@@ -222,7 +222,7 @@ const openDeleteConfirm = (id: string) => {
     </transition>
 
     <!-- New Task Modal -->
-    <div v-if="showAddModal" class="modal-overlay open" @click.self="showAddModal = false">
+    <div v-if="showAddModal" class="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]" @click.self="showAddModal = false">
       <div class="modal-box p-8">
         <h2 class="text-2xl font-bold tracking-tight text-foreground mb-8">New Task</h2>
         <form @submit.prevent="handleAddTask" class="space-y-6">
