@@ -3,6 +3,8 @@ import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { getUSMarketStatus, type MarketInfo } from '@/utils/marketTimer';
 import { useInvestmentStore, type Investment } from '@/stores/investments';
 import { format } from 'date-fns';
+import ConfirmModal from '@/components/ConfirmModal.vue';
+import AlertModal from '@/components/AlertModal.vue';
 
 const investmentStore = useInvestmentStore();
 const marketStatus = ref<MarketInfo>(getUSMarketStatus());
@@ -12,6 +14,39 @@ const showAddModal = ref(false);
 const expandedSymbol = ref<string | null>(null);
 const editingTransactionId = ref<string | null>(null);
 const renameSymbol = ref('');
+const activeTab = ref<'allocation' | 'ledger'>('allocation');
+const selectedIds = ref(new Set<string>());
+
+const toggleSelectAll = () => {
+    if (selectedIds.value.size === investmentStore.investments.length) {
+        selectedIds.value.clear();
+    } else {
+        investmentStore.investments.forEach(i => selectedIds.value.add(i.id));
+    }
+};
+
+const toggleSelect = (id: string) => {
+    if (selectedIds.value.has(id)) selectedIds.value.delete(id);
+    else selectedIds.value.add(id);
+};
+
+// Modal State
+const confirmModal = ref({
+    show: false,
+    title: '',
+    message: '',
+    confirmLabel: 'Delete',
+    action: null as (() => Promise<void>) | null,
+    loading: false,
+    variant: 'danger' as 'danger' | 'warning'
+});
+
+const alertModal = ref({
+    show: false,
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'error'
+});
 
 const newInvestment = ref({
   symbol: '',
@@ -77,13 +112,28 @@ const handleRenameAsset = async () => {
     if (!expandedSymbol.value || !renameSymbol.value) return;
     const newSym = renameSymbol.value.toUpperCase();
     if (newSym === expandedSymbol.value) return;
-    if (confirm(`Rename all ${expandedSymbol.value} transactions to ${newSym}?`)) {
-        const transactions = investmentStore.investments.filter(i => i.symbol === expandedSymbol.value);
-        for (const tx of transactions) {
-            await investmentStore.updateInvestment(tx.id, { symbol: newSym });
+
+    confirmModal.value = {
+        show: true,
+        title: 'Rename Asset',
+        message: `This will update all transactions for ${expandedSymbol.value} to ${newSym}. Continue?`,
+        confirmLabel: 'Update Symbol',
+        variant: 'warning',
+        loading: false,
+        action: async () => {
+            confirmModal.value.loading = true;
+            try {
+                const transactions = investmentStore.investments.filter(i => i.symbol === expandedSymbol.value);
+                for (const tx of transactions) {
+                    await investmentStore.updateInvestment(tx.id, { symbol: newSym });
+                }
+                expandedSymbol.value = newSym;
+                confirmModal.value.show = false;
+            } finally {
+                confirmModal.value.loading = false;
+            }
         }
-        expandedSymbol.value = newSym;
-    }
+    };
 };
 
 const editTransaction = (tx: Investment) => {
@@ -100,16 +150,68 @@ const editTransaction = (tx: Investment) => {
 };
 
 const deleteAsset = async (symbol: string) => {
-    if (confirm(`Are you sure you want to remove all data for ${symbol}?`)) {
-        await investmentStore.deleteAsset(symbol);
-        if (expandedSymbol.value === symbol) expandedSymbol.value = null;
-    }
+    confirmModal.value = {
+        show: true,
+        title: 'Delete Asset',
+        message: `Are you sure you want to remove all data for ${symbol}? This action cannot be undone.`,
+        confirmLabel: 'Delete All Records',
+        variant: 'danger',
+        loading: false,
+        action: async () => {
+            confirmModal.value.loading = true;
+            try {
+                await investmentStore.deleteAsset(symbol);
+                if (expandedSymbol.value === symbol) expandedSymbol.value = null;
+                confirmModal.value.show = false;
+            } finally {
+                confirmModal.value.loading = false;
+            }
+        }
+    };
 };
 
 const deleteTransaction = async (id: string) => {
-    if (confirm('Delete this transaction?')) {
-        await investmentStore.deleteInvestment(id);
-    }
+    confirmModal.value = {
+        show: true,
+        title: 'Delete Transaction',
+        message: 'Are you sure you want to remove this transaction record?',
+        confirmLabel: 'Delete Record',
+        variant: 'danger',
+        loading: false,
+        action: async () => {
+            confirmModal.value.loading = true;
+            try {
+                await investmentStore.deleteInvestment(id);
+                confirmModal.value.show = false;
+            } finally {
+                confirmModal.value.loading = false;
+            }
+        }
+    };
+};
+
+const deleteSelected = async () => {
+    if (selectedIds.value.size === 0) return;
+    const ids = Array.from(selectedIds.value);
+    
+    confirmModal.value = {
+        show: true,
+        title: 'Delete Selected Transactions',
+        message: `Are you sure you want to remove ${ids.length} selected transaction records? This action cannot be undone.`,
+        confirmLabel: 'Delete All Selected',
+        variant: 'danger',
+        loading: false,
+        action: async () => {
+            confirmModal.value.loading = true;
+            try {
+                await investmentStore.batchDelete(ids);
+                selectedIds.value.clear();
+                confirmModal.value.show = false;
+            } finally {
+                confirmModal.value.loading = false;
+            }
+        }
+    };
 };
 
 const handleFileUpload = async (event: Event) => {
@@ -119,7 +221,23 @@ const handleFileUpload = async (event: Event) => {
   const reader = new FileReader();
   reader.onload = async (e) => {
     const text = e.target?.result as string;
-    await investmentStore.importTradingViewCSV(text);
+    const count = await investmentStore.importTradingViewCSV(text);
+    if (count > 0) {
+        activeTab.value = 'ledger'; // Switch to ledger to show the new rows one-by-one
+        alertModal.value = {
+            show: true,
+            title: 'Import Successful',
+            message: `Successfully imported ${count} transactions. You can now see them in the Ledger tab.`,
+            type: 'success'
+        };
+    } else {
+        alertModal.value = {
+            show: true,
+            title: 'Import Failed',
+            message: 'No valid transactions found in the CSV. Please check the file format.',
+            type: 'error'
+        };
+    }
     target.value = ''; 
   };
   reader.readAsText(file);
@@ -219,10 +337,28 @@ const handleFileUpload = async (event: Event) => {
         </div>
     </div>
 
+    <!-- Main Content Tabs -->
+    <div class="mb-6 flex gap-1 p-1 bg-accent/20 border border-border rounded-2xl w-fit">
+        <button 
+            @click="activeTab = 'allocation'" 
+            class="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+            :class="activeTab === 'allocation' ? 'bg-background text-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'"
+        >
+            Asset Allocation
+        </button>
+        <button 
+            @click="activeTab = 'ledger'" 
+            class="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+            :class="activeTab === 'ledger' ? 'bg-background text-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'"
+        >
+            Transaction Ledger
+        </button>
+    </div>
+
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 gap-6">
-        <!-- Holdings Table -->
-        <div class="card p-0 overflow-hidden flex flex-col">
+        <!-- Allocation Table -->
+        <div v-if="activeTab === 'allocation'" class="card p-0 overflow-hidden flex flex-col page-transition">
             <div class="p-6 border-b border-border flex items-center justify-between bg-muted/30">
                 <h3 class="font-bold text-foreground flex items-center gap-2">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
@@ -326,6 +462,77 @@ const handleFileUpload = async (event: Event) => {
                 </table>
             </div>
         </div>
+
+        <!-- Transaction Ledger Table (ONE BY ONE) -->
+        <div v-if="activeTab === 'ledger'" class="card p-0 overflow-hidden flex flex-col page-transition">
+            <div class="p-6 border-b border-border flex items-center justify-between bg-muted/30">
+                <h3 class="font-bold text-foreground flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    Full History (One-by-One)
+                </h3>
+                <div class="flex items-center gap-4">
+                    <button v-if="selectedIds.size > 0" @click="deleteSelected" class="px-4 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive text-[10px] font-bold uppercase transition-all flex items-center gap-2">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Delete Selected ({{ selectedIds.size }})
+                    </button>
+                    <p class="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{{ investmentStore.investments.length }} Total Records</p>
+                </div>
+            </div>
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-border bg-muted/10">
+                            <th class="px-6 py-4 w-10">
+                                <input 
+                                    type="checkbox" 
+                                    class="checkbox-custom" 
+                                    :checked="selectedIds.size === investmentStore.investments.length && investmentStore.investments.length > 0"
+                                    @change="toggleSelectAll"
+                                />
+                            </th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Date</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Ticker</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Type</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Qty</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Price</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Total</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        <tr v-for="tx in investmentStore.sortedInvestments" :key="tx.id" class="group hover:bg-accent/30 transition-colors" :class="{ 'bg-primary/5': selectedIds.has(tx.id) }">
+                            <td class="px-6 py-4">
+                                <input 
+                                    type="checkbox" 
+                                    class="checkbox-custom" 
+                                    :checked="selectedIds.has(tx.id)"
+                                    @change="toggleSelect(tx.id)"
+                                />
+                            </td>
+                            <td class="px-6 py-4 text-[11px] font-mono text-muted-foreground">{{ format(new Date(tx.date), 'MMM d, yyyy') }}</td>
+                            <td class="px-6 py-4 font-bold text-foreground">{{ tx.symbol }}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-tighter" :class="tx.type === 'buy' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'">
+                                    {{ tx.type }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right font-mono text-sm text-foreground/80">{{ tx.quantity }}</td>
+                            <td class="px-6 py-4 text-right font-mono text-sm text-foreground/80">{{ formatCurrency(tx.price) }}</td>
+                            <td class="px-6 py-4 text-right font-mono text-sm font-bold text-foreground">{{ formatCurrency(tx.quantity * tx.price) }}</td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button @click="editTransaction(tx)" class="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-white/5 transition-all"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                    <button @click="deleteTransaction(tx.id)" class="p-1.5 text-muted-foreground hover:text-destructive rounded-md hover:bg-destructive/5 transition-all"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-if="investmentStore.investments.length === 0">
+                            <td colspan="7" class="px-6 py-20 text-center text-muted-foreground text-sm italic">No transaction records found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- Edit/Add Modal -->
@@ -374,6 +581,18 @@ const handleFileUpload = async (event: Event) => {
         </form>
       </div>
     </div>
+
+    <!-- Modals -->
+    <ConfirmModal 
+        v-bind="confirmModal" 
+        @close="confirmModal.show = false" 
+        @confirm="confirmModal.action?.()" 
+    />
+
+    <AlertModal 
+        v-bind="alertModal" 
+        @close="alertModal.show = false" 
+    />
   </div>
 </template>
 

@@ -101,7 +101,7 @@ export const useTaskStore = defineStore('tasks', {
     },
     async batchDelete(ids: string[]) {
       this.tasks = this.tasks.filter((t) => !ids.includes(t.id));
-      await Storage.set('tasks', this.tasks);
+      await Storage.remove('tasks', ids);
     }
   },
 });

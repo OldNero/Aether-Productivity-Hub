@@ -3,9 +3,20 @@ import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { useTimerStore, type TimerMode } from '@/stores/timer';
 import { useTaskStore } from '@/stores/tasks';
 import { formatDistanceToNow } from 'date-fns';
+import ConfirmModal from '@/components/ConfirmModal.vue';
 
 const timerStore = useTimerStore();
 const taskStore = useTaskStore();
+
+const confirmModal = ref({
+    show: false,
+    title: '',
+    message: '',
+    confirmLabel: 'Delete',
+    action: null as (() => Promise<void>) | null,
+    loading: false,
+    variant: 'danger' as 'danger' | 'warning'
+});
 
 const showControls = ref(true);
 let controlTimer: number | null = null;
@@ -78,6 +89,26 @@ const formatDuration = (seconds: number) => {
 const getTaskTitle = (id?: string | null) => {
   if (!id) return 'General Session';
   return taskStore.tasks.find(t => t.id === id)?.title || 'Unknown Task';
+};
+
+const openDeleteConfirm = (id: string) => {
+    confirmModal.value = {
+        show: true,
+        title: 'Delete Session',
+        message: 'Are you sure you want to remove this session from your history?',
+        confirmLabel: 'Delete Record',
+        variant: 'danger',
+        loading: false,
+        action: async () => {
+            confirmModal.value.loading = true;
+            try {
+                await timerStore.deleteSession(id);
+                confirmModal.value.show = false;
+            } finally {
+                confirmModal.value.loading = false;
+            }
+        }
+    };
 };
 </script>
 
@@ -212,7 +243,7 @@ const getTaskTitle = (id?: string | null) => {
                         <p class="text-sm font-mono font-bold text-foreground">{{ formatDuration(session.duration) }}</p>
                         <p class="text-[9px] text-muted-foreground uppercase tracking-tighter">{{ session.mode.replace('_', ' ') }}</p>
                     </div>
-                    <button @click="timerStore.deleteSession(session.id)" class="p-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
+                    <button @click="openDeleteConfirm(session.id)" class="p-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </div>
@@ -289,6 +320,13 @@ const getTaskTitle = (id?: string | null) => {
         </div>
       </div>
     </Teleport>
+
+    <!-- Confirmation Modal -->
+    <ConfirmModal 
+        v-bind="confirmModal" 
+        @close="confirmModal.show = false" 
+        @confirm="confirmModal.action?.()" 
+    />
   </div>
 </template>
 

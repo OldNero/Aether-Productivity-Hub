@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue';
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
 import { useTaskStore } from '@/stores/tasks';
 import { useTimerStore } from '@/stores/timer';
 import { useInvestmentStore } from '@/stores/investments';
@@ -68,6 +68,11 @@ const getChartColors = () => {
 
 const initTaskChart = () => {
   if (!taskChartRef.value) return;
+  
+  // Safe destruction of existing chart on this canvas
+  const existingChart = Chart.getChart(taskChartRef.value);
+  if (existingChart) existingChart.destroy();
+
   const colors = getChartColors();
   
   const data = {
@@ -107,6 +112,11 @@ const initTaskChart = () => {
 
 const initFocusChart = () => {
   if (!focusChartRef.value) return;
+
+  // Safe destruction of existing chart on this canvas
+  const existingChart = Chart.getChart(focusChartRef.value);
+  if (existingChart) existingChart.destroy();
+
   const colors = getChartColors();
 
   const last7Days = eachDayOfInterval({
@@ -177,6 +187,11 @@ onMounted(async () => {
   
   initTaskChart();
   initFocusChart();
+});
+
+onBeforeUnmount(() => {
+  if (taskChart) taskChart.destroy();
+  if (focusChart) focusChart.destroy();
 });
 
 watch([() => taskStore.tasks, () => themeStore.mode], () => {

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { Storage } from '@/utils/storage';
+import { parseTradingViewCSV } from '@/utils/csvParser';
 
 export interface Investment {
   id: string;
@@ -185,6 +186,9 @@ export const useInvestmentStore = defineStore('investments', {
         const p: Record<string, number> = {};
         Object.entries(state.realTimePrices).forEach(([s, info]) => p[s] = info.price);
         return p;
+    },
+    sortedInvestments: (state): Investment[] => {
+        return [...state.investments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
   },
   actions: {
@@ -224,16 +228,26 @@ export const useInvestmentStore = defineStore('investments', {
     async addInvestment(investment: Omit<Investment, 'id'>) {
       const newInv: Investment = { ...investment, id: Storage.generateUUID(), notes: '' };
       this.investments.push(newInv);
-      await Storage.set('investments', this.investments);
+      await Storage.add('investments', newInv);
       await this.fetchRealTimePrices();
     },
     async deleteInvestment(id: string) {
       this.investments = this.investments.filter(i => i.id !== id);
-      await Storage.set('investments', this.investments);
+      await Storage.remove('investments', id);
+    },
+    async batchDelete(ids: string[]) {
+      if (ids.length === 0) return;
+      this.investments = this.investments.filter(i => !ids.includes(i.id));
+      await Storage.remove('investments', ids);
     },
     async deleteAsset(symbol: string) {
-      this.investments = this.investments.filter(i => i.symbol !== symbol);
-      await Storage.set('investments', this.investments);
+      const targetSymbol = symbol.trim().toUpperCase();
+      const idsToRemove = this.investments
+        .filter(i => i.symbol.trim().toUpperCase() === targetSymbol)
+        .map(i => i.id);
+        
+      this.investments = this.investments.filter(i => i.symbol.trim().toUpperCase() !== targetSymbol);
+      await Storage.remove('investments', idsToRemove);
     },
     async updateInvestment(id: string, updates: Partial<Investment>) {
       const idx = this.investments.findIndex(i => i.id === id);
@@ -244,30 +258,21 @@ export const useInvestmentStore = defineStore('investments', {
       }
     },
     async importTradingViewCSV(csv: string) {
-        const lines = csv.split('\n').filter(l => l.trim());
-        if (lines.length < 2) return;
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const mapped = lines.slice(1).map(line => {
-            const cols = line.split(',');
-            const obj: any = {};
-            headers.forEach((h, i) => obj[h] = cols[i]?.trim());
-            return obj;
-        });
-        const newEntries = mapped.filter(m => m.symbol && m.price).map(m => ({
-            symbol: m.symbol.toUpperCase(),
-            type: (m.type || m.side || 'buy').toLowerCase() === 'sell' ? 'sell' : 'buy',
-            price: parseFloat(m.price),
-            quantity: parseFloat(m.quantity || m.amount || m.qty),
-            commission: parseFloat(m.commission || m.fee || 0),
-            date: new Date(m.time || m.date || Date.now()).toISOString(),
-            notes: 'Imported'
-        })) as any[];
-        await this.addInvestments(newEntries);
+        try {
+            const transactions = parseTradingViewCSV(csv);
+            if (transactions.length > 0) {
+                await this.addInvestments(transactions);
+            }
+            return transactions.length;
+        } catch (err) {
+            console.error('CSV Import Error:', err);
+            return 0;
+        }
     },
     async addInvestments(investments: Omit<Investment, 'id'>[]) {
         const newEntries = investments.map(inv => ({ ...inv, id: Storage.generateUUID(), notes: inv.notes || '' }));
         this.investments.push(...newEntries);
-        await Storage.set('investments', this.investments);
+        await Storage.addMultiple('investments', newEntries);
         await this.fetchRealTimePrices();
     }
   },

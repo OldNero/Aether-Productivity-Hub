@@ -26,7 +26,17 @@ Go to **Settings** > **Environment variables** and add:
 | `VITE_SUPABASE_URL` | Your Supabase Project URL |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase Anon/Public Key |
 
-## 4. SPA Redirection
+## 4. Database Setup (Supabase)
+The application requires specific tables and Row Level Security (RLS) policies to sync data correctly.
+- **Action**: Open [SUPABASE_SETUP.sql](file:///E:/Web-Dev/Aether-Productivity-Hub/SUPABASE_SETUP.sql).
+- **Steps**:
+    1. Copy the entire content of the script.
+    2. Go to your [Supabase Dashboard](https://supabase.com/dashboard).
+    3. Select your project and navigate to the **SQL Editor**.
+    4. Paste the script and click **Run**.
+This will fix 403 (Forbidden) and 406 (Not Acceptable) errors during sync.
+
+## 5. SPA Redirection
 A `public/_redirects` file has been added to the project. This ensures that refreshing the page on any route (e.g., `/investments`) doesn't result in a 404 error, by redirecting all requests to `index.html`.
 
 ## Option A: Git Deployment (Recommended)

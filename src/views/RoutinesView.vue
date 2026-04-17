@@ -2,12 +2,24 @@
 import { ref, onMounted, computed } from 'vue';
 import { useTaskStore, Task } from '@/stores/tasks';
 import { formatDistanceToNow } from 'date-fns';
+import ConfirmModal from '@/components/ConfirmModal.vue';
 
 const taskStore = useTaskStore();
 const activeFilter = ref<'all' | 'active' | 'completed'>('all');
 const showAddModal = ref(false);
 const bulkMode = ref(false);
 const selectedIds = ref<Set<string>>(new Set());
+
+// Modal State
+const confirmModal = ref({
+    show: false,
+    title: '',
+    message: '',
+    confirmLabel: 'Delete',
+    action: null as (() => Promise<void>) | null,
+    loading: false,
+    variant: 'danger' as 'danger' | 'warning'
+});
 
 const newTask = ref({
   title: '',
@@ -42,9 +54,46 @@ const toggleSelection = (id: string) => {
 };
 
 const handleBulkDelete = async () => {
-    await taskStore.batchDelete(Array.from(selectedIds.value));
-    selectedIds.value.clear();
-    bulkMode.value = false;
+    confirmModal.value = {
+        show: true,
+        title: 'Bulk Delete Tasks',
+        message: `Are you sure you want to delete ${selectedIds.value.size} selected tasks? This action cannot be undone.`,
+        confirmLabel: `Delete ${selectedIds.value.size} Tasks`,
+        variant: 'danger',
+        loading: false,
+        action: async () => {
+            confirmModal.value.loading = true;
+            try {
+                await taskStore.batchDelete(Array.from(selectedIds.value));
+                selectedIds.value.clear();
+                bulkMode.value = false;
+                confirmModal.value.show = false;
+            } finally {
+                confirmModal.value.loading = false;
+            }
+        }
+    };
+};
+
+const openDeleteConfirm = (id: string) => {
+    const task = taskStore.tasks.find(t => t.id === id);
+    confirmModal.value = {
+        show: true,
+        title: 'Delete Task',
+        message: `Remove "${task?.title}"? This will also delete all associated subtasks.`,
+        confirmLabel: 'Delete Task',
+        variant: 'danger',
+        loading: false,
+        action: async () => {
+            confirmModal.value.loading = true;
+            try {
+                await taskStore.deleteTask(id);
+                confirmModal.value.show = false;
+            } finally {
+                confirmModal.value.loading = false;
+            }
+        }
+    };
 };
 </script>
 
@@ -129,7 +178,7 @@ const handleBulkDelete = async () => {
                 </div>
             </div>
 
-            <button v-if="!bulkMode" @click.stop="taskStore.deleteTask(task.id)" class="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive transition-all">
+            <button v-if="!bulkMode" @click.stop="openDeleteConfirm(task.id)" class="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive transition-all">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
         </div>
@@ -204,6 +253,13 @@ const handleBulkDelete = async () => {
         </form>
       </div>
     </div>
+
+    <!-- Confirmation Modal -->
+    <ConfirmModal 
+        v-bind="confirmModal" 
+        @close="confirmModal.show = false" 
+        @confirm="confirmModal.action?.()" 
+    />
   </div>
 </template>
 

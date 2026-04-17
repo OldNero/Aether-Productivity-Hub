@@ -36,7 +36,7 @@ const handleGoogleSignIn = async () => {
 </script>
 
 <template>
-  <div id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-background">
+  <div v-if="!authStore.isAuthenticated" id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-background">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.1),transparent_50%)]"></div>
     
     <div class="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-8 relative z-10 animate-in">
