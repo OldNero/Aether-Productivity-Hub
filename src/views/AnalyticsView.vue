@@ -3,6 +3,7 @@ import { onMounted, ref, computed, watch } from 'vue';
 import { useTaskStore } from '@/stores/tasks';
 import { useTimerStore } from '@/stores/timer';
 import { useInvestmentStore } from '@/stores/investments';
+import { useThemeStore } from '@/stores/theme';
 import { 
   Chart, 
   DoughnutController, 
@@ -16,7 +17,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { startOfDay, endOfDay, eachDayOfInterval, subDays, format, isSameDay } from 'date-fns';
+import { eachDayOfInterval, subDays, format, isSameDay } from 'date-fns';
 
 Chart.register(
   DoughnutController, ArcElement, 
@@ -28,6 +29,7 @@ Chart.register(
 const taskStore = useTaskStore();
 const timerStore = useTimerStore();
 const investmentStore = useInvestmentStore();
+const themeStore = useThemeStore();
 
 const taskChartRef = ref<HTMLCanvasElement | null>(null);
 const focusChartRef = ref<HTMLCanvasElement | null>(null);
@@ -53,8 +55,20 @@ const stats = computed(() => {
   };
 });
 
+const getChartColors = () => {
+    const isDark = themeStore.mode === 'dark' || (themeStore.mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return {
+        text: isDark ? '#a1a1aa' : '#71717a',
+        grid: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+        primary: isDark ? '#f4f4f5' : '#18181b',
+        tooltipBg: isDark ? '#18181b' : '#ffffff',
+        tooltipText: isDark ? '#f4f4f5' : '#18181b'
+    };
+};
+
 const initTaskChart = () => {
   if (!taskChartRef.value) return;
+  const colors = getChartColors();
   
   const data = {
     labels: ['High', 'Medium', 'Low'],
@@ -74,15 +88,17 @@ const initTaskChart = () => {
     type: 'doughnut',
     data,
     options: {
-      cutout: '70%',
+      cutout: '75%',
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#18181b',
-          titleFont: { size: 12, weight: 'bold' },
-          bodyFont: { size: 12 },
+          backgroundColor: colors.tooltipBg,
+          titleColor: colors.tooltipText,
+          bodyColor: colors.tooltipText,
           padding: 12,
-          displayColors: false
+          displayColors: false,
+          borderColor: colors.grid,
+          borderWidth: 1
         }
       }
     }
@@ -91,6 +107,7 @@ const initTaskChart = () => {
 
 const initFocusChart = () => {
   if (!focusChartRef.value) return;
+  const colors = getChartColors();
 
   const last7Days = eachDayOfInterval({
     start: subDays(new Date(), 6),
@@ -108,12 +125,12 @@ const initFocusChart = () => {
     datasets: [{
       label: 'Focus Minutes',
       data: focusData,
-      borderColor: '#f4f4f5',
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderColor: colors.primary,
+      backgroundColor: 'transparent',
       fill: true,
       tension: 0.4,
       pointRadius: 4,
-      pointBackgroundColor: '#fff'
+      pointBackgroundColor: colors.primary
     }]
   };
 
@@ -128,18 +145,22 @@ const initFocusChart = () => {
         tooltip: {
           mode: 'index',
           intersect: false,
-          backgroundColor: '#18181b',
-          padding: 12
+          backgroundColor: colors.tooltipBg,
+          titleColor: colors.tooltipText,
+          bodyColor: colors.tooltipText,
+          padding: 12,
+          borderColor: colors.grid,
+          borderWidth: 1
         }
       },
       scales: {
         x: { 
             grid: { display: false },
-            ticks: { color: '#71717a', font: { size: 10 } }
+            ticks: { color: colors.text, font: { size: 10 } }
         },
         y: { 
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: { color: '#71717a', font: { size: 10 } },
+            grid: { color: colors.grid },
+            ticks: { color: colors.text, font: { size: 10 } },
             beginAtZero: true
         }
       }
@@ -158,75 +179,74 @@ onMounted(async () => {
   initFocusChart();
 });
 
-// Re-render charts if data changes
-watch(() => taskStore.tasks, () => {
-  if (taskChart) {
-    taskChart.destroy();
-    initTaskChart();
-  }
+watch([() => taskStore.tasks, () => themeStore.mode], () => {
+  if (taskChart) taskChart.destroy();
+  if (focusChart) focusChart.destroy();
+  initTaskChart();
+  initFocusChart();
 }, { deep: true });
 </script>
 
 <template>
   <div class="p-6 max-w-screen-2xl mx-auto page-transition">
     <div class="mb-10">
-      <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-100">Analytics</h1>
-      <p class="text-base text-muted mt-2 max-w-2xl">Visualizing your deep work cycles and task velocity.</p>
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-foreground">Analytics</h1>
+      <p class="text-base text-muted-foreground mt-2 max-w-2xl">Visualizing your deep work cycles and task velocity.</p>
     </div>
 
     <!-- Quick Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <div class="card flex flex-col gap-1">
         <p class="label">Focus Time</p>
-        <p class="text-3xl font-bold text-zinc-100">{{ stats.focusHours }}<span class="text-sm font-normal text-muted ml-1">hrs</span></p>
+        <p class="text-3xl font-bold text-foreground">{{ stats.focusHours }}<span class="text-sm font-normal text-muted-foreground ml-1">hrs</span></p>
       </div>
       <div class="card flex flex-col gap-1">
         <p class="label">Total Sessions</p>
-        <p class="text-3xl font-bold text-zinc-100">{{ stats.sessions }}</p>
+        <p class="text-3xl font-bold text-foreground">{{ stats.sessions }}</p>
       </div>
       <div class="card flex flex-col gap-1">
         <p class="label">Completion Rate</p>
-        <p class="text-3xl font-bold text-emerald-400">{{ stats.completionRate }}</p>
+        <p class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ stats.completionRate }}</p>
       </div>
       <div class="card flex flex-col gap-1">
         <p class="label">Avg Focus</p>
-        <p class="text-3xl font-bold text-zinc-100">{{ stats.avgSession }}<span class="text-sm font-normal text-muted ml-1">min</span></p>
+        <p class="text-3xl font-bold text-foreground">{{ stats.avgSession }}<span class="text-sm font-normal text-muted-foreground ml-1">min</span></p>
       </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Task Distribution -->
       <div class="card flex flex-col">
-        <h3 class="font-bold text-zinc-100 mb-6 flex items-center gap-2">
+        <h3 class="font-bold text-foreground mb-6 flex items-center gap-2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
             Task Priority Distribution
         </h3>
         <div class="relative flex-1 flex items-center justify-center min-h-[250px]">
           <canvas ref="taskChartRef"></canvas>
           <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <p class="text-4xl font-bold text-zinc-100">{{ taskStore.totalCount }}</p>
-            <p class="text-[10px] font-bold text-muted uppercase tracking-widest">Total Tasks</p>
+            <p class="text-4xl font-bold text-foreground">{{ taskStore.totalCount }}</p>
+            <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Tasks</p>
           </div>
         </div>
         <div class="mt-8 flex justify-center gap-6">
             <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                <span class="text-xs text-muted">High</span>
+                <span class="text-xs text-muted-foreground">High</span>
             </div>
             <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span class="text-xs text-muted">Medium</span>
+                <span class="text-xs text-muted-foreground">Medium</span>
             </div>
             <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-                <span class="text-xs text-muted">Low</span>
+                <span class="text-xs text-muted-foreground">Low</span>
             </div>
         </div>
       </div>
 
       <!-- Focus Trends -->
       <div class="card lg:col-span-2 flex flex-col">
-        <h3 class="font-bold text-zinc-100 mb-6 flex items-center gap-2">
+        <h3 class="font-bold text-foreground mb-6 flex items-center gap-2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
             Focus Intensity (Last 7 Days)
         </h3>
@@ -237,37 +257,37 @@ watch(() => taskStore.tasks, () => {
 
       <!-- Recent Efficiency Table -->
       <div class="card lg:col-span-3">
-        <h3 class="font-bold text-zinc-100 mb-6">Recent Focus Sessions</h3>
+        <h3 class="font-bold text-foreground mb-6">Recent Focus Sessions</h3>
         <div class="overflow-x-auto">
           <table class="w-full text-left">
             <thead>
-              <tr class="border-b border-white/5">
-                <th class="pb-4 text-[10px] font-bold text-muted uppercase tracking-widest">Date</th>
-                <th class="pb-4 text-[10px] font-bold text-muted uppercase tracking-widest">Type</th>
-                <th class="pb-4 text-[10px] font-bold text-muted uppercase tracking-widest">Duration</th>
-                <th class="pb-4 text-[10px] font-bold text-muted uppercase tracking-widest">Project/Task</th>
-                <th class="pb-4 text-[10px] font-bold text-muted uppercase tracking-widest text-right">Status</th>
+              <tr class="border-b border-border">
+                <th class="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Date</th>
+                <th class="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Type</th>
+                <th class="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Duration</th>
+                <th class="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Project/Task</th>
+                <th class="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-white/5">
+            <tbody class="divide-y divide-border">
               <tr v-for="session in timerStore.sessions.slice(0, 5)" :key="session.id" class="group">
-                <td class="py-4 text-sm text-zinc-400">{{ format(new Date(session.startTime), 'MMM d, h:mm a') }}</td>
+                <td class="py-4 text-sm text-muted-foreground">{{ format(new Date(session.startTime), 'MMM d, h:mm a') }}</td>
                 <td class="py-4">
                   <span 
-                    class="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
-                    :class="session.mode === 'focus' ? 'bg-violet-500/10 text-violet-400' : 'bg-emerald-500/10 text-emerald-400'"
+                    class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border"
+                    :class="session.mode === 'focus' ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'"
                   >
                     {{ session.mode }}
                   </span>
                 </td>
-                <td class="py-4 text-sm font-mono text-zinc-100">{{ Math.floor(session.duration / 60) }}m {{ session.duration % 60 }}s</td>
-                <td class="py-4 text-sm text-zinc-400">{{ session.taskId ? taskStore.tasks.find(t => t.id === session.taskId)?.title : 'General' }}</td>
+                <td class="py-4 text-sm font-mono text-foreground">{{ Math.floor(session.duration / 60) }}m {{ session.duration % 60 }}s</td>
+                <td class="py-4 text-sm text-muted-foreground">{{ session.taskId ? taskStore.tasks.find(t => t.id === session.taskId)?.title : 'General' }}</td>
                 <td class="py-4 text-right">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
                 </td>
               </tr>
               <tr v-if="timerStore.sessions.length === 0">
-                <td colspan="5" class="py-12 text-center text-muted text-sm italic">No focus sessions recorded yet.</td>
+                <td colspan="5" class="py-12 text-center text-muted-foreground text-sm italic">No focus sessions recorded yet.</td>
               </tr>
             </tbody>
           </table>
@@ -276,9 +296,3 @@ watch(() => taskStore.tasks, () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-canvas {
-    width: 100% !important;
-}
-</style>

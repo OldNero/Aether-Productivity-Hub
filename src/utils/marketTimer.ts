@@ -42,7 +42,7 @@ export function getUSMarketStatus(): MarketInfo {
     return {
       status: 'closed',
       label: 'Closed',
-      color: 'bg-zinc-600',
+      color: 'bg-muted',
       nextEvent: 'Opens Monday',
       remainingTime: `Opens ${timeTo(nextMonday)}`
     };

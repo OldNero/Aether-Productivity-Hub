@@ -36,14 +36,14 @@ export const useTaskStore = defineStore('tasks', {
       this.tasks = tasks || [];
       this.isLoaded = true;
     },
-    async addTask(title: string, priority: Task['priority'], project_id = 'inbox') {
+    async addTask(data: { title: string, priority: Task['priority'], subtasks?: any[], project_id?: string }) {
       const newTask: Task = {
         id: Storage.generateUUID(),
-        title,
-        priority,
+        title: data.title,
+        priority: data.priority,
         status: 'active',
-        subtasks: [],
-        project_id,
+        subtasks: data.subtasks || [],
+        project_id: data.project_id || 'inbox',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

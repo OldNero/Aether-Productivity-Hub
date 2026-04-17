@@ -1,383 +1,374 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { getUSMarketStatus, type MarketInfo } from '@/utils/marketTimer';
-import { useInvestmentStore, MARKET_MOVERS_SYMBOLS } from '@/stores/investments';
-import { POPULAR_SYMBOLS, type SymbolInfo } from '@/utils/symbols';
-import { parseTradingViewCSV } from '@/utils/csvParser';
+import { useInvestmentStore, type Investment } from '@/stores/investments';
+import { format } from 'date-fns';
 
 const investmentStore = useInvestmentStore();
-const isModalOpen = ref(false);
-const marketInfo = ref<MarketInfo>(getUSMarketStatus());
-let statusTimer: number | null = null;
+const marketStatus = ref<MarketInfo>(getUSMarketStatus());
+let statusInterval: number;
 
-// Form State
+const showAddModal = ref(false);
+const expandedSymbol = ref<string | null>(null);
+const editingTransactionId = ref<string | null>(null);
+const renameSymbol = ref('');
+
 const newInvestment = ref({
   symbol: '',
   type: 'buy' as 'buy' | 'sell',
   price: 0,
   quantity: 0,
   commission: 0,
-  date: new Date().toISOString().split('T')[0],
-  notes: ''
-});
-
-// CSV State
-const fileInput = ref<HTMLInputElement | null>(null);
-const isDragging = ref(false);
-
-// Autocomplete State
-const symbolSearch = ref('');
-const isDropdownOpen = ref(false);
-const filteredSymbols = computed(() => {
-  if (!symbolSearch.value) return [];
-  const query = symbolSearch.value.toUpperCase();
-  return POPULAR_SYMBOLS.filter(s => 
-    s.symbol.includes(query) || s.name.toUpperCase().includes(query)
-  ).slice(0, 6);
-});
-
-// Real-time calculation
-const totalValue = computed(() => {
-  const principal = newInvestment.value.price * newInvestment.value.quantity;
-  if (newInvestment.value.type === 'buy') {
-    return principal + newInvestment.value.commission;
-  }
-  return principal - newInvestment.value.commission;
+  date: format(new Date(), "yyyy-MM-dd'T'HH:mm")
 });
 
 onMounted(async () => {
   await investmentStore.fetchInvestments();
-  statusTimer = window.setInterval(() => {
-    marketInfo.value = getUSMarketStatus();
-  }, 10000);
+  statusInterval = window.setInterval(() => {
+    marketStatus.value = getUSMarketStatus();
+  }, 1000);
 });
 
 onUnmounted(() => {
-  if (statusTimer) clearInterval(statusTimer);
+  clearInterval(statusInterval);
 });
 
-const openModal = () => (isModalOpen.value = true);
-const closeModal = () => {
-  isModalOpen.value = false;
-  symbolSearch.value = '';
-  newInvestment.value = {
-    symbol: '',
-    type: 'buy',
-    price: 0,
-    quantity: 0,
-    commission: 0,
-    date: new Date().toISOString().split('T')[0],
-    notes: ''
-  };
+const formatCurrency = (val: number) => {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(val);
 };
 
-const selectSymbol = (s: SymbolInfo) => {
-  newInvestment.value.symbol = s.symbol;
-  symbolSearch.value = s.symbol;
-  isDropdownOpen.value = false;
+const formatPercent = (val: number) => {
+  if (val === undefined || isNaN(val)) return '0.00%';
+  return `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
+};
+
+const openAddModal = () => {
+    editingTransactionId.value = null;
+    newInvestment.value = { symbol: '', type: 'buy', price: 0, quantity: 0, commission: 0, date: format(new Date(), "yyyy-MM-dd'T'HH:mm") };
+    showAddModal.value = true;
 };
 
 const handleAddInvestment = async () => {
-  if (newInvestment.value.symbol && newInvestment.value.price > 0 && newInvestment.value.quantity > 0) {
-    await investmentStore.addInvestment({
-      ...newInvestment.value,
-      symbol: newInvestment.value.symbol.toUpperCase()
-    });
-    closeModal();
+  if (!newInvestment.value.symbol || newInvestment.value.price <= 0) return;
+  const payload = {
+    ...newInvestment.value,
+    symbol: newInvestment.value.symbol.toUpperCase(),
+    date: new Date(newInvestment.value.date).toISOString()
+  };
+  if (editingTransactionId.value) {
+      await investmentStore.updateInvestment(editingTransactionId.value, payload);
+  } else {
+      await investmentStore.addInvestment(payload);
   }
+  showAddModal.value = false;
+  editingTransactionId.value = null;
+};
+
+const toggleExpand = (symbol: string) => {
+    if (expandedSymbol.value === symbol) expandedSymbol.value = null;
+    else {
+        expandedSymbol.value = symbol;
+        renameSymbol.value = symbol;
+    }
+};
+
+const handleRenameAsset = async () => {
+    if (!expandedSymbol.value || !renameSymbol.value) return;
+    const newSym = renameSymbol.value.toUpperCase();
+    if (newSym === expandedSymbol.value) return;
+    if (confirm(`Rename all ${expandedSymbol.value} transactions to ${newSym}?`)) {
+        const transactions = investmentStore.investments.filter(i => i.symbol === expandedSymbol.value);
+        for (const tx of transactions) {
+            await investmentStore.updateInvestment(tx.id, { symbol: newSym });
+        }
+        expandedSymbol.value = newSym;
+    }
+};
+
+const editTransaction = (tx: Investment) => {
+    editingTransactionId.value = tx.id;
+    newInvestment.value = {
+        symbol: tx.symbol,
+        type: tx.type,
+        price: tx.price,
+        quantity: tx.quantity,
+        commission: tx.commission || 0,
+        date: format(new Date(tx.date), "yyyy-MM-dd'T'HH:mm")
+    };
+    showAddModal.value = true;
+};
+
+const deleteAsset = async (symbol: string) => {
+    if (confirm(`Are you sure you want to remove all data for ${symbol}?`)) {
+        await investmentStore.deleteAsset(symbol);
+        if (expandedSymbol.value === symbol) expandedSymbol.value = null;
+    }
+};
+
+const deleteTransaction = async (id: string) => {
+    if (confirm('Delete this transaction?')) {
+        await investmentStore.deleteInvestment(id);
+    }
 };
 
 const handleFileUpload = async (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0];
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
   if (!file) return;
-  processFile(file);
-};
-
-const handleDrop = (event: DragEvent) => {
-  isDragging.value = false;
-  const file = event.dataTransfer?.files[0];
-  if (file) processFile(file);
-};
-
-const processFile = (file: File) => {
-  if (!file.name.endsWith('.csv')) {
-    alert('Please upload a valid CSV file.');
-    return;
-  }
   const reader = new FileReader();
   reader.onload = async (e) => {
     const text = e.target?.result as string;
-    const transactions = parseTradingViewCSV(text);
-    if (transactions.length > 0) {
-      await investmentStore.addInvestments(transactions);
-    } else {
-      alert('No valid transactions found in CSV.');
-    }
+    await investmentStore.importTradingViewCSV(text);
+    target.value = ''; 
   };
   reader.readAsText(file);
 };
-
-const totalHoldingsCount = computed(() => Object.keys(investmentStore.totalHoldings).length);
-
-const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
-};
-
-const formattedNetWorth = computed(() => formatCurrency(investmentStore.netWorth));
-const formattedCash = computed(() => formatCurrency(investmentStore.cashBalance));
-const formattedInvested = computed(() => formatCurrency(investmentStore.investedValue));
-const formattedPL = computed(() => formatCurrency(investmentStore.totalPL));
-const dayChangeValue = computed(() => formatCurrency(investmentStore.dayChange.value));
-const dayChangePercent = computed(() => investmentStore.dayChange.percent.toFixed(2) + '%');
 </script>
 
 <template>
   <div class="p-6 max-w-screen-2xl mx-auto page-transition">
     <!-- Header -->
-    <div class="mb-10 flex items-center justify-between">
+    <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
-        <div class="flex items-center gap-4">
-          <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-100">
-            Portfolio
-          </h1>
-          
-          <!-- US Market Status Badge -->
-          <div class="group relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/50 border border-border cursor-pointer self-end mb-1 transition-all hover:bg-zinc-800">
-            <span class="w-2 h-2 rounded-full animate-pulse" :class="marketInfo.color"></span>
-            <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{{ marketInfo.label }}</span>
-            <!-- US Market Status Tooltip (Positioned below to clear header) -->
-            <div class="absolute top-full left-0 mt-2 w-max px-3 py-2 bg-zinc-900 border border-white/10 text-zinc-200 text-[10px] font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap shadow-2xl z-[999] backdrop-blur-xl">
-              <div class="flex flex-col gap-1">
-                <span class="text-zinc-100 font-bold uppercase tracking-widest text-[9px]">{{ marketInfo.nextEvent }}</span>
-                <span class="text-muted">{{ marketInfo.remainingTime }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p class="text-base text-muted mt-2 max-w-2xl">
-          A real-time overview of your global asset positions.
-        </p>
-      </div>
-      <button @click="openModal" class="btn-primary">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        Add Asset
-      </button>
-    </div>
-
-    <!-- Import & Stats -->
-    <div class="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <!-- Net Worth Card -->
-      <div class="card flex flex-col justify-center order-first">
-        <div class="flex items-center justify-between mb-2">
-            <p class="text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Net Worth</p>
-            <div class="flex items-center gap-2">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <p class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Live Sync</p>
+        <div class="flex items-center gap-3 mb-2">
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-foreground">Portfolio</h1>
+            <!-- Market Status Indicator -->
+            <div class="group relative inline-flex mt-2">
+                <div class="flex items-center gap-2 px-2 py-1 rounded-full bg-accent/50 border border-border cursor-help">
+                    <div class="w-1.5 h-1.5 rounded-full" :class="marketStatus.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></div>
+                    <span class="text-[10px] font-bold text-foreground uppercase tracking-tight">{{ marketStatus.label }}</span>
+                </div>
+                <!-- Tooltip Content -->
+                <div class="absolute left-full ml-3 top-1/2 -translate-y-1/2 w-48 p-4 bg-popover border border-border rounded-xl shadow-2xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all z-[60]">
+                    <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{{ marketStatus.label }}</p>
+                    <p class="text-sm font-medium text-foreground mb-3">{{ marketStatus.remainingTime }}</p>
+                    <div class="pt-3 border-t border-border">
+                        <p class="text-[10px] text-muted-foreground">{{ marketStatus.nextEvent }}</p>
+                    </div>
+                    <div class="absolute left-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 bg-popover border-l border-b border-border rotate-45"></div>
+                </div>
             </div>
         </div>
-        <p class="text-3xl font-bold font-mono text-zinc-100 tracking-tighter">{{ formattedNetWorth }}</p>
-      </div>
-
-      <!-- CSV Import Dropzone -->
-      <div class="lg:col-span-2">
-        <div 
-          @dragover.prevent="isDragging = true"
-          @dragleave.prevent="isDragging = false"
-          @drop.prevent="handleDrop"
-          @click="fileInput?.click()"
-          class="h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center bg-white/[0.02] hover:bg-white/[0.04] transition-all cursor-pointer group"
-          :class="isDragging ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-white/10'"
-        >
-          <div class="flex items-center gap-3 text-muted group-hover:text-emerald-400 transition-colors">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              <p class="text-sm font-semibold tracking-tight">Drop TradingView CSV or click to import</p>
-          </div>
-          <p class="text-[10px] text-zinc-500 mt-1 uppercase tracking-widest">Symbol, Side, Qty, Fill Price, Commission...</p>
-          <input type="file" ref="fileInput" @change="handleFileUpload" class="hidden" accept=".csv" />
-        </div>
+        <p class="text-base text-muted-foreground max-w-2xl">High-performance tracking aligned with TradingView metrics.</p>
       </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-      <div class="card flex flex-col gap-1 border-indigo-500/20">
-        <p class="label">Cash Balance</p>
-        <p class="text-2xl font-bold font-mono text-indigo-400">{{ formattedCash }}</p>
-      </div>
-      <div class="card flex flex-col gap-1">
-        <p class="label">Invested</p>
-        <p class="text-2xl font-bold font-mono text-zinc-100">{{ formattedInvested }}</p>
-      </div>
-      <div class="card flex flex-col gap-1">
-        <p class="label">Total P/L</p>
-        <p class="text-2xl font-bold font-mono" :class="investmentStore.totalPL >= 0 ? 'text-emerald-400' : 'text-rose-400'">
-          {{ formattedPL }}
-        </p>
-      </div>
-      <div class="card flex flex-col gap-1">
-        <p class="label">Day Change</p>
-        <p class="text-xl font-bold font-mono" :class="investmentStore.dayChange.value >= 0 ? 'text-emerald-400' : 'text-rose-400'">
-          {{ dayChangeValue }} ({{ dayChangePercent }})
-        </p>
-      </div>
-      <div class="card flex flex-col gap-1">
-        <p class="label">Positions</p>
-        <p class="text-2xl font-bold text-zinc-100">{{ totalHoldingsCount }}</p>
-      </div>
-      <div class="card flex flex-col gap-1">
-        <p class="label">Efficiency</p>
-        <p class="text-2xl font-bold text-zinc-100">100%</p>
-      </div>
+    <!-- Metrics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        <!-- Col 1: Core Value -->
+        <div class="card flex flex-col justify-between min-h-[140px]">
+            <p class="label">Portfolio Value</p>
+            <div>
+                <p class="text-3xl font-bold text-foreground tracking-tight">{{ formatCurrency(investmentStore.portfolioValue) }}</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-xs font-bold" :class="investmentStore.totalGain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'">
+                        {{ formatPercent(investmentStore.totalGainPercent) }}
+                    </span>
+                    <span class="text-[10px] text-muted-foreground uppercase font-bold">Total Gain</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Col 2: Liquidity & Unrealized -->
+        <div class="card flex flex-col justify-between min-h-[140px]">
+            <p class="label">Cash & Unrealized</p>
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-lg font-bold text-foreground">{{ formatCurrency(investmentStore.cashBalance) }}</span>
+                    <span class="text-[9px] text-muted-foreground uppercase font-bold">Cash</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-lg font-bold" :class="investmentStore.unrealizedGain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'">
+                        {{ formatCurrency(investmentStore.unrealizedGain) }}
+                    </span>
+                    <span class="text-[9px] text-muted-foreground uppercase font-bold">Unrealized</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Col 3: Performance -->
+        <div class="card flex flex-col justify-between min-h-[140px]">
+            <p class="label">Realized & Day Change</p>
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-lg font-bold text-foreground">{{ formatCurrency(investmentStore.realizedGain) }}</span>
+                    <span class="text-[9px] text-muted-foreground uppercase font-bold">Realized</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-lg font-bold" :class="investmentStore.dayChange.value >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'">
+                        {{ formatPercent(investmentStore.dayChange.percent) }}
+                    </span>
+                    <span class="text-[9px] text-muted-foreground uppercase font-bold">Last Day</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Col 4: TradingView Sync (RESTORED EXACTLY) -->
+        <div class="card relative flex flex-col justify-center items-center text-center gap-4 bg-accent/30 border-dashed border-2 border-border hover:border-primary/50 transition-all group">
+            <div class="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center group-hover:text-primary transition-colors shadow-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-foreground">TradingView Sync</p>
+                <p class="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Import CSV Export</p>
+            </div>
+            <label class="absolute inset-0 cursor-pointer">
+                <input type="file" class="hidden" accept=".csv" @change="handleFileUpload" />
+            </label>
+        </div>
     </div>
 
-    <!-- Ledger & Market -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="card lg:col-span-2 relative overflow-hidden group min-h-[400px]">
-        <h3 class="font-semibold text-zinc-100 mb-4">Asset Ledger</h3>
-        <div class="space-y-3" v-if="investmentStore.investments.length > 0">
-           <div v-for="inv in investmentStore.investments" :key="inv.id" class="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 group/item">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center font-bold text-xs">{{ inv.symbol }}</div>
-                <div>
-                   <p class="text-sm font-bold text-zinc-100 capitalize">{{ inv.type }} {{ inv.quantity }} shares</p>
-                   <p class="text-[10px] text-muted uppercase">{{ inv.date }}</p>
-                </div>
-              </div>
-              <div class="text-right flex items-center gap-4">
-                 <div>
-                   <p class="text-sm font-bold text-zinc-100">${{ (inv.price * inv.quantity).toFixed(2) }}</p>
-                   <p class="text-[10px] text-muted">@ ${{ inv.price.toFixed(2) }}</p>
-                 </div>
-                 <button @click="investmentStore.deleteInvestment(inv.id)" class="p-2 opacity-0 group-hover/item:opacity-100 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                 </button>
-              </div>
-           </div>
-        </div>
-        <div v-else class="py-16 text-center">
-          <p class="text-sm text-muted">
-            No assets yet. Click <strong class="text-zinc-400">Add Asset</strong> to start tracking.
-          </p>
-        </div>
-      </div>
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 gap-6">
+        <!-- Holdings Table -->
+        <div class="card p-0 overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-border flex items-center justify-between bg-muted/30">
+                <h3 class="font-bold text-foreground flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                    Asset Allocation
+                </h3>
+                <button @click="openAddModal" class="btn-primary py-1.5 px-4 text-xs">Record Transaction</button>
+            </div>
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-border bg-muted/10">
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Ticker / Asset</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Holdings</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Cost Basis</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Market Price</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Return</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">YTD</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        <template v-for="holding in investmentStore.holdings" :key="holding.symbol">
+                            <tr class="group hover:bg-accent/30 transition-colors" :class="{ 'bg-accent/20': expandedSymbol === holding.symbol }">
+                                <td class="px-6 py-5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center font-bold text-xs text-foreground">{{ holding.symbol.charAt(0) }}</div>
+                                        <div>
+                                            <p class="font-bold text-foreground">{{ holding.symbol }}</p>
+                                            <p class="text-[10px] text-muted-foreground font-bold">SHARES</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5 font-mono text-sm text-foreground/80">{{ holding.quantity }}</td>
+                                <td class="px-6 py-5 font-mono text-sm text-foreground/80">{{ formatCurrency(holding.avgPrice) }}</td>
+                                <td class="px-6 py-5">
+                                    <p class="font-mono text-sm font-bold text-foreground">{{ formatCurrency(holding.currentPrice) }}</p>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <p class="font-mono text-sm font-bold" :class="holding.pl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'">{{ formatCurrency(holding.pl) }}</p>
+                                    <p class="text-[10px] font-bold opacity-60 uppercase" :class="holding.pl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'">{{ formatPercent(holding.plPercent) }}</p>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <span class="font-mono text-sm font-bold" :class="holding.ytd >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'">{{ formatPercent(holding.ytd) }}</span>
+                                </td>
+                                <td class="px-6 py-5 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button @click="toggleExpand(holding.symbol)" class="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all" :title="expandedSymbol === holding.symbol ? 'Close Ledger' : 'Edit Asset & Transactions'">
+                                            <svg v-if="expandedSymbol !== holding.symbol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                                        </button>
+                                        <button @click="deleteAsset(holding.symbol)" class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all" title="Delete Asset">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Expanded Ledger View -->
+                            <tr v-if="expandedSymbol === holding.symbol">
+                                <td colspan="7" class="bg-muted/10 p-0 border-b border-border">
+                                    <div class="p-8 space-y-6">
+                                        <div class="flex items-end justify-between gap-8 border-b border-border pb-6">
+                                            <div class="flex-1 max-w-xs">
+                                                <label class="label">Rename Symbol</label>
+                                                <div class="flex gap-2">
+                                                    <input v-model="renameSymbol" type="text" class="input uppercase font-bold" />
+                                                    <button @click="handleRenameAsset" class="btn-secondary px-4 py-2 text-xs">Update</button>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Transaction History</p>
+                                                <p class="text-sm font-bold text-foreground">{{ investmentStore.investments.filter(i => i.symbol === holding.symbol).length }} Records</p>
+                                            </div>
+                                        </div>
 
-      <!-- Market Movers -->
-      <div class="card">
-        <h3 class="font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
-          </svg>
-          Market Movers
-        </h3>
-        <div class="space-y-4">
-          <p class="text-xs text-muted" v-if="investmentStore.isFetchingPrices && Object.keys(investmentStore.realTimePrices).length === 0">
-             Fetching real-time data...
-          </p>
-          <div v-else class="space-y-3">
-             <div v-for="symbol in MARKET_MOVERS_SYMBOLS" :key="symbol" class="flex items-center justify-between">
-                <div class="flex-1 min-w-0">
-                   <p class="text-sm font-bold text-zinc-100 truncate">{{ symbol.includes(':') ? symbol.split(':')[1].replace('USDT', '') : symbol }}</p>
-                   <p class="text-[10px] text-muted truncate">
-                      {{ symbol === 'SPY' ? 'S&P 500' : symbol === 'DIA' ? 'Dow Jones' : symbol === 'GLD' ? 'Gold' : symbol === 'USO' ? 'US Oil' : symbol.includes('BTC') ? 'Bitcoin' : POPULAR_SYMBOLS.find(s => s.symbol === symbol)?.name || '' }}
-                   </p>
-                </div>
-                <div class="text-right ml-4">
-                   <template v-if="investmentStore.realTimePrices[symbol]">
-                      <p class="text-sm font-bold text-zinc-100">
-                         ${{ investmentStore.realTimePrices[symbol].price.toFixed(2) }}
-                      </p>
-                      <p class="text-[10px] font-bold" :class="investmentStore.realTimePrices[symbol].change >= 0 ? 'text-emerald-400' : 'text-rose-400'">
-                         {{ investmentStore.realTimePrices[symbol].change >= 0 ? '+' : '' }}{{ investmentStore.realTimePrices[symbol].changePercent }}
-                      </p>
-                   </template>
-                   <div v-else class="skeleton h-8 w-16 ml-auto rounded"></div>
-                </div>
-             </div>
-          </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div v-for="tx in investmentStore.investments.filter(i => i.symbol === holding.symbol).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())" :key="tx.id" class="p-4 rounded-xl bg-card border border-border flex items-center justify-between group shadow-sm">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs" :class="tx.type === 'buy' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'">
+                                                        {{ tx.type.toUpperCase() }}
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-sm font-bold text-foreground">{{ tx.quantity }} @ {{ formatCurrency(tx.price) }}</p>
+                                                        <p class="text-[10px] text-muted-foreground font-medium">{{ format(new Date(tx.date), 'MMM d, yyyy') }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <p class="text-sm font-mono font-bold text-foreground mr-3">{{ formatCurrency(tx.quantity * tx.price) }}</p>
+                                                    <button @click="editTransaction(tx)" class="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                                    <button @click="deleteTransaction(tx.id)" class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr v-if="investmentStore.holdings.length === 0">
+                            <td colspan="7" class="px-6 py-20 text-center text-muted-foreground text-sm italic">Your portfolio is currently empty.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-      </div>
     </div>
 
-    <!-- Add Asset Modal -->
-    <div v-if="isModalOpen" class="modal-overlay open" @click.self="closeModal">
+    <!-- Edit/Add Modal -->
+    <div v-if="showAddModal" class="modal-overlay open" @click.self="showAddModal = false">
       <div class="modal-box p-8">
-        <h2 class="text-2xl font-bold text-zinc-100 mb-6">Record Transaction</h2>
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-2xl font-bold tracking-tight text-foreground">{{ editingTransactionId ? 'Edit' : 'Record' }} Transaction</h2>
+          <button @click="showAddModal = false" class="text-muted-foreground hover:text-foreground transition-colors">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
         <form @submit.prevent="handleAddInvestment" class="space-y-6">
-          <div class="flex p-1 bg-zinc-950/50 border border-white/5 rounded-xl gap-1">
-            <button 
-              type="button" 
-              @click="newInvestment.type = 'buy'"
-              class="flex-1 py-3 rounded-lg text-xs font-bold transition-all"
-              :class="newInvestment.type === 'buy' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-muted hover:text-zinc-300'"
-            >BUY</button>
-            <button 
-              type="button" 
-              @click="newInvestment.type = 'sell'"
-              class="flex-1 py-3 rounded-lg text-xs font-bold transition-all"
-              :class="newInvestment.type === 'sell' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-muted hover:text-zinc-300'"
-            >SELL</button>
+          <div class="flex p-1 bg-muted rounded-xl border border-border">
+              <button type="button" @click="newInvestment.type = 'buy'" class="flex-1 py-3 rounded-lg text-sm font-bold transition-all" :class="newInvestment.type === 'buy' ? 'bg-background text-emerald-600 shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground'">BUY</button>
+              <button type="button" @click="newInvestment.type = 'sell'" class="flex-1 py-3 rounded-lg text-sm font-bold transition-all" :class="newInvestment.type === 'sell' ? 'bg-background text-rose-600 shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground'">SELL</button>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
-            <div class="col-span-2 relative">
-              <label class="label">Symbol / Asset Name</label>
-              <input 
-                v-model="symbolSearch" 
-                @focus="isDropdownOpen = true"
-                type="text" 
-                class="input uppercase" 
-                placeholder="Search Stocks or ETFs..." 
-                required 
-              />
-              <div v-if="isDropdownOpen && filteredSymbols.length > 0" class="absolute left-0 right-0 top-full mt-1 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
-                <button 
-                  v-for="s in filteredSymbols" 
-                  :key="s.symbol"
-                  type="button"
-                  @click="selectSymbol(s)"
-                  class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center justify-between border-b border-white/5 last:border-0"
-                >
-                  <div>
-                    <span class="font-bold text-zinc-100">{{ s.symbol }}</span>
-                    <span class="text-[10px] text-muted ml-2">{{ s.name }}</span>
-                  </div>
-                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-bold uppercase">{{ s.type }}</span>
-                </button>
-              </div>
+            <div class="col-span-2">
+              <label class="label">Ticker Symbol</label>
+              <input v-model="newInvestment.symbol" type="text" class="input uppercase font-bold" placeholder="e.g. AAPL" required />
             </div>
-
+            <div class="col-span-2">
+              <label class="label">Date & Time</label>
+              <input v-model="newInvestment.date" type="datetime-local" class="input text-xs" required />
+            </div>
             <div>
-              <label class="label">Price per Share</label>
-              <div class="relative">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-muted text-sm">$</span>
-                <input v-model="newInvestment.price" type="number" step="0.01" class="input pl-8" required />
-              </div>
+              <label class="label">Unit Price ($)</label>
+              <input v-model="newInvestment.price" type="number" step="0.01" class="input font-mono" placeholder="0.00" required />
             </div>
             <div>
               <label class="label">Quantity</label>
-              <input v-model="newInvestment.quantity" type="number" step="0.01" class="input" required />
+              <input v-model="newInvestment.quantity" type="number" step="0.0001" class="input font-mono" placeholder="0.00" required />
             </div>
             <div class="col-span-2">
-              <label class="label">Commission / Fees</label>
-              <div class="relative">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-muted text-sm">$</span>
-                <input v-model="newInvestment.commission" type="number" step="0.01" class="input pl-8" />
-              </div>
+              <label class="label">Commission / Fees ($)</label>
+              <input v-model="newInvestment.commission" type="number" step="0.01" class="input font-mono" placeholder="0.00" />
             </div>
           </div>
 
-          <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex items-center justify-between">
-            <p class="text-[10px] font-bold text-muted uppercase tracking-widest">Total Transaction Value</p>
-            <p class="text-xl font-bold font-mono text-zinc-100">${{ totalValue.toFixed(2) }}</p>
-          </div>
-
-          <div class="flex justify-end gap-3 mt-8">
-            <button type="button" @click="closeModal" class="btn-secondary">Cancel</button>
-            <button type="submit" class="btn-primary">Record Transaction</button>
+          <div class="flex justify-end gap-3 pt-4">
+            <button type="button" @click="showAddModal = false" class="btn-secondary px-6">Cancel</button>
+            <button type="submit" class="btn-primary px-8">{{ editingTransactionId ? 'Save Changes' : 'Confirm Entry' }}</button>
           </div>
         </form>
       </div>

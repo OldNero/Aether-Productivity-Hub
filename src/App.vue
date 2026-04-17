@@ -29,11 +29,11 @@ const closeSidebar = () => {
 </script>
 
 <template>
-  <div class="bg-background text-zinc-100 flex h-screen overflow-hidden antialiased" :class="{ 'auth-required': isAuthRequired }">
+  <div class="bg-background text-foreground flex h-screen overflow-hidden antialiased" :class="{ 'auth-required': isAuthRequired }">
     
     <!-- Zen Mode Layout: Pure Fullscreen -->
     <template v-if="timerStore.isZenMode">
-      <main class="fixed inset-0 z-[100] bg-zinc-950">
+      <main class="fixed inset-0 z-[100] bg-background">
         <router-view v-slot="{ Component }">
           <component :is="Component" :key="route.path" />
         </router-view>
@@ -47,7 +47,7 @@ const closeSidebar = () => {
       <!-- Mobile Overlay -->
       <div
         v-if="isSidebarOpen"
-        class="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-20 md:hidden"
+        class="fixed inset-0 bg-background/80 backdrop-blur-sm z-20 md:hidden"
         @click="closeSidebar"
       ></div>
 

@@ -5,9 +5,15 @@ import { formatDistanceToNow } from 'date-fns';
 
 const taskStore = useTaskStore();
 const activeFilter = ref<'all' | 'active' | 'completed'>('all');
-const isModalOpen = ref(false);
-const newTask = ref({ title: '', priority: 'medium' as Task['priority'] });
-const selectedTasks = ref<string[]>([]);
+const showAddModal = ref(false);
+const bulkMode = ref(false);
+const selectedIds = ref<Set<string>>(new Set());
+
+const newTask = ref({
+  title: '',
+  priority: 'medium' as 'high' | 'medium' | 'low',
+  subtasks: [] as { title: string }[]
+});
 
 const filteredTasks = computed(() => {
   if (activeFilter.value === 'active') return taskStore.activeTasks;
@@ -19,157 +25,181 @@ onMounted(async () => {
   await taskStore.fetchTasks();
 });
 
-const openModal = () => (isModalOpen.value = true);
-const closeModal = () => {
-  isModalOpen.value = false;
-  newTask.value = { title: '', priority: 'medium' };
-};
-
 const handleAddTask = async () => {
-  if (newTask.value.title.trim()) {
-    await taskStore.addTask(newTask.value.title, newTask.value.priority);
-    closeModal();
-  }
+  if (!newTask.value.title.trim()) return;
+  await taskStore.addTask({
+    title: newTask.value.title,
+    priority: newTask.value.priority,
+    subtasks: newTask.value.subtasks.map(s => ({ ...s, id: Math.random().toString(), completed: false }))
+  });
+  showAddModal.value = false;
+  newTask.value = { title: '', priority: 'medium', subtasks: [] };
 };
 
-const toggleTaskSelection = (id: string) => {
-  const index = selectedTasks.value.indexOf(id);
-  if (index === -1) selectedTasks.value.push(id);
-  else selectedTasks.value.splice(index, 1);
+const toggleSelection = (id: string) => {
+    if (selectedIds.value.has(id)) selectedIds.value.delete(id);
+    else selectedIds.value.add(id);
 };
 
-const batchComplete = async () => {
-  await taskStore.batchComplete(selectedTasks.value);
-  selectedTasks.value = [];
-};
-
-const batchDelete = async () => {
-  if (confirm('Delete selected tasks?')) {
-    await taskStore.batchDelete(selectedTasks.value);
-    selectedTasks.value = [];
-  }
-};
-
-const timeElapsed = (date: string) => {
-  return formatDistanceToNow(new Date(date), { addSuffix: true });
+const handleBulkDelete = async () => {
+    await taskStore.batchDelete(Array.from(selectedIds.value));
+    selectedIds.value.clear();
+    bulkMode.value = false;
 };
 </script>
 
 <template>
   <div class="p-6 max-w-screen-2xl mx-auto page-transition">
-    <!-- View Header -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+    <!-- Header -->
+    <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
-        <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-100">Focus List</h1>
-        <p class="text-base text-muted mt-2 max-w-xl">
-          Deep work starts here. Manage your high-impact activities.
-        </p>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tighter text-foreground">Routines</h1>
+        <p class="text-base text-muted-foreground mt-2 max-w-2xl">Design your daily flow and track high-impact objectives.</p>
       </div>
-      <button @click="openModal" class="btn-primary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        New Task
-      </button>
+      
+      <div class="flex items-center gap-3">
+        <button 
+            @click="bulkMode = !bulkMode" 
+            class="btn-secondary"
+            :class="{ 'bg-primary text-primary-foreground border-primary': bulkMode }"
+        >
+            {{ bulkMode ? 'Exit Selection' : 'Bulk Action' }}
+        </button>
+        <button @click="showAddModal = true" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Task
+        </button>
+      </div>
     </div>
 
     <!-- Filters & Stats -->
-    <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-      <div class="flex items-center gap-1 bg-zinc-900/40 p-1 rounded-lg border border-white/5">
-        <button
-          v-for="f in (['all', 'active', 'completed'] as const)"
-          :key="f"
-          @click="activeFilter = f"
-          class="filter-btn capitalize"
-          :class="{ active: activeFilter === f }"
-        >
-          {{ f }}
-        </button>
-      </div>
-      
-      <div class="flex items-center gap-6">
-        <div class="flex flex-col items-end">
-          <span class="text-[10px] font-bold text-muted uppercase tracking-widest">Active</span>
-          <span class="text-xl font-bold text-zinc-100">{{ taskStore.activeCount }}</span>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div class="flex items-center gap-1 bg-accent/50 p-1 rounded-xl border border-border w-fit">
+            <button v-for="f in ['all', 'active', 'completed']" :key="f" 
+                @click="activeFilter = f as any"
+                class="px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all"
+                :class="activeFilter === f ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+            >
+                {{ f }}
+            </button>
         </div>
-        <div class="w-px h-8 bg-white/5"></div>
-        <div class="flex flex-col items-end">
-          <span class="text-[10px] font-bold text-muted uppercase tracking-widest">Completed</span>
-          <span class="text-xl font-bold text-zinc-100">{{ taskStore.completedCount }}</span>
+        <div class="flex items-center gap-6 px-2">
+            <div class="flex flex-col">
+                <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active</span>
+                <span class="text-lg font-bold text-foreground">{{ taskStore.activeCount }}</span>
+            </div>
+            <div class="h-8 w-px bg-border"></div>
+            <div class="flex flex-col">
+                <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Completed</span>
+                <span class="text-lg font-bold text-emerald-600 dark:text-emerald-400">{{ taskStore.completedCount }}</span>
+            </div>
         </div>
-      </div>
     </div>
 
-    <!-- Task List -->
-    <div class="space-y-3">
-      <div
-        v-for="task in filteredTasks"
-        :key="task.id"
-        class="task-item group"
-        :class="{ 'task-item--completed': task.status === 'completed' }"
+    <!-- Task Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div v-for="task in filteredTasks" :key="task.id" 
+        class="task-item group relative"
+        :class="{ 'border-primary/40 ring-1 ring-primary/20': selectedIds.has(task.id) }"
+        @click="bulkMode ? toggleSelection(task.id) : null"
       >
         <div class="task-item__header">
-          <label class="task-item__checkbox">
-            <input
-              type="checkbox"
-              :checked="task.status === 'completed'"
-              @change="taskStore.toggleTask(task.id)"
-              class="w-5 h-5 rounded bg-zinc-800 border-white/10 text-emerald-500 focus:ring-0 cursor-pointer"
-            />
-          </label>
-          <div class="task-item__content" @click="toggleTaskSelection(task.id)">
-            <span class="task-item__title">{{ task.title }}</span>
-            <div class="flex items-center gap-2 mt-1">
-              <span class="task-item__meta">{{ timeElapsed(task.created_at) }}</span>
+            <!-- Selection Checkbox -->
+            <div v-if="bulkMode" class="mr-2">
+                <div class="w-5 h-5 rounded border-2 border-border flex items-center justify-center transition-all" :class="selectedIds.has(task.id) ? 'bg-primary border-primary' : 'bg-transparent'">
+                    <svg v-if="selectedIds.has(task.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" class="text-primary-foreground"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
             </div>
-          </div>
-          <span class="badge" :class="`badge--${task.priority}`">{{ task.priority }}</span>
-          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button @click="taskStore.deleteTask(task.id)" class="p-1.5 hover:bg-rose-500/10 rounded text-muted hover:text-rose-400 transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
+
+            <button 
+                @click.stop="taskStore.toggleTask(task.id)"
+                class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0"
+                :class="task.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/50' : 'border-muted-foreground/30 hover:border-primary'"
+            >
+                <svg v-if="task.status === 'completed'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" class="text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
-          </div>
+            
+            <div class="flex-1 min-w-0" @click.stop="!bulkMode && taskStore.toggleTask(task.id)">
+                <h3 class="task-item__title truncate" :class="{ 'line-through opacity-50': task.status === 'completed' }">{{ task.title }}</h3>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="badge" :class="`badge--${task.priority}`">{{ task.priority }}</span>
+                    <span v-if="task.subtasks.length" class="text-[10px] font-bold text-muted-foreground uppercase">
+                        {{ task.subtasks.filter(s => s.completed).length }}/{{ task.subtasks.length }} Steps
+                    </span>
+                </div>
+            </div>
+
+            <button v-if="!bulkMode" @click.stop="taskStore.deleteTask(task.id)" class="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive transition-all">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+        </div>
+
+        <!-- Subtasks Preview -->
+        <div v-if="task.subtasks.length > 0" class="px-5 pb-4 space-y-2">
+            <div v-for="sub in task.subtasks.slice(0, 3)" :key="sub.id" class="flex items-center gap-2">
+                <div class="w-1 h-1 rounded-full bg-border"></div>
+                <span class="text-[11px] text-muted-foreground truncate" :class="{ 'line-through opacity-50': sub.completed }">{{ sub.title }}</span>
+            </div>
+            <p v-if="task.subtasks.length > 3" class="text-[9px] font-bold text-muted-foreground uppercase pl-3">+ {{ task.subtasks.length - 3 }} more steps</p>
+        </div>
+        
+        <div class="px-5 py-3 border-t border-border/50 bg-muted/5 flex items-center justify-between">
+            <span class="text-[10px] font-medium text-muted-foreground italic">Created {{ formatDistanceToNow(new Date(task.created_at)) }} ago</span>
+            <div class="flex -space-x-2">
+                <div class="w-5 h-5 rounded-full border border-background bg-accent flex items-center justify-center text-[8px] font-bold">A</div>
+            </div>
         </div>
       </div>
-      
+
       <!-- Empty State -->
-      <div v-if="filteredTasks.length === 0" class="text-center py-20 border-2 border-dashed border-white/5 rounded-2xl">
-        <p class="text-muted">No tasks found in this view.</p>
+      <div v-if="filteredTasks.length === 0" class="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-50">
+        <div class="w-16 h-16 rounded-full bg-accent flex items-center justify-center mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <h3 class="font-bold text-foreground">No tasks found</h3>
+        <p class="text-sm text-muted-foreground">Change your filter or create a new high-impact task.</p>
       </div>
     </div>
 
-    <!-- Bulk Actions Bar -->
+    <!-- Bulk Action Bar -->
     <transition name="bulk">
-      <div v-if="selectedTasks.length > 0" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-zinc-900/90 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-2xl shadow-2xl">
-        <span class="text-sm font-bold text-zinc-100">{{ selectedTasks.length }} Selected</span>
-        <div class="w-px h-6 bg-white/10"></div>
-        <button @click="batchComplete" class="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors">Mark Complete</button>
-        <button @click="batchDelete" class="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors">Delete</button>
-        <button @click="selectedTasks = []" class="p-1.5 hover:bg-white/10 rounded-lg text-muted">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
+        <div v-if="bulkMode && selectedIds.size > 0" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-foreground text-background px-6 py-3 rounded-full shadow-2xl flex items-center gap-6">
+            <span class="text-sm font-bold">{{ selectedIds.size }} Tasks Selected</span>
+            <div class="w-px h-4 bg-background/20"></div>
+            <div class="flex items-center gap-2">
+                <button @click="handleBulkDelete" class="text-sm font-bold hover:text-destructive-foreground hover:bg-destructive px-3 py-1 rounded-lg transition-all">Delete All</button>
+            </div>
+        </div>
     </transition>
 
-    <div v-if="isModalOpen" class="modal-overlay open" @click.self="closeModal">
+    <!-- New Task Modal -->
+    <div v-if="showAddModal" class="modal-overlay open" @click.self="showAddModal = false">
       <div class="modal-box p-8">
-        <h2 class="text-2xl font-bold text-zinc-100 mb-6">Create New Task</h2>
-        <form @submit.prevent="handleAddTask" class="space-y-4">
+        <h2 class="text-2xl font-bold tracking-tight text-foreground mb-8">New Task</h2>
+        <form @submit.prevent="handleAddTask" class="space-y-6">
           <div>
-            <label class="label">Task Title</label>
+            <label class="label">Objective</label>
             <input v-model="newTask.title" type="text" class="input" placeholder="What needs to be done?" required autofocus />
           </div>
+          
           <div>
-            <label class="label">Priority Level</label>
-            <select v-model="newTask.priority" class="select">
-              <option value="low">Low Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="high">High Priority</option>
-            </select>
+            <label class="label">Priority</label>
+            <div class="grid grid-cols-3 gap-2">
+                <button 
+                    v-for="p in ['low', 'medium', 'high']" :key="p"
+                    type="button"
+                    @click="newTask.priority = p as any"
+                    class="py-2 rounded-lg border text-xs font-bold capitalize transition-all"
+                    :class="newTask.priority === p ? 'bg-primary text-primary-foreground border-primary shadow-lg' : 'border-border text-muted-foreground hover:border-muted-foreground'"
+                >
+                    {{ p }}
+                </button>
+            </div>
           </div>
-          <div class="flex items-center justify-end gap-3 mt-8">
-            <button type="button" @click="closeModal" class="btn-secondary">Cancel</button>
-            <button type="submit" class="btn-primary">Initialize Task</button>
+
+          <div class="flex justify-end gap-3 pt-4">
+            <button type="button" @click="showAddModal = false" class="btn-secondary px-6">Cancel</button>
+            <button type="submit" class="btn-primary px-8">Create Task</button>
           </div>
         </form>
       </div>

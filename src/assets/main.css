@@ -4,18 +4,100 @@
   --font-sans: 'Geist', 'sans-serif';
   --font-mono: 'Geist Mono', 'monospace';
 
-  --color-background: #09090b;
-  --color-card: #111113;
-  --color-card-hover: #161618;
-  --color-border: #27272a;
-  --color-muted: #71717a;
-  --color-subtle: #3f3f46;
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
 
-  --radius-card: 1rem;
+  --radius-card: 0.75rem;
+}
+
+:root {
+  --font-sans: 'Geist', 'sans-serif';
+}
+
+/* Shadcn Light Theme */
+.light {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+}
+
+/* Shadcn Dark Theme */
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
 }
 
 /* --- PROTECTION FROM TREE-SHAKING --- */
-/* These must be outside @layer to ensure they survive the Tailwind build process */
 #auth-overlay.open {
   opacity: 1 !important;
   pointer-events: auto !important;
@@ -30,16 +112,6 @@ body.auth-required aside {
   opacity: 0.3 !important;
 }
 
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    @apply bg-background text-zinc-100 antialiased;
-    font-family: var(--font-sans);
-  }
-}
-
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -48,8 +120,7 @@ body.auth-required aside {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 4px;
+  @apply bg-border rounded-full;
 }
 
 @layer components {
@@ -63,136 +134,112 @@ body.auth-required aside {
 
   /* Cards */
   .card {
-    @apply bg-card/60 backdrop-blur-md border border-white/10 rounded-card p-6 
-           transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.4)];
-    background-image: linear-gradient(to bottom right, rgba(255,255,255,0.03), transparent);
+    @apply bg-card text-card-foreground border border-border rounded-card p-6 
+           transition-all duration-300 shadow-sm;
   }
   .card:hover {
-    @apply border-white/20 bg-card/80;
-    transform: translateY(-2px);
+    @apply border-border/80 bg-card/80;
+    transform: translateY(-1px);
   }
 
   /* Sidebar Nav */
   .nav-item {
-    @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted
-           transition-colors duration-150 hover:bg-[#1c1c1f] hover:text-zinc-100;
+    @apply w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground
+           transition-colors duration-150 hover:bg-accent hover:text-accent-foreground;
   }
   .nav-item.active {
-    @apply bg-white/10 text-white border border-white/10 backdrop-blur-xl shadow-lg;
-    box-shadow: 0 0 20px rgba(161, 161, 170, 0.1);
+    @apply bg-accent text-accent-foreground border border-border shadow-sm;
   }
 
   /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
-           bg-white text-zinc-950 text-sm font-bold
-           hover:bg-zinc-100 active:scale-[0.98] transition-all duration-200
-           shadow-[0_4px_12px_rgba(255,255,255,0.1)];
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md
+           bg-primary text-primary-foreground text-sm font-semibold
+           hover:bg-primary/90 active:scale-[0.98] transition-all duration-200
+           shadow-sm;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
-           border border-border bg-card text-zinc-300 text-sm font-medium
-           hover:bg-card-hover hover:text-white transition-all duration-150;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md
+           border border-input bg-background text-foreground text-sm font-medium
+           hover:bg-accent hover:text-accent-foreground transition-all duration-150;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-md
-           text-muted text-sm font-medium hover:text-zinc-100 transition-colors;
+           text-muted-foreground text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors;
   }
   .btn-icon {
-    @apply inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border
-           text-muted hover:text-zinc-100 hover:bg-card-hover transition-all;
+    @apply inline-flex items-center justify-center w-9 h-9 rounded-md border border-input
+           text-muted-foreground hover:text-foreground hover:bg-accent transition-all;
   }
 
   /* Form Elements */
   .input {
-    @apply w-full bg-background border border-border rounded-lg px-4 py-2.5
-           text-sm text-zinc-100 placeholder-muted
-           focus:outline-none focus:ring-1 focus:ring-zinc-600 focus:border-zinc-600
+    @apply w-full bg-background border border-input rounded-md px-3 py-2
+           text-sm text-foreground placeholder:text-muted-foreground
+           focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring
            transition-all duration-150;
   }
   .select {
-    @apply w-full bg-background border border-border rounded-lg px-4 py-2.5
-           text-sm text-zinc-100 cursor-pointer appearance-none
-           focus:outline-none focus:ring-1 focus:ring-zinc-600 transition-all;
+    @apply w-full bg-background border border-input rounded-md px-3 py-2
+           text-sm text-foreground cursor-pointer appearance-none
+           focus:outline-none focus:ring-1 focus:ring-ring transition-all;
   }
   .label {
-    @apply block text-[11px] font-semibold uppercase tracking-wider text-muted mb-2;
+    @apply block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2;
   }
 
   /* Badges */
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide;
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border;
   }
   .badge-high,
   .badge--high {
-    @apply bg-red-500/10 text-red-400 border border-red-500/20;
+    @apply bg-destructive/10 text-destructive border-destructive/20;
   }
   .badge-medium,
   .badge--medium {
-    @apply bg-amber-500/10 text-amber-400 border border-amber-500/20;
+    @apply bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20;
   }
   .badge-low,
   .badge--low {
-    @apply bg-zinc-700/50 text-zinc-400 border border-zinc-700;
+    @apply bg-muted text-muted-foreground border-border;
   }
 
   .task-item {
     @apply flex flex-col items-stretch p-0 rounded-xl border border-border bg-card
-            hover:bg-card-hover transition-all duration-150 cursor-pointer overflow-hidden;
+            hover:bg-accent/5 transition-all duration-150 cursor-pointer overflow-hidden;
   }
   .task-item__header {
     @apply flex items-center gap-4 px-5 py-4 w-full;
   }
   .task-item--completed .task-item__title,
   .task-item.completed .task-item__title {
-    @apply line-through text-muted;
+    @apply line-through text-muted-foreground;
   }
   .task-item--completed,
   .task-item.completed {
     @apply opacity-60;
   }
   .task-item__title {
-    @apply text-base font-semibold text-zinc-100 leading-tight;
+    @apply text-base font-semibold text-foreground leading-tight;
   }
   .task-item__meta {
-    @apply text-xs text-muted mt-0.5;
+    @apply text-xs text-muted-foreground mt-0.5;
   }
 
   /* Filter Tabs */
   .filter-btn {
-    @apply px-3 py-1.5 rounded-md text-xs font-semibold text-muted
-           transition-colors hover:text-zinc-100;
+    @apply px-3 py-1.5 rounded-md text-xs font-semibold text-muted-foreground
+           transition-colors hover:text-foreground;
   }
   .filter-btn.active {
-    @apply bg-zinc-800 text-zinc-100;
+    @apply bg-accent text-accent-foreground;
   }
 
   /* Toast */
   .toast {
     @apply flex items-center gap-3 px-4 py-3 rounded-lg border border-border
-           bg-card shadow-2xl text-sm text-zinc-200 min-w-[280px];
-  }
-
-  /* Animations */
-  .animate-in {
-    animation: animate-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  @keyframes animate-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px) scale(0.98);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  /* Skeleton Loaders */
-  .skeleton {
-    @apply bg-zinc-800/50 animate-pulse rounded;
-    min-height: 1em;
-    display: block;
+           bg-popover text-popover-foreground shadow-lg text-sm min-w-[280px];
   }
 
   /* ═══ Global Modals ═══ */
@@ -204,13 +251,13 @@ body.auth-required aside {
     align-items: start;
     justify-content: center;
     padding-top: 15vh;
-    background: rgba(9, 9, 11, 0.60);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     visibility: hidden;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
   }
 
   .modal-overlay.open {
@@ -220,13 +267,13 @@ body.auth-required aside {
   }
 
   .modal-box {
-    @apply rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl;
+    @apply rounded-xl border border-border bg-background shadow-lg;
     width: 32rem !important;
     max-width: calc(100vw - 2rem) !important;
     margin-left: 1rem;
     margin-right: 1rem;
-    transform: scale(0.97) translateY(-8px);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: scale(0.98) translateY(-4px);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .modal-overlay.open .modal-box {
@@ -238,7 +285,7 @@ body.auth-required aside {
 @keyframes view-entrance {
   from { 
     opacity: 0; 
-    transform: translateY(15px); 
+    transform: translateY(10px); 
   }
   to { 
     opacity: 1; 
@@ -247,5 +294,5 @@ body.auth-required aside {
 }
 
 .page-transition {
-  animation: view-entrance 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: view-entrance 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
