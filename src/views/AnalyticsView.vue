@@ -126,7 +126,7 @@ const initFocusChart = () => {
 
   const focusData = last7Days.map(day => {
     return timerStore.sessions
-      .filter(s => s.mode === 'focus' && isSameDay(new Date(s.startTime), day))
+      .filter(s => s.mode === 'focus' && isSameDay(new Date(s.start_time), day))
       .reduce((acc, s) => acc + (s.duration / 60), 0);
   });
 
@@ -286,7 +286,7 @@ watch([() => taskStore.tasks, () => themeStore.mode], () => {
             </thead>
             <tbody class="divide-y divide-border">
               <tr v-for="session in timerStore.sessions.slice(0, 5)" :key="session.id" class="group">
-                <td class="py-4 text-sm text-muted-foreground">{{ format(new Date(session.startTime), 'MMM d, h:mm a') }}</td>
+                <td class="py-4 text-sm text-muted-foreground">{{ format(new Date(session.start_time), 'MMM d, h:mm a') }}</td>
                 <td class="py-4">
                   <span 
                     class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border"
@@ -296,7 +296,7 @@ watch([() => taskStore.tasks, () => themeStore.mode], () => {
                   </span>
                 </td>
                 <td class="py-4 text-sm font-mono text-foreground">{{ Math.floor(session.duration / 60) }}m {{ session.duration % 60 }}s</td>
-                <td class="py-4 text-sm text-muted-foreground">{{ session.taskId ? taskStore.tasks.find(t => t.id === session.taskId)?.title : 'General' }}</td>
+                <td class="py-4 text-sm text-muted-foreground">{{ session.task_id ? taskStore.tasks.find(t => t.id === session.task_id)?.title : 'General' }}</td>
                 <td class="py-4 text-right">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
                 </td>

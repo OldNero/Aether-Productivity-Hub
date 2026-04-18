@@ -17,6 +17,9 @@ dist-ssr
 GEMINI.md
 .gemini/
 
-    # Secrets & Config
-    js/config.js
-    .env
+# Secrets & Config
+js/config.js
+.env
+
+# Cloudflare Wrangler
+.wrangler/

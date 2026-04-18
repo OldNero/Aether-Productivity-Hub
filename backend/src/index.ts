@@ -55,12 +55,14 @@ import tasksRoutes from './routes/tasksRoutes';
 import investmentsRoutes from './routes/investmentsRoutes';
 import ritualsRoutes from './routes/ritualsRoutes';
 import sessionsRoutes from './routes/sessionsRoutes';
+import eventsRoutes from './routes/eventsRoutes';
 
 app.route('/api/auth', authRoutes);
 app.route('/api/tasks', tasksRoutes);
 app.route('/api/investments', investmentsRoutes);
 app.route('/api/rituals', ritualsRoutes);
 app.route('/api/sessions', sessionsRoutes);
+app.route('/api/calendar', eventsRoutes);
 
 // Basic Healthcheck
 app.get('/health', (c) => c.json({ status: 'ok' }));

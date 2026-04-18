@@ -144,10 +144,10 @@ const saveSettings = async () => {
 
       <!-- Info Column -->
       <div class="space-y-6">
-          <div class="card bg-primary text-primary-foreground border-none relative overflow-hidden group">
-              <div class="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-[60px] group-hover:bg-white/20 transition-all duration-700"></div>
+          <div class="card bg-primary/10 border-primary/20 relative overflow-hidden group">
+              <div class="absolute -top-12 -right-12 w-48 h-48 bg-primary/20 rounded-full blur-[60px] group-hover:bg-primary/30 transition-all duration-700"></div>
               <h3 class="text-lg font-bold mb-2">Privacy First</h3>
-              <p class="text-sm opacity-90 leading-relaxed font-medium">Your API keys never leave your machine. Aether stores sensitive integration secrets in your local browser storage, ensuring your data remains private.</p>
+              <p class="text-sm text-foreground/80 leading-relaxed font-medium">Your API keys never leave your machine. Aether stores sensitive integration secrets in your local browser storage, ensuring your data remains private.</p>
           </div>
 
           <div class="card">

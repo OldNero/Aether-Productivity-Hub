@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/Status-Cloud%20Ready-10b981?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Stack-HTML%20%7C%20CSS%20%7C%20JS%20%7C%20Supabase-6366f1?style=for-the-badge&logo=supabase&logoColor=white" />
   <img src="https://img.shields.io/badge/Auth-Google%20OAuth-4285F4?style=for-the-badge&logo=google&logoColor=white" />
-  <img src="https://img.shields.io/badge/Purpose-Learning-f7df1e?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue?style=for-the-badge" />
 </p>
 
 <h1 align="center">✦ Aether Productivity Hub</h1>
@@ -144,6 +144,15 @@ npx http-server . -p 8080
 - Supabase Row Level Security ensures data isolation per user
 - Auth sessions managed by Supabase JWT — no manual token handling
 - All database operations require authenticated session
+
+## ⚖️ License
+
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
+
+- **Free for Personal Use**: You can use, modify, and distribute this software for personal, educational, or research purposes.
+- **Non-Commercial Only**: You may **not** use this software for commercial purposes (making money) without explicit consent from the licensor.
+
+See the [LICENSE](file:///e:/Web-Dev/Aether-Productivity-Hub/LICENSE) file for the full legal text.
 
 ---
 

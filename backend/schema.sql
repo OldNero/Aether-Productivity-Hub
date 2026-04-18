@@ -55,3 +55,14 @@ CREATE TABLE IF NOT EXISTS focus_sessions (
     start_time TEXT NOT NULL,
     user_id TEXT NOT NULL REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS events (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    location TEXT,
+    color TEXT DEFAULT '#3b82f6',
+    user_id TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
