@@ -1,158 +1,106 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Cloud%20Ready-10b981?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Stack-HTML%20%7C%20CSS%20%7C%20JS%20%7C%20Supabase-6366f1?style=for-the-badge&logo=supabase&logoColor=white" />
-  <img src="https://img.shields.io/badge/Auth-Google%20OAuth-4285F4?style=for-the-badge&logo=google&logoColor=white" />
+  <img src="https://img.shields.io/badge/Stack-Vue%203%20%7C%20Hono%20%7C%20D1-6366f1?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Runtime-Cloudflare%20Workers-f38020?style=for-the-badge&logo=cloudflare&logoColor=white" />
   <img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue?style=for-the-badge" />
 </p>
 
 <h1 align="center">✦ Aether Productivity Hub</h1>
 
 <p align="center">
-  <em>A cloud-backed productivity dashboard built from scratch with vanilla JavaScript.</em><br/>
-  <em>No frontend frameworks. Powered by Supabase + Google OAuth.</em>
+  <em>A high-performance, cloud-synced productivity engine built with Vue 3 and Cloudflare Edge.</em><br/>
+  <em>Designed for privacy, speed, and deep work. No trackers. No fluff.</em>
 </p>
 
 ---
 
-> 📚 **This is a personal learning project.** Built to master core JavaScript concepts through hands-on practice — from DOM manipulation to async cloud APIs. Evolved from a local-only prototype to a fully cloud-synchronized application.
+Aether is a unified productivity dashboard that consolidates task management, portfolio tracking, and focus analytics into a single, glassmorphism-inspired interface. Originally a vanilla JS learning project, it has evolved into a robust full-stack application leveraging the power of the Cloudflare Edge.
 
----
+## 🏗️ Architecture
 
-## 🖼️ Preview
-
-| Dashboard | Portfolio |
-|-----------|-----------|
-| Dark glassmorphism UI with stat cards, task list, timer widget | Real-time stock tracking with market movers & area chart |
-
-## ✨ Features
-
-### 🔐 Authentication
-- **Google OAuth** — One-tap social login via Supabase Auth
-- **Email/Password** — Traditional registration with Supabase identity
-- Row Level Security (RLS) — strict per-user data isolation
-
-### 📋 Task Management (Focus List)
-- Create, edit, delete, and complete tasks
-- Priority levels — 🔴 High · 🟡 Medium · 🟢 Low
-- Filter by status (All / Active / Completed)
-- Cloud-synced via Supabase with UUID identifiers
-
-### 💰 Investment Tracker (Portfolio)
-- Track stock positions with buy/sell transactions
-- Live market prices via Alpha Vantage API (12-hour cache)
-- Market Movers — top gainers & losers via batch endpoint (1 API call/day)
-- Portfolio area chart with real-time gain/loss calculations
-- Commission tracking and realized/unrealized P&L
-
-### ⏱️ Focus Timer
-- Stopwatch with start / pause / reset controls
-- Circular SVG progress ring animation
-- Session history persisted to cloud
-
-### ⚡ Extras
-- 🔍 Command palette (`Ctrl + K`) for quick navigation
-- 💬 Quote of the Day via API Ninjas
-- ☁️ Hybrid storage — Supabase when authenticated, localStorage fallback
-- 🌙 Dark glassmorphism design with Geist typography
-- 📱 Fully responsive (desktop → tablet → mobile)
-- 💀 Skeleton loading states for async data
-
-## 🧠 JS Concepts Practiced
-
-| Phase | Concepts | Where It Shows Up |
-|-------|----------|-------------------|
-| **1 — Core Engine** | `let`/`const`, objects, arrays, arrow functions, destructuring, spread operator, template literals | `store.js`, `settings.js`, `utils.js` |
-| **2 — Interface** | `createElement`, event listeners, event delegation, form validation, keyboard events, modals | `app.js`, `tasks.js`, `investments.js` |
-| **3 — Async & APIs** | `fetch`, `async/await`, Promises, `Promise.all`, `try/catch`, REST APIs, caching strategies | `api.js`, `store.js`, `tasks.js` |
-| **4 — Cloud & Auth** | Supabase SDK, OAuth 2.0, JWT sessions, Row Level Security, UUID generation, hybrid persistence | `store.js`, `auth.js`, `config.js` |
-
-## 🏗️ Project Structure
-
+```mermaid
+graph TD
+    User((User))
+    
+    subgraph "Frontend (Cloudflare Pages)"
+        Vue[Vue 3 + Vite]
+        Pinia[Pinia Store]
+        Tailwind[Tailwind CSS 4]
+    end
+    
+    subgraph "Backend (Cloudflare Workers)"
+        Hono[Hono API Framework]
+        Lucia[Lucia Auth]
+        D1[(Cloudflare D1 SQL)]
+    end
+    
+    User <--> Vue
+    Vue <--> Pinia
+    Pinia <--> Hono
+    Hono <--> Lucia
+    Hono <--> D1
 ```
-Aether-Productivity-Hub/
-├── index.html            # SPA shell (auth overlay, sidebar, modals)
-├── css/
-│   ├── input.css         # Tailwind source + custom components
-│   └── output.css        # Compiled CSS
-├── js/
-│   ├── app.js            # Bootstrap, view router, auth listeners
-│   ├── store.js          # Hybrid storage (Supabase ↔ localStorage)
-│   ├── auth.js           # Supabase Auth + Google OAuth
-│   ├── config.js         # API keys & Supabase credentials (git-ignored)
-│   ├── tasks.js          # Task CRUD + cloud sync
-│   ├── investments.js    # Portfolio tracker + market movers
-│   ├── timer.js          # Focus timer + session persistence
-│   ├── api.js            # Alpha Vantage & API Ninjas wrappers
-│   ├── settings.js       # User preferences (cloud-backed)
-│   └── utils.js          # Shared helpers (time, currency, IDs)
-├── views/
-│   ├── dashboard.html    # Bento grid with stats & widgets
-│   ├── tasks.html        # Focus list view
-│   ├── investments.html  # Portfolio & market movers
-│   ├── timer.html        # Deep work timer
-│   └── settings.html     # Profile & preferences
-└── README.md
-```
+
+## ✨ Core Pillars
+
+### 📋 Routines (Tasks & Habits)
+- **Unified Flow**: Manage one-off tasks and recurring daily rituals in a single view.
+- **Priority Matrix**: Visual indicators for 🔴 High, 🟡 Medium, and 🟢 Low impact work.
+- **Cloud Sync**: Real-time synchronization across all devices via D1 SQL.
+
+### 💰 Portfolio (Investment Tracker)
+- **Real-Time Quotes**: Live market data integrated via Finnhub and Alpha Vantage.
+- **Visual Analytics**: Interactive area charts powered by **Chart.js**.
+- **Privacy First**: API keys are stored in your encrypted user profile, not tracked by the platform.
+
+### 📅 Chronos (Calendar Integration)
+- **Unified Schedule**: Manage local events and import external schedules.
+- **.ics Support**: Lightweight parser to import Google Calendar or Outlook events directly.
+- **Visual Heatmap**: Quick overview of your upcoming week at a glance.
+
+### ⏱️ Deep Work (Focus Timer)
+- **Pomodoro Engine**: Customizable focus and rest cycles.
+- **Focus Analytics**: Automatically logs sessions to track your "Flow" over time.
+- **Circular Progress**: Sleek SVG-based timer widget on the dashboard.
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Vue 3 (Composition API) + Vite + Pinia
+- **Backend**: Hono (TypeScript) + Cloudflare Workers
+- **Database**: Cloudflare D1 (SQLite)
+- **Authentication**: Lucia Auth (Session-based)
+- **Styling**: Tailwind CSS 4 + Headless UI + Glassmorphism components
+- **Charting**: Chart.js 4
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- A free [Supabase](https://supabase.com) project
-- A free [Alpha Vantage](https://www.alphavantage.co/support/#api-key) API key
-- A free [API Ninjas](https://api-ninjas.com) API key
-
-### Setup
-
+### Backend Setup (Workers)
 ```bash
-# Clone the repo
-git clone https://github.com/OldNero/Aether-Productivity-Hub.git
-cd Aether-Productivity-Hub
-
-# Install dependencies (Tailwind CLI)
+cd backend
 npm install
-
-# Create your config file
-cp js/config.example.js js/config.js
-# Then fill in your API keys and Supabase credentials
-
-# Serve locally
-npx http-server . -p 8080
-
-# Open → http://localhost:8080
+# Initialize D1 database locally
+npm run db:init
+# Start local development server
+npm run dev
 ```
 
-### Supabase Setup
-1. Create a new Supabase project
-2. Run the SQL from `supabase_setup.sql` in the SQL Editor
-3. Enable **Google** under Authentication → Providers
-4. Set Site URL to `http://localhost:8080` under Authentication → URL Configuration
+### Frontend Setup (Vite)
+```bash
+# From the root directory
+npm install
+# Create environment file
+cp .env.example .env
+# Start development server
+npm run dev
+```
 
-## 🎨 Design System
+> [!IMPORTANT]
+> **API Keys Required**: To enable market data, you must provide your own API keys for Finnhub and Alpha Vantage in the **Settings** page within the app.
 
-| Token | Value |
-|-------|-------|
-| Background | `#09090b` (zinc-950) |
-| Cards | `#111113` with `border-border` |
-| Accent | White primary buttons on dark |
-| Font (UI) | [Geist](https://vercel.com/font) |
-| Font (Mono) | [Geist Mono](https://vercel.com/font) |
-| Style | Glassmorphism + subtle gradients |
+## ⚖️ License & Privacy
 
-## 🔒 Security
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**. It is free for personal use but requires consent for commercial monetization. 
 
-- API keys stored in `js/config.js` (excluded via `.gitignore`)
-- Supabase Row Level Security ensures data isolation per user
-- Auth sessions managed by Supabase JWT — no manual token handling
-- All database operations require authenticated session
-
-## ⚖️ License
-
-This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
-
-- **Free for Personal Use**: You can use, modify, and distribute this software for personal, educational, or research purposes.
-- **Non-Commercial Only**: You may **not** use this software for commercial purposes (making money) without explicit consent from the licensor.
-
-See the [LICENSE](file:///e:/Web-Dev/Aether-Productivity-Hub/LICENSE) file for the full legal text.
+Aether is built with privacy as a core principle. Your data stays in your dedicated D1 instance, and your API keys are encrypted at rest.
 
 ---
 

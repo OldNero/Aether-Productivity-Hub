@@ -6,6 +6,8 @@ export interface User {
   email?: string;
   username: string;
   avatar_url?: string;
+  finnhubKey?: string;
+  alphaKey?: string;
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -55,14 +57,14 @@ export const useAuthStore = defineStore('auth', {
       window.location.reload();
     },
 
-    async updateProfile(username: string) {
+    async updateProfile(updates: { username?: string, finnhubKey?: string, alphaKey?: string }) {
       if (!this.currentUser) return;
       const data = await apiClient('/auth/profile', {
         method: 'PATCH',
-        body: JSON.stringify({ username })
+        body: JSON.stringify(updates)
       });
       if (data.success) {
-        this.currentUser.username = username;
+        this.currentUser = { ...this.currentUser, ...updates };
       }
       return data;
     }

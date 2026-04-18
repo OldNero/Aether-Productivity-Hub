@@ -208,8 +208,9 @@ export const useInvestmentStore = defineStore('investments', {
     async fetchRealTimePrices() {
         if (this.isFetchingPrices) return;
         
-        const finnhubKey = localStorage.getItem('aether_finnhub_key') || import.meta.env.VITE_FINNHUB_KEY;
-        const alphaKey = localStorage.getItem('aether_alpha_key') || import.meta.env.VITE_ALPHA_VANTAGE_KEY;
+        const authStore = useAuthStore();
+        const finnhubKey = authStore.currentUser?.finnhubKey;
+        const alphaKey = authStore.currentUser?.alphaKey;
         
         if (!finnhubKey && !alphaKey) return;
         

@@ -12,22 +12,37 @@ const alphaKey = ref('');
 const saving = ref(false);
 const showSuccess = ref(false);
 
-onMounted(() => {
-  finnhubKey.value = localStorage.getItem('aether_finnhub_key') || '';
-  alphaKey.value = localStorage.getItem('aether_alpha_key') || '';
+onMounted(async () => {
+  finnhubKey.value = authStore.currentUser?.finnhubKey || '';
+  alphaKey.value = authStore.currentUser?.alphaKey || '';
+
+  // Local Storage Migration (Run once if keys exist locally but not in DB)
+  if (!finnhubKey.value || !alphaKey.value) {
+      const localFinnhub = localStorage.getItem('aether_finnhub_key');
+      const localAlpha = localStorage.getItem('aether_alpha_key');
+      
+      if (localFinnhub || localAlpha) {
+          finnhubKey.value = finnhubKey.value || localFinnhub || '';
+          alphaKey.value = alphaKey.value || localAlpha || '';
+          console.log('Migrating local API keys to cloud storage...');
+          await saveSettings();
+          
+          // Clear local storage after successful migration
+          localStorage.removeItem('aether_finnhub_key');
+          localStorage.removeItem('aether_alpha_key');
+      }
+  }
 });
 
 const saveSettings = async () => {
   saving.value = true;
   try {
-    // Save profile update to backend
-    if (username.value !== authStore.currentUser?.username) {
-        await authStore.updateProfile(username.value);
-    }
-
-    // Save API keys to local storage for security
-    localStorage.setItem('aether_finnhub_key', finnhubKey.value);
-    localStorage.setItem('aether_alpha_key', alphaKey.value);
+    // Save profile and keys to backend
+    await authStore.updateProfile({
+        username: username.value,
+        finnhubKey: finnhubKey.value,
+        alphaKey: alphaKey.value
+    });
     
     // Refresh prices if keys changed
     await investmentStore.fetchRealTimePrices();
@@ -146,8 +161,8 @@ const saveSettings = async () => {
       <div class="space-y-6">
           <div class="card bg-primary/10 border-primary/20 relative overflow-hidden group">
               <div class="absolute -top-12 -right-12 w-48 h-48 bg-primary/20 rounded-full blur-[60px] group-hover:bg-primary/30 transition-all duration-700"></div>
-              <h3 class="text-lg font-bold mb-2">Privacy First</h3>
-              <p class="text-sm text-foreground/80 leading-relaxed font-medium">Your API keys never leave your machine. Aether stores sensitive integration secrets in your local browser storage, ensuring your data remains private.</p>
+              <h3 class="text-lg font-bold mb-2">Cloud Synced</h3>
+              <p class="text-sm text-foreground/80 leading-relaxed font-medium">Your API keys are securely synchronized across your devices. Aether encrypts your integration secrets and stores them in your private profile.</p>
           </div>
 
           <div class="card">

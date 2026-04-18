@@ -19,6 +19,8 @@ export function initializeLucia(D1: D1Database) {
 				username: attributes.username,
                 email: attributes.email,
                 avatarUrl: attributes.avatar_url,
+                finnhubKey: attributes.finnhub_key,
+                alphaKey: attributes.alpha_vantage_key
 			};
 		}
 	});
@@ -35,4 +37,6 @@ interface DatabaseUserAttributes {
 	username: string;
 	email: string;
 	avatar_url: string;
+    finnhub_key: string | null;
+    alpha_vantage_key: string | null;
 }

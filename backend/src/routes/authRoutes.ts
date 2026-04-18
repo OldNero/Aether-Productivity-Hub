@@ -53,7 +53,7 @@ authRoutes.post('/signup', async (c) => {
 
     const session = await lucia.createSession(userId, {});
     c.header('Set-Cookie', lucia.createSessionCookie(session.id).serialize(), { append: true });
-    return c.json({ success: true, user: { id: userId, email, username } });
+    return c.json({ success: true, user: { id: userId, email, username, finnhubKey: null, alphaKey: null } });
   } catch (e: any) {
     return c.json({ error: e.message }, 400);
   }
@@ -72,7 +72,16 @@ authRoutes.post('/login', async (c) => {
 
   const session = await lucia.createSession(user.id, {});
   c.header('Set-Cookie', lucia.createSessionCookie(session.id).serialize(), { append: true });
-  return c.json({ success: true, user: { id: user.id, email: user.email, username: user.username } });
+  return c.json({ 
+      success: true, 
+      user: { 
+          id: user.id, 
+          email: user.email, 
+          username: user.username,
+          finnhubKey: user.finnhub_key,
+          alphaKey: user.alpha_vantage_key
+      } 
+  });
 });
 
 authRoutes.post('/logout', async (c) => {
@@ -90,14 +99,34 @@ authRoutes.patch('/profile', async (c) => {
   const db = c.env.DB as D1Database;
   if (!user) return c.json({ error: 'Not logged in' }, 401);
 
-  const { username } = await c.req.json();
-  if (!username) return c.json({ error: 'Missing username' }, 400);
+  const { username, finnhubKey, alphaKey } = await c.req.json();
+  if (!username && finnhubKey === undefined && alphaKey === undefined) {
+      return c.json({ error: 'No updates provided' }, 400);
+  }
 
   try {
-    await db.prepare(`UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
-      .bind(username, user.id)
+    const sets = [];
+    const binds = [];
+    if (username) { sets.push("username = ?"); binds.push(username); }
+    if (finnhubKey !== undefined) { sets.push("finnhub_key = ?"); binds.push(finnhubKey); }
+    if (alphaKey !== undefined) { sets.push("alpha_vantage_key = ?"); binds.push(alphaKey); }
+    
+    sets.push("updated_at = CURRENT_TIMESTAMP");
+    binds.push(user.id);
+
+    await db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`)
+      .bind(...binds)
       .run();
-    return c.json({ success: true, user: { ...user, username } });
+      
+    return c.json({ 
+        success: true, 
+        user: { 
+            ...user, 
+            username: username || user.username,
+            finnhubKey: finnhubKey !== undefined ? finnhubKey : user.finnhubKey,
+            alphaKey: alphaKey !== undefined ? alphaKey : user.alphaKey
+        } 
+    });
   } catch (e: any) {
     return c.json({ error: e.message }, 400);
   }
