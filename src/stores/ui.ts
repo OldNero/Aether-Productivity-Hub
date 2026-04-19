@@ -7,10 +7,10 @@ export const useUIStore = defineStore('ui', () => {
         show: false,
         title: '',
         message: '',
-        type: 'success' as 'success' | 'error' | 'info'
+        type: 'success' as 'success' | 'error' | 'info' | 'warning'
     });
 
-    const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
         alert.value = { show: true, title, message, type };
     };
 
