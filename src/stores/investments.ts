@@ -13,6 +13,16 @@ export interface Investment {
   date: string;
   notes: string;
   user_id?: string;
+  import_id?: string;
+}
+
+export interface InvestmentImport {
+  id: string;
+  filename: string;
+  content_hash: string;
+  transaction_count: number;
+  created_at: string;
+  user_id: string;
 }
 
 export interface RealTimePrice {
@@ -23,10 +33,9 @@ export interface RealTimePrice {
   timestamp: number;
 }
 
-// Global fetch queue to prevent 429s
 let isProcessingQueue = false;
 const fetchQueue: Array<{ symbol: string, resolve: (val: any) => void, reject: (err: any) => void }> = [];
-const CACHE_DURATION = 60000; // 1 minute cache for live quotes
+const CACHE_DURATION = 60000; 
 
 const processQueue = async (apiKey: string) => {
     if (isProcessingQueue) return;
@@ -45,7 +54,7 @@ const processQueue = async (apiKey: string) => {
             const data = await response.json();
             item.resolve(data);
         } catch (err) { item.reject(err); }
-        await new Promise(r => setTimeout(r, 1100)); // Standard 60/min limit
+        await new Promise(r => setTimeout(r, 1100)); 
     }
     isProcessingQueue = false;
 };
@@ -65,6 +74,7 @@ export interface HoldingData {
 
 export interface InvestmentStoreState {
   investments: Investment[];
+  imports: InvestmentImport[];
   isLoaded: boolean;
   realTimePrices: Record<string, RealTimePrice>;
   isFetchingPrices: boolean;
@@ -73,6 +83,7 @@ export interface InvestmentStoreState {
 export const useInvestmentStore = defineStore('investments', {
   state: (): InvestmentStoreState => ({
     investments: [],
+    imports: [],
     isLoaded: false,
     realTimePrices: {},
     isFetchingPrices: false,
@@ -219,6 +230,28 @@ export const useInvestmentStore = defineStore('investments', {
       this.isLoaded = true;
       await this.fetchRealTimePrices();
     },
+
+    async fetchImports() {
+      const auth = useAuthStore();
+      if (!auth.session?.user) {
+        this.imports = [];
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('investment_imports')
+          .select('*')
+          .eq('user_id', auth.session.user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        this.imports = data || [];
+      } catch (err) {
+        console.error('Failed to fetch investment imports:', err);
+      }
+    },
+
     async fetchRealTimePrices() {
         if (this.isFetchingPrices) return;
         
@@ -235,7 +268,6 @@ export const useInvestmentStore = defineStore('investments', {
         
         this.isFetchingPrices = true;
         
-        // Priority to Finnhub if key provided
         if (finnhubKey) {
             await Promise.all(staleSymbols.map(async (symbol) => {
                 try {
@@ -252,7 +284,6 @@ export const useInvestmentStore = defineStore('investments', {
                 } catch (err) { console.error(`Finnhub failed for ${symbol}:`, err); }
             }));
         } else if (alphaKey) {
-            // Fallback to Alpha Vantage (Single request per symbol, 5 per min limit)
             for (const symbol of staleSymbols) {
                 try {
                     const resp = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${alphaKey}`);
@@ -267,7 +298,6 @@ export const useInvestmentStore = defineStore('investments', {
                             timestamp: Date.now()
                         };
                     }
-                    // Wait 12 seconds between requests to respect 5/min limit if not premium
                     if (staleSymbols.length > 1) await new Promise(r => setTimeout(r, 12000));
                 } catch (err) { console.error(`Alpha Vantage failed for ${symbol}:`, err); }
             }
@@ -326,37 +356,85 @@ export const useInvestmentStore = defineStore('investments', {
       }
       await this.fetchRealTimePrices();
     },
-    async importTradingViewCSV(csv: string) {
+
+    async importTradingViewCSV(filename: string, csv: string, hash?: string) {
+        const auth = useAuthStore();
         try {
-            const transactions = parseTradingViewCSV(csv);
-            if (transactions.length > 0) {
-                await this.addInvestments(transactions);
+            // 0. Duplicate check
+            if (hash) {
+                const { data: existing } = await supabase
+                    .from('investment_imports')
+                    .select('id')
+                    .eq('user_id', auth.session?.user?.id)
+                    .eq('content_hash', hash)
+                    .limit(1);
+                
+                if (existing && existing.length > 0) {
+                    throw new Error('DUPLICATE_IMPORT');
+                }
             }
+
+            const transactions = parseTradingViewCSV(csv);
+            if (transactions.length === 0) return 0;
+
+            // 1. Create import record
+            const { data: importRecord, error: importError } = await supabase
+                .from('investment_imports')
+                .insert({
+                    filename,
+                    content_hash: hash || null,
+                    transaction_count: transactions.length,
+                    user_id: auth.session?.user?.id
+                })
+                .select()
+                .single();
+
+            if (importError) throw importError;
+
+            // 2. Add with import_id
+            const inserts = transactions.map(inv => ({
+                ...inv,
+                user_id: auth.session?.user?.id,
+                import_id: importRecord.id
+            }));
+            
+            const { data, error } = await supabase
+                .from('investments')
+                .insert(inserts)
+                .select();
+
+            if (error) throw error;
+            if (data) {
+                this.investments.push(...data);
+            }
+
+            await Promise.all([
+                this.fetchRealTimePrices(),
+                this.fetchImports()
+            ]);
+
             return transactions.length;
         } catch (err) {
             console.error('CSV Import Error:', err);
-            return 0;
+            throw err;
         }
     },
-    async addInvestments(investments: Omit<Investment, 'id'>[]) {
-        const auth = useAuthStore();
-        const userId = auth.session?.user?.id;
-        
-        const inserts = investments.map(inv => ({
-          ...inv,
-          user_id: userId
-        }));
-        
-        const { data, error } = await supabase
-          .from('investments')
-          .insert(inserts)
-          .select();
+
+    async deleteImport(importId: string) {
+      try {
+        const { error } = await supabase
+          .from('investment_imports')
+          .delete()
+          .eq('id', importId);
 
         if (error) throw error;
-        if (data) {
-          this.investments.push(...data);
-        }
-        await this.fetchRealTimePrices();
+        
+        this.investments = this.investments.filter(i => i.import_id !== importId);
+        this.imports = this.imports.filter(i => i.id !== importId);
+      } catch (err) {
+        console.error('Failed to delete investment import:', err);
+        throw err;
+      }
     }
   },
 });

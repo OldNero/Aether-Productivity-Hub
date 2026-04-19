@@ -4,17 +4,22 @@ import { getUSMarketStatus, type MarketInfo } from '@/utils/marketTimer';
 import { useInvestmentStore, type Investment } from '@/stores/investments';
 import { format } from 'date-fns';
 import { useUIStore } from '@/stores/ui';
+import { calculateHash } from '@/utils/hashing';
+import BaseModal from '@/components/BaseModal.vue';
 
 const investmentStore = useInvestmentStore();
 const uiStore = useUIStore();
 const marketStatus = ref<MarketInfo>(getUSMarketStatus());
+const activeTab = ref<'allocation' | 'ledger'>('allocation');
+const showImportHistory = ref(false);
+const confirmingDeleteId = ref<string | null>(null);
+const isImporting = ref(false);
 let statusInterval: number;
 
 const showAddModal = ref(false);
 const expandedSymbol = ref<string | null>(null);
 const editingTransactionId = ref<string | null>(null);
 const renameSymbol = ref('');
-const activeTab = ref<'allocation' | 'ledger'>('allocation');
 const selectedIds = ref(new Set<string>());
 
 const toggleSelectAll = () => {
@@ -42,8 +47,11 @@ const newInvestment = ref({
 });
 
 onMounted(async () => {
-  await investmentStore.fetchInvestments();
-  statusInterval = window.setInterval(() => {
+    await Promise.all([
+        investmentStore.fetchInvestments(),
+        investmentStore.fetchImports()
+    ]);
+    statusInterval = window.setInterval(() => {
     marketStatus.value = getUSMarketStatus();
   }, 1000);
 });
@@ -170,20 +178,44 @@ const deleteSelected = async () => {
 const handleFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
-  if (!file) return;
+  if (!file || isImporting.value) return;
+  
+  isImporting.value = true;
   const reader = new FileReader();
   reader.onload = async (e) => {
     const text = e.target?.result as string;
-    const count = await investmentStore.importTradingViewCSV(text);
-    if (count > 0) {
-        activeTab.value = 'ledger'; // Switch to ledger to show the new rows one-by-one
-        uiStore.showAlert('Import Successful', `Successfully imported ${count} transactions. You can now see them in the Ledger tab.`, 'success');
-    } else {
-        uiStore.showAlert('Import Failed', 'No valid transactions found in the CSV. Please check the file format.', 'error');
+    try {
+        const hash = await calculateHash(text);
+        const count = await investmentStore.importTradingViewCSV(file.name, text, hash);
+        
+        if (count > 0) {
+            activeTab.value = 'ledger'; 
+            uiStore.showAlert('Import Successful', `Successfully imported ${count} transactions. You can now see them in the Ledger tab.`, 'success');
+        } else {
+            uiStore.showAlert('Empty File', 'No valid transactions found in the CSV. Please check the file format.', 'warning');
+        }
+    } catch (err: any) {
+        if (err.message === 'DUPLICATE_IMPORT') {
+            uiStore.showAlert('Duplicate Detected', 'This exact file has already been imported before.', 'warning');
+        } else {
+            console.error('CSV Import Error:', err);
+            uiStore.showAlert('Import Failed', 'An error occurred while importing the file.', 'error');
+        }
+    } finally {
+        isImporting.value = false;
+        target.value = ''; 
     }
-    target.value = ''; 
   };
   reader.readAsText(file);
+};
+
+const deleteImport = async (id: string) => {
+    try {
+        await investmentStore.deleteImport(id);
+        confirmingDeleteId.value = null;
+    } catch (err) {
+        console.error('Failed to delete investment import:', err);
+    }
 };
 </script>
 
@@ -265,18 +297,27 @@ const handleFileUpload = async (event: Event) => {
             </div>
         </div>
 
-        <!-- Col 4: TradingView Sync (RESTORED EXACTLY) -->
-        <div class="card relative flex flex-col justify-center items-center text-center gap-4 bg-accent/30 border-dashed border-2 border-border hover:border-primary/50 transition-all group">
+        <!-- Col 4: TradingView Sync -->
+        <div class="card relative flex flex-col justify-center items-center text-center gap-4 bg-accent/30 border-dashed border-2 border-border hover:border-primary/50 transition-all group overflow-hidden">
             <div class="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center group-hover:text-primary transition-colors shadow-sm">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             </div>
             <div>
-                <p class="text-sm font-bold text-foreground">TradingView Sync</p>
+                <p class="text-sm font-bold text-foreground">{{ isImporting ? 'Processing...' : 'TradingView Sync' }}</p>
                 <p class="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Import CSV Export</p>
             </div>
             <label class="absolute inset-0 cursor-pointer">
-                <input type="file" class="hidden" accept=".csv" @change="handleFileUpload" />
+                <input type="file" class="hidden" accept=".csv" @change="handleFileUpload" :disabled="isImporting" />
             </label>
+            
+            <!-- History Button Overlay -->
+            <button 
+                @click.stop="showImportHistory = true"
+                class="absolute top-2 right-2 p-1.5 rounded-lg bg-background/50 border border-border opacity-0 group-hover:opacity-100 hover:text-primary transition-all z-10"
+                title="View Import History"
+            >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
         </div>
     </div>
 
@@ -526,6 +567,58 @@ const handleFileUpload = async (event: Event) => {
     </div>
 
     <!-- Modals managed globally in App.vue -->
+
+    <!-- Import History Modal -->
+    <BaseModal :show="showImportHistory" @close="showImportHistory = false" max-width="36rem">
+        <div class="p-8">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold tracking-tight text-foreground">CSV Import Logs</h2>
+                <button @click="showImportHistory = false" class="text-muted-foreground hover:text-foreground transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div v-if="investmentStore.imports.length === 0" class="py-12 text-center">
+                <div class="w-16 h-16 rounded-full bg-accent/30 flex items-center justify-center mx-auto mb-4 text-muted-foreground">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <p class="text-sm text-muted-foreground">No CSV imports logged yet.</p>
+            </div>
+
+            <div v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                <div 
+                    v-for="imp in investmentStore.imports" 
+                    :key="imp.id" 
+                    class="group p-4 rounded-2xl bg-accent/20 border border-border hover:border-primary/30 transition-all flex items-center justify-between min-h-[80px]"
+                >
+                    <div v-if="confirmingDeleteId !== imp.id">
+                        <p class="text-sm font-bold text-foreground truncate max-w-[200px]">{{ imp.filename }}</p>
+                        <p class="text-[10px] text-muted-foreground mt-1 lowercase font-medium">
+                            {{ format(new Date(imp.created_at), 'MMM d, yyyy • h:mm a') }} • 
+                            <span class="text-primary/70">{{ imp.transaction_count }} transactions</span>
+                        </p>
+                    </div>
+                    
+                    <div v-else class="flex flex-col gap-2">
+                        <p class="text-xs font-bold text-destructive">Remove all transactions from this file?</p>
+                        <div class="flex items-center gap-2">
+                            <button @click="deleteImport(imp.id)" class="text-[10px] font-bold px-3 py-1 bg-destructive text-white rounded-md hover:bg-destructive/90 transition-colors">Yes, Remove</button>
+                            <button @click="confirmingDeleteId = null" class="text-[10px] font-bold px-3 py-1 bg-accent rounded-md hover:bg-accent/80 transition-colors">Cancel</button>
+                        </div>
+                    </div>
+
+                    <button 
+                        v-if="confirmingDeleteId !== imp.id"
+                        @click="confirmingDeleteId = imp.id" 
+                        class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        title="Remove all transactions from this import"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </BaseModal>
   </div>
 </template>
 

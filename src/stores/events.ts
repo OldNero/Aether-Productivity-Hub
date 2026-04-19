@@ -18,6 +18,7 @@ export interface CalendarImport {
   id: string;
   filename: string;
   event_count: number;
+  content_hash: string;
   created_at: string;
   user_id: string;
 }
@@ -101,15 +102,30 @@ export const useEventStore = defineStore('events', {
       }
     },
 
-    async importEvents(filename: string, events: Omit<CalendarEvent, 'id' | 'import_id'>[]) {
+    async importEvents(filename: string, events: Omit<CalendarEvent, 'id' | 'import_id'>[], hash?: string) {
       const auth = useAuthStore();
       try {
+        // 0. Check for existing hash if provided
+        if (hash) {
+            const { data: existing } = await supabase
+                .from('calendar_imports')
+                .select('id')
+                .eq('user_id', auth.session?.user?.id)
+                .eq('content_hash', hash)
+                .limit(1);
+            
+            if (existing && existing.length > 0) {
+                throw new Error('DUPLICATE_IMPORT');
+            }
+        }
+
         // 1. Create the import record
         const { data: importRecord, error: importError } = await supabase
           .from('calendar_imports')
           .insert({
             filename,
             event_count: events.length,
+            content_hash: hash || null,
             user_id: auth.session?.user?.id
           })
           .select()
@@ -155,8 +171,6 @@ export const useEventStore = defineStore('events', {
 
     async deleteImport(importId: string) {
       try {
-        // Since we have ON DELETE CASCADE on the foreign key, 
-        // deleting the import record will remove all associated events.
         const { error } = await supabase
           .from('calendar_imports')
           .delete()
@@ -164,7 +178,6 @@ export const useEventStore = defineStore('events', {
 
         if (error) throw error;
         
-        // Refresh local state
         this.events = this.events.filter(e => e.import_id !== importId);
         this.imports = this.imports.filter(i => i.id !== importId);
       } catch (err) {

@@ -5,6 +5,7 @@ import { useTimerStore } from '@/stores/timer';
 import { useEventStore } from '@/stores/events';
 import { parseICS } from '@/utils/icsParser';
 import { useUIStore } from '@/stores/ui';
+import { calculateHash } from '@/utils/hashing';
 import BaseModal from '@/components/BaseModal.vue';
 import { 
   format, 
@@ -89,17 +90,25 @@ const handleFileImport = async (e: Event) => {
     isImporting.value = true;
     try {
         const text = await file.text();
+        const hash = await calculateHash(text);
+        
         const parsedEvents = parseICS(text);
         if (parsedEvents.length > 0) {
             await eventStore.importEvents(file.name, parsedEvents.map(ev => ({
                 ...ev,
                 color: '#3498db' // Google Blue
-            })));
+            })), hash);
             uiStore.showAlert('Import Successful', `Successfully imported ${parsedEvents.length} events!`, 'success');
+        } else {
+            uiStore.showAlert('Empty File', 'No valid events found in this calendar file.', 'warning');
         }
-    } catch (err) {
-        console.error('Import failed:', err);
-        uiStore.showAlert('Import Failed', 'Failed to parse the calendar file. Please ensure it is a valid .ics file.', 'error');
+    } catch (err: any) {
+        if (err.message === 'DUPLICATE_IMPORT') {
+            uiStore.showAlert('Duplicate Detected', 'This exact file has already been imported before.', 'warning');
+        } else {
+            console.error('Import failed:', err);
+            uiStore.showAlert('Import Failed', 'Failed to parse the calendar file. Please ensure it is a valid .ics file.', 'error');
+        }
     } finally {
         isImporting.value = false;
         if (fileLoader.value) fileLoader.value.value = '';
