@@ -19,7 +19,7 @@ GEMINI.md
 
 # Secrets & Config
 js/config.js
-.env
+# .env excluded for security, use workflow env vars instead
 
 # Cloudflare Wrangler
 .wrangler/
