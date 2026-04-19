@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia';
 import { supabase } from '@/utils/supabase';
 
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -8,6 +14,7 @@ export interface Task {
   completed: boolean;
   created_at: string;
   user_id: string;
+  subtasks: Subtask[];
 }
 
 export const useTaskStore = defineStore('tasks', {
