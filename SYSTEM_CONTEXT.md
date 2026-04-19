@@ -4,25 +4,24 @@ This document provides a comprehensive overview of the **Aether Productivity Hub
 
 ---
 
-## 🏗️ Core Architecture (Self-Hosted Cloudflare)
+## 🏗️ Core Architecture (Supabase + GitHub Pages)
 
-Aether is built using a modern, serverless, full-stack architecture optimized for low-latency and high security.
+Aether is built using a modern, serverless, full-stack architecture optimized for low-latency, high security, and ease of deployment.
 
 ### 1. Frontend: Vue 3 Single Page Application (SPA)
 - **Framework**: Vue 3 (Composition API) with Vite.
 - **State Management**: Pinia (Reactive store architecture).
 - **Routing**: Vue Router for modular navigation.
-- **Design System**: Pure Vanilla CSS implementation using CSS Variables for a "Glassmorphism" design system. No external UI libraries (like Tailwind or Bootstrap) are used to allow maximum performance and design control.
+- **Design System**: Pure Vanilla CSS implementation using CSS Variables for a "Glassmorphism" design system. No external UI frameworks (except for limited Tailwind utility usage) are used to allow maximum performance and design control.
 
-### 2. Backend API: Hono on Cloudflare Workers
-- **Runtime**: Cloudflare Workers (Edge computing).
-- **API Framework**: Hono v4 (Minimalist, typed web framework).
-- **Security**: Lucia Auth v3 for session-based authentication.
-- **Cryptography**: Custom Worker-safe implementation utilizing standard `WebCrypto` (PBKDF2) for password hashing, ensuring zero dependencies on native Node.js binaries.
+### 2. Backend & Auth: Supabase
+- **Runtime**: Supabase Edge Functions & Direct SDK coupling.
+- **Authentication**: Supabase Auth (JWT-based).
+- **Security**: Row Level Security (RLS) ensures that users can only access their own data at the database level.
 
-### 3. Database: Cloudflare D1 (Serverless SQLite)
-- **Engine**: SQLite / Cloudflare D1.
-- **Schema Management**: Relational schema with Foreign Key integrity across users and all data modules.
+### 3. Database: Supabase (PostgreSQL)
+- **Engine**: PostgreSQL.
+- **Schema Management**: Relational schema with Foreign Key integrity and RLS policies across all data modules.
 
 ---
 
@@ -48,7 +47,7 @@ Aether is built using a modern, serverless, full-stack architecture optimized fo
 ### 3. Focus Timer (`/timer`)
 - **Pomodoro Engine**: Customizable durations for focus and break intervals.
 - **Task Binding**: Select a specific task from your Focus List to attribute time spent.
-- **Statistics**: Automatically logs focus sessions into the D1 database for analytics.
+- **Statistics**: Automatically logs focus sessions into the Supabase database for analytics.
 
 ### 4. Dashboards & Analytics
 - **Dashboard (`/`)**: A high-level view showing the current status of all major modules in one glance.
@@ -57,13 +56,13 @@ Aether is built using a modern, serverless, full-stack architecture optimized fo
 ---
 
 ## 🔐 Authentication & Data Privacy
-- **Lucia Auth**: Handles standard email/password registration and login.
-- **Session-Based**: Secure, rotating session cookies (`SameSite: None; Secure`) configured for cross-origin communication between the Workers and Pages domains.
+- **Supabase Auth**: Handles registration, login, and session management.
+- **JWT-Based**: Secure tokens stored in local storage/cookies, utilizing RLS to protect data queries.
 - **Schema Safety**: Cascading deletions and strict relational constraints ensure data integrity across all user-owned records.
 
 ---
 
 ## 🏁 Technical Metadata for AI Routing
-- **Primary Source Path**: `/src` (Frontend) and `/backend` (API/Workers).
-- **Configuration**: `wrangler.toml` for backend/infrastructure; `.env` for vite build-time variables.
-- **Dependencies**: Lucia, Hono, D1, Vue 3, Pinia.
+- **Primary Source Path**: `/src` (Vite SPA).
+- **Configuration**: `.env` for vite build-time variables; `.github/workflows/deploy.yml` for CI/CD.
+- **Dependencies**: Supabase SDK, Vue 3, Pinia.
