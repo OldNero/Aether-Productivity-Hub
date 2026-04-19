@@ -24,7 +24,7 @@ const confirmModal = ref({
 const newTask = ref({
   title: '',
   priority: 'medium' as 'high' | 'medium' | 'low',
-  subtasks: [] as { title: string }[]
+  
 });
 
 const filteredTasks = computed(() => {
@@ -42,10 +42,9 @@ const handleAddTask = async () => {
   await taskStore.addTask({
     title: newTask.value.title,
     priority: newTask.value.priority,
-    subtasks: newTask.value.subtasks.map(s => ({ ...s, id: Math.random().toString(), completed: false }))
   });
   showAddModal.value = false;
-  newTask.value = { title: '', priority: 'medium', subtasks: [] };
+  newTask.value = { title: '', priority: 'medium' };
 };
 
 const toggleSelection = (id: string) => {

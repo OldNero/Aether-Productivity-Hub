@@ -210,8 +210,8 @@ export const useInvestmentStore = defineStore('investments', {
         if (this.isFetchingPrices) return;
         
         const authStore = useAuthStore();
-        const finnhubKey = authStore.currentUser?.finnhubKey;
-        const alphaKey = authStore.currentUser?.alphaKey;
+        const finnhubKey = authStore.currentUser?.finnhub_key;
+        const alphaKey = authStore.currentUser?.alpha_vantage_key;
         
         if (!finnhubKey && !alphaKey) return;
         

@@ -13,8 +13,8 @@ const saving = ref(false);
 const showSuccess = ref(false);
 
 onMounted(async () => {
-  finnhubKey.value = authStore.currentUser?.finnhubKey || '';
-  alphaKey.value = authStore.currentUser?.alphaKey || '';
+  finnhubKey.value = authStore.currentUser?.finnhub_key || '';
+  alphaKey.value = authStore.currentUser?.alpha_vantage_key || '';
 
   // Local Storage Migration (Run once if keys exist locally but not in DB)
   if (!finnhubKey.value || !alphaKey.value) {
@@ -40,8 +40,8 @@ const saveSettings = async () => {
     // Save profile and keys to backend
     await authStore.updateProfile({
         username: username.value,
-        finnhubKey: finnhubKey.value,
-        alphaKey: alphaKey.value
+        finnhub_key: finnhubKey.value,
+        alpha_vantage_key: alphaKey.value
     });
     
     // Refresh prices if keys changed

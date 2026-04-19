@@ -86,6 +86,14 @@ export const useAuthStore = defineStore('auth', {
       this.session = null;
     },
 
+    async login(email: string, pass: string) {
+      return this.signIn(email, pass);
+    },
+
+    async register(email: string, pass: string, username?: string) {
+      return this.signUp(email, pass, username);
+    },
+
     async updateProfile(updates: Partial<Profile>) {
       if (!this.currentUser?.id) return;
 
