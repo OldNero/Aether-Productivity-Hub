@@ -31,6 +31,7 @@ const selectedDate = ref(new Date());
 const fileLoader = ref<HTMLInputElement | null>(null);
 const isImporting = ref(false);
 const showImportHistory = ref(false);
+const confirmingDeleteId = ref<string | null>(null);
 
 const calendarDays = computed(() => {
   const start = startOfWeek(startOfMonth(currentMonth.value));
@@ -110,17 +111,13 @@ const formatDuration = (seconds: number) => {
   return `${mins}m`;
 };
 
-const deleteImport = (imp: any) => {
-    uiStore.showConfirm({
-        title: 'Remove Imported File',
-        message: `Are you sure you want to remove all ${imp.event_count} events from "${imp.filename}"? This action cannot be undone.`,
-        confirmLabel: 'Remove All',
-        variant: 'danger',
-        action: async () => {
-            await eventStore.deleteImport(imp.id);
-            uiStore.showAlert('Removed', 'The events have been successfully removed.', 'success');
-        }
-    });
+const deleteImport = async (id: string) => {
+    try {
+        await eventStore.deleteImport(id);
+        confirmingDeleteId.value = null;
+    } catch (err) {
+        console.error('Failed to delete import:', err);
+    }
 };
 </script>
 
@@ -312,17 +309,27 @@ const deleteImport = (imp: any) => {
             <div 
                 v-for="imp in eventStore.imports" 
                 :key="imp.id" 
-                class="group p-4 rounded-2xl bg-accent/20 border border-border hover:border-primary/30 transition-all flex items-center justify-between"
+                class="group p-4 rounded-2xl bg-accent/20 border border-border hover:border-primary/30 transition-all flex items-center justify-between min-h-[80px]"
             >
-                <div>
+                <div v-if="confirmingDeleteId !== imp.id">
                     <p class="text-sm font-bold text-foreground truncate max-w-[200px]">{{ imp.filename }}</p>
                     <p class="text-[10px] text-muted-foreground mt-1 lowercase font-medium">
                         {{ format(new Date(imp.created_at), 'MMM d, yyyy • h:mm a') }} • 
                         <span class="text-primary/70">{{ imp.event_count }} events</span>
                     </p>
                 </div>
+                
+                <div v-else class="flex flex-col gap-2">
+                    <p class="text-xs font-bold text-destructive">Remove all events from this file?</p>
+                    <div class="flex items-center gap-2">
+                        <button @click="deleteImport(imp.id)" class="text-[10px] font-bold px-3 py-1 bg-destructive text-white rounded-md hover:bg-destructive/90 transition-colors">Yes, Remove</button>
+                        <button @click="confirmingDeleteId = null" class="text-[10px] font-bold px-3 py-1 bg-accent rounded-md hover:bg-accent/80 transition-colors">Cancel</button>
+                    </div>
+                </div>
+
                 <button 
-                    @click="deleteImport(imp)" 
+                    v-if="confirmingDeleteId !== imp.id"
+                    @click="confirmingDeleteId = imp.id" 
                     class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                     title="Remove all events from this import"
                 >
