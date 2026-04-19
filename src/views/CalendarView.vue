@@ -5,6 +5,7 @@ import { useTimerStore } from '@/stores/timer';
 import { useEventStore } from '@/stores/events';
 import { parseICS } from '@/utils/icsParser';
 import { useUIStore } from '@/stores/ui';
+import BaseModal from '@/components/BaseModal.vue';
 import { 
   format, 
   startOfMonth, 
