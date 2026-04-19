@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
-import { apiClient } from '@/utils/api';
+import { supabase } from '@/utils/supabase';
+import { useAuthStore } from './auth';
 
 export type TimerMode = 'stopwatch' | 'focus' | 'short_break' | 'long_break';
 
@@ -51,11 +52,24 @@ export const useTimerStore = defineStore('timer', {
 
   actions: {
     async init() {
-      try {
-        const data = await apiClient('/sessions');
-        this.sessions = data || [];
-      } catch (err) {
+      const auth = useAuthStore();
+      if (!auth.session?.user) {
         this.sessions = [];
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('user_id', auth.session.user.id)
+        .order('start_time', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching sessions:', error.message, error.details);
+        this.sessions = [];
+      } else {
+        this.sessions = data || [];
       }
       
       // Handle background persistence check
@@ -126,21 +140,32 @@ export const useTimerStore = defineStore('timer', {
     },
 
     async completeSession() {
+      const auth = useAuthStore();
+      
+      if (!auth.session?.user) {
+        console.warn('Cannot save session: not authenticated');
+        this.reset();
+        return;
+      }
+      
       const sessionData = {
         mode: this.mode,
         start_time: new Date(Date.now() - this.secondsElapsed * 1000).toISOString(),
         duration: this.secondsElapsed,
-        task_id: this.linkedTaskId || null
+        task_id: this.linkedTaskId || null,
+        user_id: auth.session.user.id
       };
 
-      try {
-        const session = await apiClient('/sessions', {
-          method: 'POST',
-          body: JSON.stringify(sessionData)
-        });
+      const { data: session, error } = await supabase
+        .from('sessions')
+        .insert(sessionData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Failed to save session:', error.message, error.details);
+      } else if (session) {
         this.sessions.unshift(session);
-      } catch (err) {
-        console.error('Failed to save session:', err);
       }
       
       // Notification
@@ -163,8 +188,12 @@ export const useTimerStore = defineStore('timer', {
     },
 
     async deleteSession(id: string) {
-        await apiClient(`/sessions/${id}`, { method: 'DELETE' });
+      const { error } = await supabase.from('sessions').delete().eq('id', id);
+      if (error) {
+        console.error('Failed to delete session:', error);
+      } else {
         this.sessions = this.sessions.filter(s => s.id !== id);
+      }
     }
   }
 });

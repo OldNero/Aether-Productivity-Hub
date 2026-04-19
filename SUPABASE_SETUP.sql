@@ -36,6 +36,26 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.investments ENABLE ROW LEVEL SECURITY;
 
+-- 4b. Create Calendar Table (if missing)
+CREATE TABLE IF NOT EXISTS public.calendar (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  start_time timestamp with time zone NOT NULL,
+  end_time timestamp with time zone NOT NULL,
+  location text,
+  color text DEFAULT '#6366f1',
+  user_id uuid REFERENCES auth.users NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+ALTER TABLE public.calendar ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own calendar events." ON public.calendar;
+CREATE POLICY "Users can manage their own calendar events."
+  ON public.calendar FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
 -- 5. Create RLS Policies for Profiles
 DROP POLICY IF EXISTS "Users can manage their own profile." ON public.profiles;
 CREATE POLICY "Users can manage their own profile."

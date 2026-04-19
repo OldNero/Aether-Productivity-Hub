@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
-import { apiClient } from '@/utils/api';
+import { supabase } from '@/utils/supabase';
+import { useAuthStore } from './auth';
 
 export interface CalendarEvent {
   id: string;
@@ -20,10 +21,23 @@ export const useEventStore = defineStore('events', {
   }),
   actions: {
     async fetchEvents() {
+      const auth = useAuthStore();
+      if (!auth.session?.user) {
+        this.events = [];
+        this.isLoaded = true;
+        return;
+      }
+      
       if (this.isFetching) return;
       this.isFetching = true;
       try {
-        const data = await apiClient('/calendar');
+        const { data, error } = await supabase
+          .from('calendar')
+          .select('*')
+          .eq('user_id', auth.session.user.id)
+          .order('start_time', { ascending: true });
+
+        if (error) throw error;
         this.events = data || [];
         this.isLoaded = true;
       } catch (err) {
@@ -34,12 +48,21 @@ export const useEventStore = defineStore('events', {
     },
 
     async addEvent(event: Omit<CalendarEvent, 'id'>) {
+      const auth = useAuthStore();
       try {
-        const newEvent = await apiClient('/calendar', {
-          method: 'POST',
-          body: JSON.stringify(event)
-        });
-        this.events.push(newEvent);
+        const { data: newEvent, error } = await supabase
+          .from('calendar')
+          .insert({
+            ...event,
+            user_id: auth.session?.user?.id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (newEvent) {
+          this.events.push(newEvent);
+        }
         return newEvent;
       } catch (err) {
         console.error('Failed to add event:', err);
@@ -48,13 +71,20 @@ export const useEventStore = defineStore('events', {
     },
 
     async importEvents(events: Omit<CalendarEvent, 'id'>[]) {
+      const auth = useAuthStore();
       try {
-        const result = await apiClient('/calendar/batch', {
-          method: 'POST',
-          body: JSON.stringify({ events })
-        });
+        const eventsWithUser = events.map(e => ({
+          ...e,
+          user_id: auth.session?.user?.id
+        }));
+        
+        const { error } = await supabase
+          .from('calendar')
+          .insert(eventsWithUser);
+
+        if (error) throw error;
         await this.fetchEvents();
-        return result;
+        return true;
       } catch (err) {
         console.error('Failed to import events:', err);
         throw err;
@@ -63,7 +93,8 @@ export const useEventStore = defineStore('events', {
 
     async deleteEvent(id: string) {
       try {
-        await apiClient(`/calendar/${id}`, { method: 'DELETE' });
+        const { error } = await supabase.from('calendar').delete().eq('id', id);
+        if (error) throw error;
         this.events = this.events.filter(e => e.id !== id);
       } catch (err) {
         console.error('Failed to delete event:', err);

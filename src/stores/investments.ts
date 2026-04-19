@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { apiClient } from '@/utils/api';
+import { supabase } from '@/utils/supabase';
 import { parseTradingViewCSV } from '@/utils/csvParser';
 import { useAuthStore } from './auth';
 
@@ -197,11 +197,24 @@ export const useInvestmentStore = defineStore('investments', {
   },
   actions: {
     async fetchInvestments() {
-      try {
-        const data = await apiClient('/investments');
-        this.investments = data || [];
-      } catch (err) {
+      const auth = useAuthStore();
+      if (!auth.session?.user) {
         this.investments = [];
+        this.isLoaded = true;
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('investments')
+        .select('*')
+        .eq('user_id', auth.session.user.id)
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching investments:', error);
+        this.investments = [];
+      } else {
+        this.investments = data || [];
       }
       this.isLoaded = true;
       await this.fetchRealTimePrices();
@@ -262,40 +275,56 @@ export const useInvestmentStore = defineStore('investments', {
         this.isFetchingPrices = false;
     },
     async addInvestment(investment: Omit<Investment, 'id'>) {
-      const newInv = await apiClient('/investments', {
-        method: 'POST',
-        body: JSON.stringify(investment)
-      });
-      this.investments.push(newInv);
+      const auth = useAuthStore();
+      const { data: newInv, error } = await supabase
+        .from('investments')
+        .insert({
+          ...investment,
+          user_id: auth.session?.user?.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (newInv) {
+        this.investments.push(newInv);
+      }
       await this.fetchRealTimePrices();
     },
     async deleteInvestment(id: string) {
-      await apiClient(`/investments/${id}`, { method: 'DELETE' });
+      const { error } = await supabase.from('investments').delete().eq('id', id);
+      if (error) throw error;
       this.investments = this.investments.filter(i => i.id !== id);
     },
     async batchDelete(ids: string[]) {
       if (ids.length === 0) return;
-      await apiClient('/investments/batch-delete', {
-        method: 'POST',
-        body: JSON.stringify({ ids })
-      });
+      const { error } = await supabase.from('investments').delete().in('id', ids);
+      if (error) throw error;
       this.investments = this.investments.filter(i => !ids.includes(i.id));
     },
     async deleteAsset(symbol: string) {
       const targetSymbol = symbol.trim().toUpperCase();
-      await apiClient(`/investments/asset/${targetSymbol}`, { method: 'DELETE' });
+      const { error } = await supabase
+        .from('investments')
+        .delete()
+        .eq('symbol', targetSymbol);
+      
+      if (error) throw error;
       this.investments = this.investments.filter(i => i.symbol.trim().toUpperCase() !== targetSymbol);
     },
     async updateInvestment(id: string, updates: Partial<Investment>) {
+      const { error } = await supabase
+        .from('investments')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+      
       const idx = this.investments.findIndex(i => i.id === id);
       if (idx !== -1) {
-          await apiClient(`/investments/${id}`, {
-              method: 'PUT',
-              body: JSON.stringify(updates)
-          });
-          this.investments[idx] = { ...this.investments[idx], ...updates };
-          await this.fetchRealTimePrices();
+        this.investments[idx] = { ...this.investments[idx], ...updates };
       }
+      await this.fetchRealTimePrices();
     },
     async importTradingViewCSV(csv: string) {
         try {
@@ -310,12 +339,22 @@ export const useInvestmentStore = defineStore('investments', {
         }
     },
     async addInvestments(investments: Omit<Investment, 'id'>[]) {
-        for (const entry of investments) {
-            const newItem = await apiClient('/investments', {
-                method: 'POST',
-                body: JSON.stringify(entry)
-            });
-            this.investments.push(newItem);
+        const auth = useAuthStore();
+        const userId = auth.session?.user?.id;
+        
+        const inserts = investments.map(inv => ({
+          ...inv,
+          user_id: userId
+        }));
+        
+        const { data, error } = await supabase
+          .from('investments')
+          .insert(inserts)
+          .select();
+
+        if (error) throw error;
+        if (data) {
+          this.investments.push(...data);
         }
         await this.fetchRealTimePrices();
     }
