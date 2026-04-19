@@ -1,21 +1,13 @@
 import { defineStore } from 'pinia';
-import { apiClient } from '@/utils/api';
-
-export interface Subtask {
-  id: string;
-  title: string;
-  completed: boolean;
-}
+import { supabase } from '@/utils/supabase';
 
 export interface Task {
   id: string;
   title: string;
   priority: 'low' | 'medium' | 'high';
-  status: 'active' | 'completed';
-  subtasks: Subtask[];
-  project_id: string;
+  completed: boolean;
   created_at: string;
-  updated_at: string;
+  user_id: string;
 }
 
 export const useTaskStore = defineStore('tasks', {
@@ -24,98 +16,84 @@ export const useTaskStore = defineStore('tasks', {
     isLoaded: false,
   }),
   getters: {
-    activeTasks: (state) => state.tasks.filter((t) => t.status === 'active'),
-    completedTasks: (state) => state.tasks.filter((t) => t.status === 'completed'),
+    activeTasks: (state) => state.tasks.filter((t: Task) => !t.completed),
+    completedTasks: (state) => state.tasks.filter((t: Task) => t.completed),
     totalCount: (state) => state.tasks.length,
-    activeCount: (state) => state.tasks.filter((t) => t.status === 'active').length,
-    completedCount: (state) => state.tasks.filter((t) => t.status === 'completed').length,
+    activeCount: (state) => state.tasks.filter((t: Task) => !t.completed).length,
+    completedCount: (state) => state.tasks.filter((t: Task) => t.completed).length,
   },
   actions: {
     async fetchTasks() {
-      try {
-        const tasks = await apiClient('/tasks');
-        // Parse subtasks since SQLite might return them as JSON strings if we store them that way
-        this.tasks = tasks.map((t: any) => ({
-          ...t,
-          subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks) : (t.subtasks || [])
-        }));
-      } catch (err) {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching tasks:', error);
         this.tasks = [];
+      } else {
+        this.tasks = data || [];
       }
       this.isLoaded = true;
     },
-    async addTask(data: { title: string, priority: Task['priority'], subtasks?: any[], project_id?: string }) {
-      const newTask = await apiClient('/tasks', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      this.tasks.unshift({
-        ...newTask,
-        subtasks: typeof newTask.subtasks === 'string' ? JSON.parse(newTask.subtasks) : (newTask.subtasks || [])
-      });
+
+    async addTask(data: { title: string; priority?: Task['priority'] }) {
+      const { data: newTask, error } = await supabase
+        .from('tasks')
+        .insert({
+          title: data.title,
+          priority: data.priority || 'medium',
+          completed: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (newTask) {
+        this.tasks.unshift(newTask);
+      }
       return newTask;
     },
+
     async toggleTask(id: string) {
-      const result = await apiClient(`/tasks/${id}/toggle`, { method: 'PATCH' });
-      const task = this.tasks.find((t) => t.id === id);
-      if (task) {
-        task.status = result.completed ? 'completed' : 'active';
-        task.updated_at = new Date().toISOString();
-        if (task.status === 'completed' && task.subtasks) {
-          task.subtasks.forEach((s) => (s.completed = true));
-        }
-      }
+      const task = this.tasks.find((t: Task) => t.id === id);
+      if (!task) return;
+
+      const newCompleted = !task.completed;
+      const { error } = await supabase
+        .from('tasks')
+        .update({ completed: newCompleted })
+        .eq('id', id);
+
+      if (error) throw error;
+      task.completed = newCompleted;
     },
+
     async deleteTask(id: string) {
-      await apiClient(`/tasks/${id}`, { method: 'DELETE' });
-      this.tasks = this.tasks.filter((t) => t.id !== id);
+      const { error } = await supabase.from('tasks').delete().eq('id', id);
+      if (error) throw error;
+      this.tasks = this.tasks.filter((t: Task) => t.id !== id);
     },
-    async addSubtask(taskId: string, title: string) {
-      // Subtasks API would ideally handle this, doing local for now
-      const task = this.tasks.find((t) => t.id === taskId);
-      if (task && title.trim()) {
-        task.subtasks.push({
-          id: crypto.randomUUID(),
-          title: title.trim(),
-          completed: false,
-        });
-        await apiClient(`/tasks/${taskId}`, { 
-          method: 'PATCH', 
-          body: JSON.stringify({ subtasks: task.subtasks }) 
-        });
-      }
-    },
-    async toggleSubtask(taskId: string, subtaskId: string) {
-      const task = this.tasks.find((t) => t.id === taskId);
-      if (task && task.subtasks) {
-        const sub = task.subtasks.find((s) => s.id === subtaskId);
-        if (sub) {
-          sub.completed = !sub.completed;
-          await apiClient(`/tasks/${taskId}`, { 
-            method: 'PATCH', 
-            body: JSON.stringify({ subtasks: task.subtasks }) 
-          });
-        }
-      }
-    },
+
     async batchComplete(ids: string[]) {
-      await apiClient('/tasks/batch-complete', {
-        method: 'POST',
-        body: JSON.stringify({ ids })
-      });
-      this.tasks.forEach((t) => {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ completed: true })
+        .in('id', ids);
+
+      if (error) throw error;
+      this.tasks.forEach((t: Task) => {
         if (ids.includes(t.id)) {
-          t.status = 'completed';
-          t.subtasks.forEach((s) => (s.completed = true));
+          t.completed = true;
         }
       });
     },
+
     async batchDelete(ids: string[]) {
-      await apiClient('/tasks/batch-delete', {
-        method: 'POST',
-        body: JSON.stringify({ ids })
-      });
-      this.tasks = this.tasks.filter((t) => !ids.includes(t.id));
-    }
+      const { error } = await supabase.from('tasks').delete().in('id', ids);
+      if (error) throw error;
+      this.tasks = this.tasks.filter((t: Task) => !ids.includes(t.id));
+    },
   },
 });

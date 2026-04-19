@@ -1,72 +1,106 @@
 import { defineStore } from 'pinia';
-import { apiClient } from '@/utils/api';
+import { supabase } from '@/utils/supabase';
 
-export interface User {
+export interface Profile {
   id: string;
-  email?: string;
   username: string;
+  email?: string;
   avatar_url?: string;
-  finnhubKey?: string;
-  alphaKey?: string;
+  finnhub_key?: string;
+  alpha_vantage_key?: string;
 }
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    currentUser: null as User | null,
+    currentUser: null as Profile | null,
+    session: null as any,
     isInitialized: false,
   }),
   getters: {
-    isAuthenticated: (state) => !!state.currentUser,
+    isAuthenticated: (state) => !!state.session,
   },
   actions: {
     async init() {
-      try {
-        const { user } = await apiClient('/auth/me');
-        this.currentUser = user;
-      } catch (err) {
-        this.currentUser = null;
+      const { data: { session } } = await supabase.auth.getSession();
+      this.session = session;
+      
+      if (session?.user) {
+        await this.fetchProfile(session.user.id);
       }
+      
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        this.session = session;
+        if (session?.user) {
+          await this.fetchProfile(session.user.id);
+        } else {
+          this.currentUser = null;
+        }
+      });
+      
       this.isInitialized = true;
     },
 
-    async login(email: string, pass: string) {
-      const data = await apiClient('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password: pass })
-      });
-      this.currentUser = data.user;
-      return true;
+    async fetchProfile(userId: string) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (!error && data) {
+        this.currentUser = data;
+      }
     },
 
-    async register(email: string, pass: string, username?: string) {
-      const data = await apiClient('/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          email, 
-          password: pass,
-          username: username
-        })
+    async signUp(email: string, pass: string, username?: string) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: pass,
+        options: {
+          data: { username: username || email.split('@')[0] },
+        },
       });
-      this.currentUser = data.user;
+      
+      if (error) throw error;
+      return data;
+    },
+
+    async signIn(email: string, pass: string) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pass,
+      });
+      
+      if (error) throw error;
+      this.session = data.session;
+      if (data.user) {
+        await this.fetchProfile(data.user.id);
+      }
       return true;
     },
 
     async logout() {
-      await apiClient('/auth/logout', { method: 'POST' });
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       this.currentUser = null;
-      window.location.reload();
+      this.session = null;
     },
 
-    async updateProfile(updates: { username?: string, finnhubKey?: string, alphaKey?: string }) {
-      if (!this.currentUser) return;
-      const data = await apiClient('/auth/profile', {
-        method: 'PATCH',
-        body: JSON.stringify(updates)
-      });
-      if (data.success) {
-        this.currentUser = { ...this.currentUser, ...updates };
+    async updateProfile(updates: Partial<Profile>) {
+      if (!this.currentUser?.id) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', this.currentUser.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        this.currentUser = data;
       }
       return data;
-    }
+    },
   },
 });
