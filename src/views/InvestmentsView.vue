@@ -92,6 +92,11 @@ const toggleExpand = (symbol: string) => {
     }
 };
 
+const handleRenameAsset = async () => {
+    if (!expandedSymbol.value || !renameSymbol.value) return;
+    const newSym = renameSymbol.value.toUpperCase();
+    if (newSym === expandedSymbol.value) return;
+
     uiStore.showConfirm({
         title: 'Rename Asset',
         message: `This will update all transactions for ${expandedSymbol.value} to ${renameSymbol.value.toUpperCase()}. Continue?`,
