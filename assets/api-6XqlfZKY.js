@@ -1,0 +1,1 @@
+var e=`https://aether-backend.oldnero.workers.dev/api`,t=async(t,n={})=>{let r=`${e}${t}`,i=await fetch(r,{...n,headers:{"Content-Type":`application/json`,...n.headers},credentials:`include`});if(!i.ok){let e=`An error occurred`;try{e=(await i.json()).error||e}catch{}throw Error(e)}return i.json()};export{t};

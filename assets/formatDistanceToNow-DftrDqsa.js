@@ -1,0 +1,1 @@
+import{r as e}from"./ConfirmModal-C_WG_8vf.js";import{t}from"./constructNow-CJZi7r17.js";function n(n,r){return e(n,t(n),r)}export{n as t};
