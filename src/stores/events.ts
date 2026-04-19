@@ -11,11 +11,21 @@ export interface CalendarEvent {
   location: string;
   color: string;
   user_id?: string;
+  import_id?: string;
+}
+
+export interface CalendarImport {
+  id: string;
+  filename: string;
+  event_count: number;
+  created_at: string;
+  user_id: string;
 }
 
 export const useEventStore = defineStore('events', {
   state: () => ({
     events: [] as CalendarEvent[],
+    imports: [] as CalendarImport[],
     isLoaded: false,
     isFetching: false,
   }),
@@ -47,6 +57,27 @@ export const useEventStore = defineStore('events', {
       }
     },
 
+    async fetchImports() {
+      const auth = useAuthStore();
+      if (!auth.session?.user) {
+        this.imports = [];
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('calendar_imports')
+          .select('*')
+          .eq('user_id', auth.session.user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        this.imports = data || [];
+      } catch (err) {
+        console.error('Failed to fetch imports:', err);
+      }
+    },
+
     async addEvent(event: Omit<CalendarEvent, 'id'>) {
       const auth = useAuthStore();
       try {
@@ -70,20 +101,41 @@ export const useEventStore = defineStore('events', {
       }
     },
 
-    async importEvents(events: Omit<CalendarEvent, 'id'>[]) {
+    async importEvents(filename: string, events: Omit<CalendarEvent, 'id' | 'import_id'>[]) {
       const auth = useAuthStore();
       try {
-        const eventsWithUser = events.map(e => ({
+        // 1. Create the import record
+        const { data: importRecord, error: importError } = await supabase
+          .from('calendar_imports')
+          .insert({
+            filename,
+            event_count: events.length,
+            user_id: auth.session?.user?.id
+          })
+          .select()
+          .single();
+
+        if (importError) throw importError;
+
+        // 2. Insert the events with the import_id
+        const eventsWithMetadata = events.map(e => ({
           ...e,
-          user_id: auth.session?.user?.id
+          user_id: auth.session?.user?.id,
+          import_id: importRecord.id
         }));
         
-        const { error } = await supabase
+        const { error: eventsError } = await supabase
           .from('calendar')
-          .insert(eventsWithUser);
+          .insert(eventsWithMetadata);
 
-        if (error) throw error;
-        await this.fetchEvents();
+        if (eventsError) throw eventsError;
+
+        // 3. Refresh state
+        await Promise.all([
+          this.fetchEvents(),
+          this.fetchImports()
+        ]);
+        
         return true;
       } catch (err) {
         console.error('Failed to import events:', err);
@@ -98,6 +150,26 @@ export const useEventStore = defineStore('events', {
         this.events = this.events.filter(e => e.id !== id);
       } catch (err) {
         console.error('Failed to delete event:', err);
+      }
+    },
+
+    async deleteImport(importId: string) {
+      try {
+        // Since we have ON DELETE CASCADE on the foreign key, 
+        // deleting the import record will remove all associated events.
+        const { error } = await supabase
+          .from('calendar_imports')
+          .delete()
+          .eq('id', importId);
+
+        if (error) throw error;
+        
+        // Refresh local state
+        this.events = this.events.filter(e => e.import_id !== importId);
+        this.imports = this.imports.filter(i => i.id !== importId);
+      } catch (err) {
+        console.error('Failed to delete import:', err);
+        throw err;
       }
     }
   }

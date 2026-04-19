@@ -3,10 +3,10 @@ import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { getUSMarketStatus, type MarketInfo } from '@/utils/marketTimer';
 import { useInvestmentStore, type Investment } from '@/stores/investments';
 import { format } from 'date-fns';
-import ConfirmModal from '@/components/ConfirmModal.vue';
-import AlertModal from '@/components/AlertModal.vue';
+import { useUIStore } from '@/stores/ui';
 
 const investmentStore = useInvestmentStore();
+const uiStore = useUIStore();
 const marketStatus = ref<MarketInfo>(getUSMarketStatus());
 let statusInterval: number;
 
@@ -30,23 +30,7 @@ const toggleSelect = (id: string) => {
     else selectedIds.value.add(id);
 };
 
-// Modal State
-const confirmModal = ref({
-    show: false,
-    title: '',
-    message: '',
-    confirmLabel: 'Delete',
-    action: null as (() => Promise<void>) | null,
-    loading: false,
-    variant: 'danger' as 'danger' | 'warning'
-});
-
-const alertModal = ref({
-    show: false,
-    title: '',
-    message: '',
-    type: 'success' as 'success' | 'error'
-});
+// Modal state managed by global uiStore
 
 const newInvestment = ref({
   symbol: '',
@@ -108,32 +92,20 @@ const toggleExpand = (symbol: string) => {
     }
 };
 
-const handleRenameAsset = async () => {
-    if (!expandedSymbol.value || !renameSymbol.value) return;
-    const newSym = renameSymbol.value.toUpperCase();
-    if (newSym === expandedSymbol.value) return;
-
-    confirmModal.value = {
-        show: true,
+    uiStore.showConfirm({
         title: 'Rename Asset',
-        message: `This will update all transactions for ${expandedSymbol.value} to ${newSym}. Continue?`,
+        message: `This will update all transactions for ${expandedSymbol.value} to ${renameSymbol.value.toUpperCase()}. Continue?`,
         confirmLabel: 'Update Symbol',
         variant: 'warning',
-        loading: false,
         action: async () => {
-            confirmModal.value.loading = true;
-            try {
-                const transactions = investmentStore.investments.filter(i => i.symbol === expandedSymbol.value);
-                for (const tx of transactions) {
-                    await investmentStore.updateInvestment(tx.id, { symbol: newSym });
-                }
-                expandedSymbol.value = newSym;
-                confirmModal.value.show = false;
-            } finally {
-                confirmModal.value.loading = false;
+            const newSym = renameSymbol.value.toUpperCase();
+            const transactions = investmentStore.investments.filter(i => i.symbol === expandedSymbol.value);
+            for (const tx of transactions) {
+                await investmentStore.updateInvestment(tx.id, { symbol: newSym });
             }
+            expandedSymbol.value = newSym;
         }
-    };
+    });
 };
 
 const editTransaction = (tx: Investment) => {
@@ -150,68 +122,44 @@ const editTransaction = (tx: Investment) => {
 };
 
 const deleteAsset = async (symbol: string) => {
-    confirmModal.value = {
-        show: true,
+    uiStore.showConfirm({
         title: 'Delete Asset',
         message: `Are you sure you want to remove all data for ${symbol}? This action cannot be undone.`,
         confirmLabel: 'Delete All Records',
         variant: 'danger',
-        loading: false,
         action: async () => {
-            confirmModal.value.loading = true;
-            try {
-                await investmentStore.deleteAsset(symbol);
-                if (expandedSymbol.value === symbol) expandedSymbol.value = null;
-                confirmModal.value.show = false;
-            } finally {
-                confirmModal.value.loading = false;
-            }
+            await investmentStore.deleteAsset(symbol);
+            if (expandedSymbol.value === symbol) expandedSymbol.value = null;
         }
-    };
+    });
 };
 
 const deleteTransaction = async (id: string) => {
-    confirmModal.value = {
-        show: true,
+    uiStore.showConfirm({
         title: 'Delete Transaction',
         message: 'Are you sure you want to remove this transaction record?',
         confirmLabel: 'Delete Record',
         variant: 'danger',
-        loading: false,
         action: async () => {
-            confirmModal.value.loading = true;
-            try {
-                await investmentStore.deleteInvestment(id);
-                confirmModal.value.show = false;
-            } finally {
-                confirmModal.value.loading = false;
-            }
+            await investmentStore.deleteInvestment(id);
         }
-    };
+    });
 };
 
 const deleteSelected = async () => {
     if (selectedIds.value.size === 0) return;
     const ids = Array.from(selectedIds.value);
     
-    confirmModal.value = {
-        show: true,
+    uiStore.showConfirm({
         title: 'Delete Selected Transactions',
         message: `Are you sure you want to remove ${ids.length} selected transaction records? This action cannot be undone.`,
         confirmLabel: 'Delete All Selected',
         variant: 'danger',
-        loading: false,
         action: async () => {
-            confirmModal.value.loading = true;
-            try {
-                await investmentStore.batchDelete(ids);
-                selectedIds.value.clear();
-                confirmModal.value.show = false;
-            } finally {
-                confirmModal.value.loading = false;
-            }
+            await investmentStore.batchDelete(ids);
+            selectedIds.value.clear();
         }
-    };
+    });
 };
 
 const handleFileUpload = async (event: Event) => {
@@ -224,19 +172,9 @@ const handleFileUpload = async (event: Event) => {
     const count = await investmentStore.importTradingViewCSV(text);
     if (count > 0) {
         activeTab.value = 'ledger'; // Switch to ledger to show the new rows one-by-one
-        alertModal.value = {
-            show: true,
-            title: 'Import Successful',
-            message: `Successfully imported ${count} transactions. You can now see them in the Ledger tab.`,
-            type: 'success'
-        };
+        uiStore.showAlert('Import Successful', `Successfully imported ${count} transactions. You can now see them in the Ledger tab.`, 'success');
     } else {
-        alertModal.value = {
-            show: true,
-            title: 'Import Failed',
-            message: 'No valid transactions found in the CSV. Please check the file format.',
-            type: 'error'
-        };
+        uiStore.showAlert('Import Failed', 'No valid transactions found in the CSV. Please check the file format.', 'error');
     }
     target.value = ''; 
   };
@@ -582,22 +520,7 @@ const handleFileUpload = async (event: Event) => {
       </div>
     </div>
 
-    <!-- Modals -->
-    <ConfirmModal 
-        :show="confirmModal.show"
-        :title="confirmModal.title"
-        :message="confirmModal.message"
-        :confirm-label="confirmModal.confirmLabel"
-        :loading="confirmModal.loading"
-        :variant="confirmModal.variant"
-        @close="confirmModal.show = false" 
-        @confirm="confirmModal.action?.()" 
-    />
-
-    <AlertModal 
-        v-bind="alertModal" 
-        @close="alertModal.show = false" 
-    />
+    <!-- Modals managed globally in App.vue -->
   </div>
 </template>
 

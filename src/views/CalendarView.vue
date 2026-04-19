@@ -4,6 +4,7 @@ import { useTaskStore } from '@/stores/tasks';
 import { useTimerStore } from '@/stores/timer';
 import { useEventStore } from '@/stores/events';
 import { parseICS } from '@/utils/icsParser';
+import { useUIStore } from '@/stores/ui';
 import { 
   format, 
   startOfMonth, 
@@ -22,11 +23,13 @@ import {
 const taskStore = useTaskStore();
 const timerStore = useTimerStore();
 const eventStore = useEventStore();
+const uiStore = useUIStore();
 
 const currentMonth = ref(new Date());
 const selectedDate = ref(new Date());
 const fileLoader = ref<HTMLInputElement | null>(null);
 const isImporting = ref(false);
+const showImportHistory = ref(false);
 
 const calendarDays = computed(() => {
   const start = startOfWeek(startOfMonth(currentMonth.value));
@@ -68,7 +71,8 @@ onMounted(async () => {
   await Promise.all([
     taskStore.fetchTasks(),
     timerStore.init(),
-    eventStore.fetchEvents()
+    eventStore.fetchEvents(),
+    eventStore.fetchImports()
   ]);
 });
 
@@ -85,15 +89,15 @@ const handleFileImport = async (e: Event) => {
         const text = await file.text();
         const parsedEvents = parseICS(text);
         if (parsedEvents.length > 0) {
-            await eventStore.importEvents(parsedEvents.map(ev => ({
+            await eventStore.importEvents(file.name, parsedEvents.map(ev => ({
                 ...ev,
                 color: '#3498db' // Google Blue
             })));
-            alert(`Successfully imported ${parsedEvents.length} events!`);
+            uiStore.showAlert('Import Successful', `Successfully imported ${parsedEvents.length} events!`, 'success');
         }
     } catch (err) {
         console.error('Import failed:', err);
-        alert('Failed to parse the calendar file. Please ensure it is a valid .ics file.');
+        uiStore.showAlert('Import Failed', 'Failed to parse the calendar file. Please ensure it is a valid .ics file.', 'error');
     } finally {
         isImporting.value = false;
         if (fileLoader.value) fileLoader.value.value = '';
@@ -103,6 +107,19 @@ const handleFileImport = async (e: Event) => {
 const formatDuration = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
   return `${mins}m`;
+};
+
+const deleteImport = (imp: any) => {
+    uiStore.showConfirm({
+        title: 'Remove Imported File',
+        message: `Are you sure you want to remove all ${imp.event_count} events from "${imp.filename}"? This action cannot be undone.`,
+        confirmLabel: 'Remove All',
+        variant: 'danger',
+        action: async () => {
+            await eventStore.deleteImport(imp.id);
+            uiStore.showAlert('Removed', 'The events have been successfully removed.', 'success');
+        }
+    });
 };
 </script>
 
@@ -126,11 +143,19 @@ const formatDuration = (seconds: number) => {
       <div class="flex items-center gap-3">
         <button 
             @click="triggerImport" 
-            class="btn-secondary flex items-center gap-2"
+            class="btn-primary flex items-center gap-2"
             :disabled="isImporting"
         >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             {{ isImporting ? 'Importing...' : 'Import ICS' }}
+        </button>
+
+        <button 
+            @click="showImportHistory = true" 
+            class="btn-secondary flex items-center gap-2"
+        >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Import Logs
         </button>
 
         <div class="flex items-center gap-4 bg-accent/50 p-1 rounded-xl border border-border">
@@ -264,5 +289,47 @@ const formatDuration = (seconds: number) => {
       </div>
     </div>
   </div>
+
+  <!-- Import History Modal -->
+  <BaseModal :show="showImportHistory" @close="showImportHistory = false" max-width="36rem">
+    <div class="p-8">
+        <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl font-bold tracking-tight text-foreground">Import Logs</h2>
+            <button @click="showImportHistory = false" class="text-muted-foreground hover:text-foreground transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        <div v-if="eventStore.imports.length === 0" class="py-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-accent/30 flex items-center justify-center mx-auto mb-4 text-muted-foreground">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <p class="text-sm text-muted-foreground">No imports logged yet.</p>
+        </div>
+
+        <div v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+            <div 
+                v-for="imp in eventStore.imports" 
+                :key="imp.id" 
+                class="group p-4 rounded-2xl bg-accent/20 border border-border hover:border-primary/30 transition-all flex items-center justify-between"
+            >
+                <div>
+                    <p class="text-sm font-bold text-foreground truncate max-w-[200px]">{{ imp.filename }}</p>
+                    <p class="text-[10px] text-muted-foreground mt-1 lowercase font-medium">
+                        {{ format(new Date(imp.created_at), 'MMM d, yyyy • h:mm a') }} • 
+                        <span class="text-primary/70">{{ imp.event_count }} events</span>
+                    </p>
+                </div>
+                <button 
+                    @click="deleteImport(imp)" 
+                    class="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                    title="Remove all events from this import"
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+  </BaseModal>
 </template>
 

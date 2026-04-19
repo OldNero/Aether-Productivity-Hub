@@ -7,9 +7,13 @@ import Sidebar from '@/components/Sidebar.vue';
 import Header from '@/components/Header.vue';
 import AuthOverlay from '@/components/AuthOverlay.vue';
 import SearchPalette from '@/components/SearchPalette.vue';
+import AlertModal from '@/components/AlertModal.vue';
+import ConfirmModal from '@/components/ConfirmModal.vue';
+import { useUIStore } from '@/stores/ui';
 
 const authStore = useAuthStore();
 const timerStore = useTimerStore();
+const uiStore = useUIStore();
 const route = useRoute();
 const isSidebarOpen = ref(false);
 
@@ -67,6 +71,27 @@ const closeSidebar = () => {
     <!-- ═══ MODALS ═══ -->
     <AuthOverlay v-if="isAuthRequired" />
     <SearchPalette />
+    
+    <!-- Global Modals -->
+    <AlertModal 
+      :show="uiStore.alert.show"
+      :title="uiStore.alert.title"
+      :message="uiStore.alert.message"
+      :type="uiStore.alert.type"
+      @close="uiStore.closeAlert"
+    />
+
+    <ConfirmModal 
+      :show="uiStore.confirm.show"
+      :title="uiStore.confirm.title"
+      :message="uiStore.confirm.message"
+      :confirm-label="uiStore.confirm.confirmLabel"
+      :cancel-label="uiStore.confirm.cancelLabel"
+      :variant="uiStore.confirm.variant"
+      :loading="uiStore.confirm.loading"
+      @close="uiStore.closeConfirm"
+      @confirm="uiStore.executeConfirm"
+    />
     
     <div id="toast-container" class="fixed bottom-6 right-6 z-[200] flex flex-col gap-3"></div>
   </div>
