@@ -163,13 +163,13 @@ const openDeleteConfirm = (id: string) => {
             <button 
                 @click.stop="taskStore.toggleTask(task.id)"
                 class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0"
-                :class="task.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/50' : 'border-muted-foreground/30 hover:border-primary'"
+                :class="task.completed ? 'bg-emerald-500/10 border-emerald-500/50' : 'border-muted-foreground/30 hover:border-primary'"
             >
-                <svg v-if="task.status === 'completed'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" class="text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg v-if="task.completed" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" class="text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
             
             <div class="flex-1 min-w-0" @click.stop="!bulkMode && taskStore.toggleTask(task.id)">
-                <h3 class="task-item__title truncate" :class="{ 'line-through opacity-50': task.status === 'completed' }">{{ task.title }}</h3>
+                <h3 class="task-item__title truncate" :class="{ 'line-through opacity-50': task.completed }">{{ task.title }}</h3>
                 <div class="flex items-center gap-2 mt-1">
                     <span class="badge" :class="`badge--${task.priority}`">{{ task.priority }}</span>
                     <span v-if="task.subtasks.length" class="text-[10px] font-bold text-muted-foreground uppercase">

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { apiClient } from '@/utils/api';
 import { parseTradingViewCSV } from '@/utils/csvParser';
+import { useAuthStore } from './auth';
 
 export interface Investment {
   id: string;
