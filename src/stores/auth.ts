@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', {
       supabase.auth.onAuthStateChange(async (event, session) => {
         this.session = session;
         if (session?.user) {
-          await this.fetchProfile(session.user.id);
+          await this.syncProfile(session.user);
         } else {
           this.currentUser = null;
         }
@@ -49,7 +49,36 @@ export const useAuthStore = defineStore('auth', {
       
       if (!error && data) {
         this.currentUser = data;
+        return data;
       }
+      return null;
+    },
+
+    /**
+     * Ensures a profile exists for the user, especially for OAuth logins.
+     */
+    async syncProfile(user: any) {
+        const profile = await this.fetchProfile(user.id);
+        
+        if (!profile) {
+            // Create profile if missing (common for fresh OAuth sign-ins)
+            const metadata = user.user_metadata;
+            const newProfile: Partial<Profile> = {
+                id: user.id,
+                username: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'User',
+                avatar_url: metadata.avatar_url || metadata.picture || null,
+            };
+
+            const { data, error } = await supabase
+                .from('profiles')
+                .insert([newProfile])
+                .select()
+                .single();
+
+            if (!error && data) {
+                this.currentUser = data;
+            }
+        }
     },
 
     async signUp(email: string, pass: string, username?: string) {
@@ -74,9 +103,19 @@ export const useAuthStore = defineStore('auth', {
       if (error) throw error;
       this.session = data.session;
       if (data.user) {
-        await this.fetchProfile(data.user.id);
+        await this.syncProfile(data.user);
       }
       return true;
+    },
+
+    async signInWithGoogle() {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+            }
+        });
+        if (error) throw error;
     },
 
     async logout() {

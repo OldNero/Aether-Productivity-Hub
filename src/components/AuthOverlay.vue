@@ -26,6 +26,15 @@ const handleSubmit = async () => {
     error.value = err.message || 'Authentication failed';
   }
 };
+
+const handleGoogleSignIn = async () => {
+  error.value = '';
+  try {
+    await authStore.signInWithGoogle();
+  } catch (err: any) {
+    error.value = err.message || 'Google Sign-In failed';
+  }
+};
 </script>
 
 <template>
@@ -63,6 +72,22 @@ const handleSubmit = async () => {
                 {{ isLogin ? 'Sign In' : 'Create Account' }}
             </button>
         </form>
+
+        <div class="mt-6 flex items-center gap-4">
+            <div class="h-px bg-border flex-1"></div>
+            <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">or continue with</span>
+            <div class="h-px bg-border flex-1"></div>
+        </div>
+
+        <div class="mt-6">
+            <button 
+                @click="handleGoogleSignIn"
+                class="w-full h-12 rounded-xl bg-background border border-border flex items-center justify-center gap-3 font-semibold text-sm hover:bg-muted hover:border-muted-foreground/30 transition-all active:scale-[0.98] group"
+            >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google" />
+                Sign in with Google
+            </button>
+        </div>
 
         <div class="mt-8 text-center">
             <button @click="isLogin = !isLogin; error = ''" class="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
