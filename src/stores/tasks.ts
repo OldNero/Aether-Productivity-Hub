@@ -79,6 +79,19 @@ export const useTaskStore = defineStore('tasks', {
       }
     },
 
+    async completeTask(id: string) {
+      const task = this.tasks.find((t: Task) => t.id === id);
+      if (!task || task.completed) return;
+
+      const { error } = await supabase
+        .from('tasks')
+        .update({ completed: true })
+        .eq('id', id);
+
+      if (error) throw error;
+      task.completed = true;
+    },
+
     async toggleTask(id: string) {
       const task = this.tasks.find((t: Task) => t.id === id);
       if (!task) return;

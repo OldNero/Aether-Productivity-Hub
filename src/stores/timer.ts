@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { supabase } from '@/utils/supabase';
 import { useAuthStore } from './auth';
+import { useTaskStore } from './tasks';
 
 export type TimerMode = 'stopwatch' | 'focus' | 'short_break' | 'long_break';
 
@@ -24,6 +25,7 @@ export const useTimerStore = defineStore('timer', {
     linkedTaskId: null as string | null,
     sessions: [] as TimerSession[],
     lastTickTimestamp: null as number | null,
+    isLoaded: false,
   }),
 
   getters: {
@@ -52,27 +54,43 @@ export const useTimerStore = defineStore('timer', {
 
   actions: {
     async init() {
-      const auth = useAuthStore();
-      if (!auth.session?.user) {
-        this.sessions = [];
-        return;
+      // 1. Load from LocalStorage first (instant)
+      const localSessions = localStorage.getItem('timer_sessions_history');
+      if (localSessions) {
+        try {
+          this.sessions = JSON.parse(localSessions);
+        } catch (e) {
+          console.error('Failed to parse local sessions');
+        }
       }
-      
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('user_id', auth.session.user.id)
-        .order('start_time', { ascending: false })
-        .limit(50);
 
-      if (error) {
-        console.error('Error fetching sessions:', error.message, error.details);
-        this.sessions = [];
-      } else {
-        this.sessions = data || [];
+      const auth = useAuthStore();
+      if (auth.session?.user) {
+        // 2. Load from Supabase (sync)
+        const { data, error } = await supabase
+          .from('sessions')
+          .select('*')
+          .eq('user_id', auth.session.user.id)
+          .order('start_time', { ascending: false })
+          .limit(100);
+
+        if (!error && data) {
+          // Merge logic: avoid duplicates by ID
+          const sessionIds = new Set(this.sessions.map(s => s.id));
+          data.forEach(s => {
+            if (!sessionIds.has(s.id)) {
+              this.sessions.push(s);
+            }
+          });
+          // Sort after merge
+          this.sessions.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+          this.saveSessionsToLocal();
+        }
       }
       
-      // Handle background persistence check
+      this.isLoaded = true;
+
+      // Handle background persistence check for active timer
       const lastActive = localStorage.getItem('timer_active_state');
       if (lastActive) {
         const state = JSON.parse(lastActive);
@@ -142,30 +160,40 @@ export const useTimerStore = defineStore('timer', {
     async completeSession() {
       const auth = useAuthStore();
       
-      if (!auth.session?.user) {
-        console.warn('Cannot save session: not authenticated');
-        this.reset();
-        return;
-      }
-      
-      const sessionData = {
+      // Create local session object immediately
+      const newSession: TimerSession = {
+        id: crypto.randomUUID(),
         mode: this.mode,
         start_time: new Date(Date.now() - this.secondsElapsed * 1000).toISOString(),
         duration: this.secondsElapsed,
-        task_id: this.linkedTaskId || null,
-        user_id: auth.session.user.id
+        task_id: this.linkedTaskId || undefined,
       };
 
-      const { data: session, error } = await supabase
-        .from('sessions')
-        .insert(sessionData)
-        .select()
-        .single();
+      // Add to local state first
+      this.sessions.unshift(newSession);
+      this.saveSessionsToLocal();
 
-      if (error) {
-        console.error('Failed to save session:', error.message, error.details);
-      } else if (session) {
-        this.sessions.unshift(session);
+      // Try to save to Supabase if authenticated
+      if (auth.session?.user) {
+        try {
+          const { error } = await supabase
+            .from('sessions')
+            .insert({
+              ...newSession,
+              id: undefined, // Let DB generate ID if preferred, or keep ours
+              user_id: auth.session.user.id
+            });
+          
+          if (error) console.error('Supabase save failed, kept in local:', error.message);
+          
+          // --- NEW: Complete linked task if it exists ---
+          if (this.linkedTaskId) {
+            const taskStore = useTaskStore();
+            await taskStore.completeTask(this.linkedTaskId);
+          }
+        } catch (e) {
+          console.error('Network error saving session or updating task');
+        }
       }
       
       // Notification
@@ -174,6 +202,12 @@ export const useTimerStore = defineStore('timer', {
       }
 
       this.reset();
+    },
+
+    saveSessionsToLocal() {
+      // Keep only last 100 sessions in local storage to prevent bloat
+      const history = this.sessions.slice(0, 100);
+      localStorage.setItem('timer_sessions_history', JSON.stringify(history));
     },
 
     saveState() {
