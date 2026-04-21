@@ -21,6 +21,11 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     async init() {
+      // If we are in an OAuth redirect flow, wait a tiny bit for Supabase JS to settle the hash
+      if (window.location.hash.includes('access_token=')) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       this.session = session;
       
@@ -58,26 +63,32 @@ export const useAuthStore = defineStore('auth', {
      * Ensures a profile exists for the user, especially for OAuth logins.
      */
     async syncProfile(user: any) {
-        const profile = await this.fetchProfile(user.id);
-        
-        if (!profile) {
-            // Create profile if missing (common for fresh OAuth sign-ins)
-            const metadata = user.user_metadata;
-            const newProfile: Partial<Profile> = {
-                id: user.id,
-                username: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'User',
-                avatar_url: metadata.avatar_url || metadata.picture || null,
-            };
+        if (!user?.id) return;
 
-            const { data, error } = await supabase
-                .from('profiles')
-                .insert([newProfile])
-                .select()
-                .single();
+        try {
+            const profile = await this.fetchProfile(user.id);
+            
+            if (!profile) {
+                // Create profile if missing (common for fresh OAuth sign-ins)
+                const metadata = user.user_metadata || {};
+                const newProfile: Partial<Profile> = {
+                    id: user.id,
+                    username: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'User',
+                    avatar_url: metadata.avatar_url || metadata.picture || null,
+                };
 
-            if (!error && data) {
-                this.currentUser = data;
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .insert([newProfile])
+                    .select()
+                    .single();
+
+                if (!error && data) {
+                    this.currentUser = data;
+                }
             }
+        } catch (err) {
+            console.warn('Profile synchronization delayed or failed:', err);
         }
     },
 
