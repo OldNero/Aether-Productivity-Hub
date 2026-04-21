@@ -7,7 +7,6 @@ export interface Profile {
   email?: string;
   avatar_url?: string;
   finnhub_key?: string;
-  alpha_vantage_key?: string;
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -21,17 +20,16 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     async init() {
-      // If we are in an OAuth redirect flow, wait a tiny bit for Supabase JS to settle the hash
+      // If we are in an OAuth redirect flow, wait a bit for Supabase JS to settle the hash
       if (window.location.hash.includes('access_token=')) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       const { data: { session } } = await supabase.auth.getSession();
       this.session = session;
       
-      if (session?.user) {
-        await this.fetchProfile(session.user.id);
-      }
+      // We rely on onAuthStateChange below for the initial profile sync 
+      // to avoid double-calling syncProfile if the listener fires immediately.
       
       supabase.auth.onAuthStateChange(async (event, session) => {
         this.session = session;
@@ -130,10 +128,20 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      this.currentUser = null;
-      this.session = null;
+      try {
+        await supabase.auth.signOut();
+        this.currentUser = null;
+        this.session = null;
+        
+        // Force a full page reload to clear all Pinia stores and memory
+        window.location.href = '/';
+      } catch (err) {
+        console.error('Logout error:', err);
+        // Even if supabase fails, we should clear local state
+        this.currentUser = null;
+        this.session = null;
+        window.location.href = '/';
+      }
     },
 
     async login(email: string, pass: string) {
@@ -145,16 +153,24 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async updateProfile(updates: Partial<Profile>) {
-      if (!this.currentUser?.id) return;
+      const userId = this.currentUser?.id || this.session?.user?.id;
+      if (!userId) {
+        console.error('Cannot update profile: No user ID found');
+        return null;
+      }
 
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', this.currentUser.id)
+        .eq('id', userId)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase profile update error:', error);
+        throw error;
+      }
+      
       if (data) {
         this.currentUser = data;
       }

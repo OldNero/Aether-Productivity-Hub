@@ -10,6 +10,11 @@ const router = createRouter({
       component: () => import('@/views/DashboardView.vue'),
     },
     {
+      path: '/intelligence',
+      name: 'intelligence',
+      component: () => import('@/views/IntelligenceView.vue'),
+    },
+    {
       path: '/investments',
       name: 'investments',
       component: () => import('@/views/InvestmentsView.vue'),
@@ -50,16 +55,16 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Handle Supabase OAuth fragments (like #access_token=...)
-  // We check the hash specifically to prevent Vue Router from being confused by OAuth tokens
   if (to.hash.includes('access_token=') || to.hash.includes('type=recovery')) {
     // Supabase JS handles the token extraction automatically.
-    // We redirect to '/' and explicitly clear the hash to prevent infinite loops.
-    // If we're already at '/', we can just clear the hash via history.replaceState or next()
+    // We clear the hash immediately to prevent stale session warnings on refresh.
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    
+    // Land on the dashboard
     if (to.path === '/') {
-        window.history.replaceState(null, '', window.location.pathname);
         next();
     } else {
-        next({ path: '/', hash: '', replace: true });
+        next({ path: '/', replace: true });
     }
     return;
   }

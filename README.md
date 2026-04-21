@@ -48,7 +48,7 @@ graph TD
 - **Cloud Sync**: Real-time synchronization across all devices via Supabase.
 
 ### 💰 Portfolio (Investment Tracker)
-- **Real-Time Quotes**: Live market data integrated via Finnhub and Alpha Vantage.
+- **Real-Time Quotes**: Live market data integrated via Finnhub.
 - **Visual Analytics**: Interactive area charts powered by **Chart.js**.
 - **Privacy First**: API keys and personal data are secured via Supabase Row Level Security (RLS).
 
@@ -89,7 +89,7 @@ npm run dev
 ```
 
 > [!IMPORTANT]
-> **API Keys Required**: To enable market data, you must provide your own API keys for Finnhub and Alpha Vantage in the **Settings** page within the app.
+> **API Key Required**: To enable market data, you must provide your own API key for Finnhub in the **Settings** page within the app.
 
 ## ⚖️ License & Privacy
 

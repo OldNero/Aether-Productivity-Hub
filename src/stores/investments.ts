@@ -209,6 +209,21 @@ export const useInvestmentStore = defineStore('investments', {
   actions: {
     async fetchInvestments() {
       const auth = useAuthStore();
+
+      // Wait for auth to finish initializing before checking session.
+      // Without this guard, the function bails out with [] on first load
+      // because auth.init() is async and may not have resolved yet.
+      if (!auth.isInitialized) {
+        await new Promise<void>(resolve => {
+          const unwatch = setInterval(() => {
+            if (auth.isInitialized) {
+              clearInterval(unwatch);
+              resolve();
+            }
+          }, 50);
+        });
+      }
+
       if (!auth.session?.user) {
         this.investments = [];
         this.isLoaded = true;
@@ -233,6 +248,19 @@ export const useInvestmentStore = defineStore('investments', {
 
     async fetchImports() {
       const auth = useAuthStore();
+
+      // Same auth-init guard as fetchInvestments
+      if (!auth.isInitialized) {
+        await new Promise<void>(resolve => {
+          const unwatch = setInterval(() => {
+            if (auth.isInitialized) {
+              clearInterval(unwatch);
+              resolve();
+            }
+          }, 50);
+        });
+      }
+
       if (!auth.session?.user) {
         this.imports = [];
         return;
@@ -257,9 +285,8 @@ export const useInvestmentStore = defineStore('investments', {
         
         const authStore = useAuthStore();
         const finnhubKey = authStore.currentUser?.finnhub_key;
-        const alphaKey = authStore.currentUser?.alpha_vantage_key;
         
-        if (!finnhubKey && !alphaKey) return;
+        if (!finnhubKey) return;
         
         const userSymbols = Object.keys(this.totalHoldings).filter(s => s !== 'CASH');
         const now = Date.now();
@@ -268,40 +295,21 @@ export const useInvestmentStore = defineStore('investments', {
         
         this.isFetchingPrices = true;
         
-        if (finnhubKey) {
-            await Promise.all(staleSymbols.map(async (symbol) => {
-                try {
-                    const data = await queuedFetch(symbol, finnhubKey);
-                    if (data && data.c) {
-                        this.realTimePrices[symbol] = {
-                            price: data.c,
-                            change: data.d,
-                            changePercent: data.dp + '%',
-                            previousClose: data.pc,
-                            timestamp: Date.now()
-                        };
-                    }
-                } catch (err) { console.error(`Finnhub failed for ${symbol}:`, err); }
-            }));
-        } else if (alphaKey) {
-            for (const symbol of staleSymbols) {
-                try {
-                    const resp = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${alphaKey}`);
-                    const data = await resp.json();
-                    const quote = data['Global Quote'];
-                    if (quote && quote['05. price']) {
-                        this.realTimePrices[symbol] = {
-                            price: parseFloat(quote['05. price']),
-                            change: parseFloat(quote['09. change']),
-                            changePercent: quote['10. change percent'],
-                            previousClose: parseFloat(quote['08. previous close']),
-                            timestamp: Date.now()
-                        };
-                    }
-                    if (staleSymbols.length > 1) await new Promise(r => setTimeout(r, 12000));
-                } catch (err) { console.error(`Alpha Vantage failed for ${symbol}:`, err); }
-            }
-        }
+        await Promise.all(staleSymbols.map(async (symbol) => {
+            try {
+                const data = await queuedFetch(symbol, finnhubKey);
+                if (data && data.c) {
+                    this.realTimePrices[symbol] = {
+                        price: data.c,
+                        change: data.d,
+                        changePercent: data.dp + '%',
+                        previousClose: data.pc,
+                        timestamp: Date.now()
+                    };
+                }
+            } catch (err) { console.error(`Finnhub failed for ${symbol}:`, err); }
+        }));
+        
         this.isFetchingPrices = false;
     },
     async addInvestment(investment: Omit<Investment, 'id'>) {
@@ -377,6 +385,11 @@ export const useInvestmentStore = defineStore('investments', {
             const transactions = parseTradingViewCSV(csv);
             if (transactions.length === 0) return 0;
 
+            // DEBUG: log first parsed row so we can verify payload against DB schema
+            console.log('[Investment Import] Parsed transactions count:', transactions.length);
+            console.log('[Investment Import] Sample row:', JSON.stringify(transactions[0], null, 2));
+            console.log('[Investment Import] user_id:', auth.session?.user?.id);
+
             // 1. Create import record
             const { data: importRecord, error: importError } = await supabase
                 .from('investment_imports')
@@ -391,20 +404,31 @@ export const useInvestmentStore = defineStore('investments', {
 
             if (importError) throw importError;
 
-            // 2. Add with import_id
+            // 2. Add transactions with import_id
             const inserts = transactions.map(inv => ({
                 ...inv,
                 user_id: auth.session?.user?.id,
                 import_id: importRecord.id
             }));
-            
+
+            console.log('[Investment Import] Inserting into investments table...');
             const { data, error } = await supabase
                 .from('investments')
                 .insert(inserts)
                 .select();
 
-            if (error) throw error;
+            if (error) {
+                // Rollback: delete the orphaned import record so DB stays clean
+                console.error('[Investment Import] Insert failed, rolling back import record:', error);
+                await supabase.from('investment_imports').delete().eq('id', importRecord.id);
+                
+                // Throw a descriptive error so the UI shows the real cause
+                const detail = error.message || error.details || JSON.stringify(error);
+                throw new Error(`SUPABASE_ERROR: ${detail}`);
+            }
+
             if (data) {
+                console.log('[Investment Import] Successfully inserted', data.length, 'rows');
                 this.investments.push(...data);
             }
 
@@ -419,6 +443,7 @@ export const useInvestmentStore = defineStore('investments', {
             throw err;
         }
     },
+
 
     async deleteImport(importId: string) {
       try {

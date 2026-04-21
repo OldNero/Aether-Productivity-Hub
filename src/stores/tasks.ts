@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { supabase } from '@/utils/supabase';
+import { useAuthStore } from './auth';
 
 export interface Subtask {
   id: string;
@@ -31,36 +32,51 @@ export const useTaskStore = defineStore('tasks', {
   },
   actions: {
     async fetchTasks() {
+      const auth = useAuthStore();
+      if (!auth.session?.user) return;
+
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
+        .eq('user_id', auth.session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching tasks:', error);
         this.tasks = [];
       } else {
-        this.tasks = data || [];
+        this.tasks = (data || []).map(task => ({
+          ...task,
+          subtasks: task.subtasks || []
+        }));
       }
       this.isLoaded = true;
     },
 
     async addTask(data: { title: string; priority?: Task['priority'] }) {
+      const auth = useAuthStore();
+      if (!auth.session?.user) throw new Error('Not authenticated');
+
       const { data: newTask, error } = await supabase
         .from('tasks')
         .insert({
           title: data.title,
           priority: data.priority || 'medium',
           completed: false,
+          user_id: auth.session.user.id
         })
         .select()
         .single();
 
       if (error) throw error;
       if (newTask) {
-        this.tasks.unshift(newTask);
+        const taskWithSubtasks = {
+          ...newTask,
+          subtasks: newTask.subtasks || []
+        };
+        this.tasks.unshift(taskWithSubtasks);
+        return taskWithSubtasks;
       }
-      return newTask;
     },
 
     async toggleTask(id: string) {

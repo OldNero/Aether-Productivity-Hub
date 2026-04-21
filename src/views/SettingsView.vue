@@ -1,36 +1,59 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useInvestmentStore } from '@/stores/investments';
 
 const authStore = useAuthStore();
 const investmentStore = useInvestmentStore();
 
-const username = ref(authStore.currentUser?.username || '');
+const username = ref('');
 const finnhubKey = ref('');
-const alphaKey = ref('');
 const saving = ref(false);
 const showSuccess = ref(false);
 
+// Populate fields when currentUser is available
+watch(() => authStore.currentUser, (user) => {
+  if (user) {
+    if (!username.value) username.value = user.username || '';
+    if (!finnhubKey.value) finnhubKey.value = user.finnhub_key || '';
+  }
+}, { immediate: true });
+
 onMounted(async () => {
-  finnhubKey.value = authStore.currentUser?.finnhub_key || '';
-  alphaKey.value = authStore.currentUser?.alpha_vantage_key || '';
+  // Ensure we have the latest profile
+  if (authStore.session?.user) {
+    await authStore.fetchProfile(authStore.session.user.id);
+  }
 
   // Local Storage Migration (Run once if keys exist locally but not in DB)
-  if (!finnhubKey.value || !alphaKey.value) {
-      const localFinnhub = localStorage.getItem('aether_finnhub_key');
-      const localAlpha = localStorage.getItem('aether_alpha_key');
+  const localFinnhub = localStorage.getItem('aether_finnhub_key');
+  
+  if (localFinnhub) {
+      console.log('Detected local API key, checking if migration is needed...');
       
-      if (localFinnhub || localAlpha) {
-          finnhubKey.value = finnhubKey.value || localFinnhub || '';
-          alphaKey.value = alphaKey.value || localAlpha || '';
-          console.log('Migrating local API keys to cloud storage...');
-          await saveSettings();
-          
-          // Clear local storage after successful migration
-          localStorage.removeItem('aether_finnhub_key');
-          localStorage.removeItem('aether_alpha_key');
+      // Wait for profile to be sure we aren't overwriting existing DB keys
+      if (!authStore.currentUser) {
+          await new Promise(resolve => {
+              const unwatch = watch(() => authStore.currentUser, (val) => {
+                  if (val) {
+                      unwatch();
+                      resolve(true);
+                  }
+              });
+          });
       }
+
+      const dbFinnhub = authStore.currentUser?.finnhub_key;
+
+      if (!dbFinnhub) {
+          finnhubKey.value = finnhubKey.value || localFinnhub || '';
+          console.log('Migrating local API key to cloud storage...');
+          await saveSettings();
+      }
+      
+      // Clear local storage after check/migration
+      localStorage.removeItem('aether_finnhub_key');
+      localStorage.removeItem('aether_alpha_key'); // Clean up old keys too
   }
 });
 
@@ -40,8 +63,7 @@ const saveSettings = async () => {
     // Save profile and keys to backend
     await authStore.updateProfile({
         username: username.value,
-        finnhub_key: finnhubKey.value,
-        alpha_vantage_key: alphaKey.value
+        finnhub_key: finnhubKey.value
     });
     
     // Refresh prices if keys changed
@@ -126,32 +148,17 @@ const saveSettings = async () => {
             </div>
 
             <div class="space-y-8">
-                <!-- Finnhub -->
                 <div class="p-6 rounded-2xl bg-accent/50 border border-border">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2">
-                            <h3 class="font-bold text-foreground">Finnhub API</h3>
-                            <span class="badge badge--high">Primary</span>
+                            <h3 class="font-bold text-foreground">Market Data Engine</h3>
+                            <span class="badge badge--high">Powered by Finnhub</span>
                         </div>
                         <a href="https://finnhub.io/" target="_blank" class="text-[10px] font-bold text-primary hover:underline uppercase">Get Free Key</a>
                     </div>
                     <label class="label">API Token</label>
                     <input v-model="finnhubKey" type="password" class="input font-mono text-sm" placeholder="Paste your Finnhub key here" />
-                    <p class="mt-3 text-[11px] text-muted-foreground leading-relaxed">Required for real-time stock quotes and dashboard metrics. Keys are stored <strong>only</strong> in your browser's local storage.</p>
-                </div>
-
-                <!-- Alpha Vantage -->
-                <div class="p-6 rounded-2xl bg-accent/50 border border-border">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-2">
-                            <h3 class="font-bold text-foreground">Alpha Vantage</h3>
-                            <span class="badge badge--medium">Fallback</span>
-                        </div>
-                        <a href="https://www.alphavantage.co/" target="_blank" class="text-[10px] font-bold text-primary hover:underline uppercase">Get Free Key</a>
-                    </div>
-                    <label class="label">API Key</label>
-                    <input v-model="alphaKey" type="password" class="input font-mono text-sm" placeholder="Paste your Alpha Vantage key here" />
-                    <p class="mt-3 text-[11px] text-muted-foreground leading-relaxed">Used as a backup source for market data. Note: Free tier is limited to 25 requests per day.</p>
+                    <p class="mt-3 text-[11px] text-muted-foreground leading-relaxed">Required for real-time stock quotes, portfolio valuation, and dashboard intelligence. Your key is encrypted and securely stored in your Aether cloud profile.</p>
                 </div>
             </div>
         </section>

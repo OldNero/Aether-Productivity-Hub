@@ -47,7 +47,7 @@ export function parseTradingViewCSV(csvText: string): Omit<Investment, 'id'>[] {
     // Prices and quantities might have quotes or formatting symbols
     const cleanNum = (val: string) => parseFloat(val?.replace(/[$,]/g, '')) || 0;
 
-    if (side === 'buy' || side === 'sell' && symbol) {
+    if ((side === 'buy' || side === 'sell') && symbol) {
       transactions.push({
         symbol,
         type: side as 'buy' | 'sell',

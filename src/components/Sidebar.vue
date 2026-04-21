@@ -17,6 +17,7 @@ const isRoutinesExpanded = ref(false);
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', path: '/', icon: 'dashboard' },
+  { id: 'intelligence', label: 'Intelligence', path: '/intelligence', icon: 'intelligence' },
   { id: 'investments', label: 'Portfolio', path: '/investments', icon: 'investments' },
   { id: 'timer', label: 'Timer', path: '/timer', icon: 'timer' },
 ];
@@ -30,8 +31,19 @@ const toggleRoutines = () => {
   isRoutinesExpanded.value = !isRoutinesExpanded.value;
 };
 
+const loggingOut = ref(false);
+
 const handleLogout = async () => {
-  await authStore.logout();
+  if (loggingOut.value) return;
+  
+  loggingOut.value = true;
+  try {
+    await authStore.logout();
+  } catch (err) {
+    console.error('Logout failed:', err);
+    // Force reload anyway to clear state
+    window.location.href = '/';
+  }
 };
 
 const userInitial = computed(() => {
@@ -75,6 +87,11 @@ const isRouteActive = (path: string) => {
             <rect x="14" y="3" width="7" height="7" rx="1" />
             <rect x="14" y="14" width="7" height="7" rx="1" />
             <rect x="3" y="14" width="7" height="7" rx="1" />
+          </svg>
+        </template>
+        <template v-else-if="item.id === 'intelligence'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
           </svg>
         </template>
         <template v-else-if="item.id === 'investments'">
@@ -171,12 +188,17 @@ const isRouteActive = (path: string) => {
           <p class="text-[10px] text-muted-foreground uppercase tracking-tighter">Profile</p>
         </div>
         <button
-          @click="handleLogout"
-          class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+          @click.stop.prevent="handleLogout"
+          class="flex items-center justify-center w-9 h-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all duration-200"
+          :class="{ 'opacity-50 cursor-wait': loggingOut }"
+          :disabled="loggingOut"
           title="Sign Out"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          <svg v-if="loggingOut" class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/>
+          </svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
         </button>
       </div>

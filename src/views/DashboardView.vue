@@ -4,11 +4,15 @@ import { useAuthStore } from '@/stores/auth';
 import { useTaskStore } from '@/stores/tasks';
 import { useTimerStore } from '@/stores/timer';
 import { useInvestmentStore } from '@/stores/investments';
+import { useIntelligenceStore } from '@/stores/intelligence';
+import { useEventStore } from '@/stores/events';
 
 const authStore = useAuthStore();
 const taskStore = useTaskStore();
 const timerStore = useTimerStore();
 const investmentStore = useInvestmentStore();
+const intelligenceStore = useIntelligenceStore();
+const eventStore = useEventStore();
 
 const quote = ref({ text: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' });
 const insight = ref('Analyzing your productivity rhythm...');
@@ -41,11 +45,53 @@ const dashOffset = computed(() => {
   return circumference * (1 - p);
 });
 
+const nextEvent = computed(() => {
+  const now = new Date();
+  return eventStore.events
+    .filter(e => new Date(e.start_time) > now)
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0] || null;
+});
+
+const formatEventTime = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const timeUntilNextEvent = computed(() => {
+  if (!nextEvent.value) return '';
+  const now = new Date();
+  const start = new Date(nextEvent.value.start_time);
+  const diffMs = start.getTime() - now.getTime();
+  
+  if (diffMs <= 0) return 'Starts now';
+
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (diffDays > 0) {
+    return `Starts in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+  } else if (diffHours > 0) {
+    return `starts in ${diffHours}h ${diffMins}m`;
+  } else {
+    return `starts in ${diffMins}m`;
+  }
+});
+
+const isNextEventSoon = computed(() => {
+  if (!nextEvent.value) return false;
+  const now = new Date();
+  const start = new Date(nextEvent.value.start_time);
+  const diffMs = start.getTime() - now.getTime();
+  return diffMs < (1000 * 60 * 60 * 24); // Less than 1 day away
+});
+
 onMounted(async () => {
   await Promise.all([
     taskStore.fetchTasks(),
     timerStore.init(),
-    investmentStore.fetchInvestments()
+    investmentStore.fetchInvestments(),
+    eventStore.fetchEvents()
   ]);
   
   // Fetch Quote
@@ -58,11 +104,8 @@ onMounted(async () => {
   } catch (err) {
     console.warn("Quote fetch failed, using default.");
   }
-
-  // Set Insight
-  insight.value = taskStore.activeCount > 3 
-    ? "You have a busy day ahead. Focus on high-priority tasks first."
-    : "Consistency is key. You're making great progress!";
+  // Run intelligence engine in background (non-blocking)
+  intelligenceStore.generateInsights();
 });
 </script>
 
@@ -91,13 +134,14 @@ onMounted(async () => {
         </div>
         <div class="relative z-10">
           <p class="label">{{ greeting }}</p>
-          <p class="text-2xl font-bold tracking-tight text-foreground truncate">
-            {{ authStore.currentUser?.username || 'Guest' }}
+          <div v-if="!authStore.currentUser" class="h-8 w-32 skeleton mt-1"></div>
+          <p v-else class="text-2xl font-bold tracking-tight text-foreground truncate">
+            {{ authStore.currentUser.username || 'Guest' }}
           </p>
         </div>
       </div>
 
-      <!-- Aether Pulse Insight -->
+      <!-- Aether Intelligence Insight -->
       <div class="card col-span-4 md:col-span-1 flex flex-col justify-between border-primary/10 relative overflow-hidden group">
         <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity text-foreground">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -105,14 +149,35 @@ onMounted(async () => {
           </svg>
         </div>
         <div>
-          <p class="label mb-1">Aether Pulse</p>
+          <p class="label mb-1">Aether Intelligence</p>
+          <!-- Show AI insight if available, else fallback -->
           <p class="text-sm font-medium text-foreground leading-snug">
-            {{ insight }}
+            {{ intelligenceStore.insights[0]?.body || (taskStore.activeCount > 3 ? 'You have a busy day ahead. Focus on high-priority tasks first.' : 'Consistency is key. You\'re making great progress!') }}
           </p>
         </div>
-        <div class="flex items-center gap-2 mt-4">
-          <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <p class="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Insight Engine Active</p>
+        <!-- Momentum Score mini ring -->
+        <div class="flex items-center gap-3 mt-4">
+          <div class="relative w-8 h-8">
+            <svg class="-rotate-90 w-full h-full" viewBox="0 0 32 32">
+              <circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="3" class="text-muted/20"/>
+              <circle
+                cx="16" cy="16" r="12"
+                fill="none" stroke-width="3" stroke-linecap="round"
+                :stroke="intelligenceStore.momentumColor"
+                :stroke-dasharray="75.4"
+                :stroke-dashoffset="75.4 - (intelligenceStore.momentumScore / 100) * 75.4"
+                style="transition: stroke-dashoffset 1.2s cubic-bezier(0.16,1,0.3,1)"
+              />
+            </svg>
+            <span class="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-foreground">{{ intelligenceStore.momentumScore }}</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-1.5 h-1.5 rounded-full animate-pulse" :style="{ backgroundColor: intelligenceStore.momentumColor }"></div>
+              <p class="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{{ intelligenceStore.momentumLabel }}</p>
+            </div>
+            <router-link to="/intelligence" class="text-[9px] text-muted-foreground hover:text-foreground transition-colors">View full analysis →</router-link>
+          </div>
         </div>
       </div>
 
@@ -127,54 +192,89 @@ onMounted(async () => {
         </cite>
       </div>
 
-      <!-- Stats -->
-      <div class="card col-span-4 md:col-span-1 flex flex-col justify-between">
-        <div class="p-2 w-9 h-9 rounded-lg bg-accent flex items-center justify-center text-muted-foreground">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-          </svg>
+      <!-- Next Event Card -->
+      <div class="card col-span-4 md:col-span-2 flex flex-col justify-between group cursor-pointer hover:border-primary/30 transition-all" @click="$router.push('/calendar')">
+        <div class="flex items-center justify-between">
+          <div class="p-2 w-9 h-9 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-600 dark:text-sky-400">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <div v-if="nextEvent" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[10px] font-bold uppercase tracking-widest">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+            </span>
+            Upcoming
+          </div>
         </div>
-        <div>
-          <p class="label">Total Tasks</p>
-          <p class="text-4xl font-bold tracking-tight text-foreground">{{ taskStore.totalCount }}</p>
+              <div v-if="!eventStore.isLoaded">
+          <p class="label mb-1">Next Event</p>
+          <div class="flex justify-between items-end gap-4">
+             <div class="h-8 w-48 skeleton"></div>
+             <div class="h-8 w-20 skeleton"></div>
+          </div>
+        </div>
+        <div v-else-if="nextEvent">
+          <p class="label mb-1">Next Event</p>
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-2">
+            <div>
+              <p class="text-2xl font-bold tracking-tight text-foreground">{{ nextEvent.title }}</p>
+              <p class="text-xs font-medium text-muted-foreground mt-1 flex items-center gap-2">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                {{ nextEvent.location || 'No location specified' }}
+              </p>
+            </div>
+            <div class="text-right">
+              <p class="text-xl font-bold text-foreground">{{ formatEventTime(nextEvent.start_time) }}</p>
+              <p class="text-[10px] font-bold text-sky-500 uppercase tracking-widest" :class="{ 'animate-pulse': isNextEventSoon }">{{ timeUntilNextEvent }}</p>
+            </div>
+          </div>
+        </div>
+        <div v-else>
+          <p class="label mb-1">Next Event</p>
+          <p class="text-sm font-medium text-muted-foreground italic">Your schedule is clear. Take some time for yourself!</p>
         </div>
       </div>
 
-      <div class="card col-span-2 md:col-span-1 flex flex-col justify-between">
-        <div class="p-2 w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-          </svg>
-        </div>
-        <div>
-          <p class="label">Active</p>
-          <p class="text-4xl font-bold tracking-tight text-foreground">{{ taskStore.activeCount }}</p>
-        </div>
-      </div>
 
-      <div class="card col-span-2 md:col-span-1 flex flex-col justify-between">
-        <div class="p-2 w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-        </div>
-        <div>
-          <p class="label">Completed</p>
-          <p class="text-4xl font-bold tracking-tight text-foreground">{{ taskStore.completedCount }}</p>
-        </div>
-      </div>
-
-      <div class="card col-span-2 md:col-span-1 flex flex-col justify-between">
-        <div class="p-2 w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-600 dark:text-violet-400">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="card col-span-4 md:col-span-2 flex flex-col justify-between relative overflow-hidden group">
+        <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity text-foreground">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
           </svg>
         </div>
+        
         <div>
-          <p class="label">Portfolio (USD)</p>
-          <p class="text-2xl font-bold tracking-tight text-foreground truncate">
-            {{ formatCurrency(investmentStore.netWorth) }}
-          </p>
+          <p class="label mb-4">Portfolio Performance</p>
+          <div v-if="!investmentStore.isLoaded" class="grid grid-cols-2 gap-4">
+             <div class="h-10 w-full skeleton"></div>
+             <div class="h-10 w-full skeleton border-l border-border pl-4"></div>
+          </div>
+          <div v-else class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Since Inception</p>
+              <p class="text-3xl font-bold tracking-tighter transition-colors" :class="investmentStore.totalGain >= 0 ? 'text-emerald-500' : 'text-rose-500'">
+                {{ investmentStore.totalGain >= 0 ? '+' : '' }}{{ investmentStore.totalGainPercent.toFixed(2) }}%
+              </p>
+            </div>
+            <div class="border-l border-border pl-4">
+              <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Daily Change</p>
+              <p class="text-3xl font-bold tracking-tighter transition-colors" :class="investmentStore.dayChange.value >= 0 ? 'text-emerald-500' : 'text-rose-500'">
+                {{ investmentStore.dayChange.value >= 0 ? '+' : '' }}{{ investmentStore.dayChange.percent.toFixed(2) }}%
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-4 flex items-center justify-between">
+           <div class="flex items-center gap-1.5">
+             <div class="w-1.5 h-1.5 rounded-full" :class="investmentStore.dayChange.value >= 0 ? 'bg-emerald-500' : 'bg-rose-500'"></div>
+             <p class="text-[9px] text-muted-foreground font-bold uppercase tracking-tight">
+               {{ investmentStore.dayChange.value >= 0 ? 'Outperforming' : 'Underperforming' }} vs Yesterday
+             </p>
+           </div>
+           <router-link to="/investments" class="text-[9px] font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">Full Ledger →</router-link>
         </div>
       </div>
 
@@ -185,12 +285,21 @@ onMounted(async () => {
           <router-link to="/routines" class="btn-ghost text-xs">View all →</router-link>
         </div>
         <div class="flex-1 space-y-2 overflow-y-auto pr-1">
-          <div v-for="task in taskStore.activeTasks.slice(0, 5)" :key="task.id" class="flex items-center gap-3 py-2 border-b border-border last:border-0">
-            <div class="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div>
-            <span class="text-sm text-foreground/80 flex-1 truncate">{{ task.title }}</span>
-            <span class="badge" :class="`badge--${task.priority}`">{{ task.priority }}</span>
-          </div>
-          <p v-if="taskStore.activeCount === 0" class="text-xs text-muted-foreground py-4">No active tasks. Time to focus?</p>
+          <template v-if="!taskStore.isLoaded">
+            <div v-for="i in 5" :key="i" class="flex items-center gap-3 py-3 border-b border-border last:border-0">
+               <div class="w-2 h-2 rounded-full skeleton"></div>
+               <div class="h-4 flex-1 skeleton"></div>
+               <div class="h-4 w-12 rounded-full skeleton"></div>
+            </div>
+          </template>
+          <template v-else>
+            <div v-for="task in taskStore.activeTasks.slice(0, 5)" :key="task.id" class="flex items-center gap-3 py-2 border-b border-border last:border-0">
+              <div class="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div>
+              <span class="text-sm text-foreground/80 flex-1 truncate">{{ task.title }}</span>
+              <span class="badge" :class="`badge--${task.priority}`">{{ task.priority }}</span>
+            </div>
+            <p v-if="taskStore.activeCount === 0" class="text-xs text-muted-foreground py-4">No active tasks. Time to focus?</p>
+          </template>
         </div>
       </div>
 
