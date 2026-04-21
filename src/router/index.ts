@@ -1,8 +1,8 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 const router = createRouter({
-  history: createWebHashHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
@@ -44,11 +44,20 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
+  
   if (!authStore.isInitialized) {
     await authStore.init();
   }
 
-  // Auth requirement logic could go here, but original project is local-first/lax.
+  // Handle Supabase OAuth fragments (like #access_token=...)
+  // We check the hash specifically to prevent Vue Router from being confused by OAuth tokens
+  if (window.location.hash.includes('access_token=') || window.location.hash.includes('type=recovery')) {
+    // Supabase JS handles the token extraction automatically.
+    // We just want to clean the URL and land on the dashboard.
+    next({ path: '/', replace: true });
+    return;
+  }
+
   next();
 });
 
