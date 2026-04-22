@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
 
 defineProps<{
   isOpen: boolean;
@@ -12,6 +13,8 @@ const emit = defineEmits(['close']);
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const themeStore = useThemeStore();
+const isMobile = ref(false);
 
 const isRoutinesExpanded = ref(false);
 
@@ -65,8 +68,8 @@ const isRouteActive = (path: string) => {
   >
     <!-- Logo -->
     <div class="flex items-center gap-2.5 px-2 mb-8" id="site-logo">
-      <div class="w-7 h-7 rounded-lg overflow-hidden shrink-0">
-        <img src="/favicon.svg" alt="Aether" class="w-full h-full object-contain" />
+      <div class="w-8 h-8 flex items-center justify-center shrink-0">
+        <img :src="themeStore.logoUrl" alt="Aether" class="w-full h-full object-contain" />
       </div>
       <span class="font-semibold text-foreground tracking-tight">Aether</span>
     </div>

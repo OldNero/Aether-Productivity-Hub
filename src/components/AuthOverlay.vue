@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
 
 const authStore = useAuthStore();
+const themeStore = useThemeStore();
 const isLogin = ref(true);
 const email = ref('');
 const username = ref('');
@@ -43,8 +45,8 @@ const handleGoogleSignIn = async () => {
     
     <div class="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-8 relative z-10 animate-in">
         <div class="text-center mb-8">
-            <div class="w-12 h-12 rounded-2xl bg-primary mx-auto mb-4 flex items-center justify-center shadow-lg shadow-primary/20">
-                <img src="/favicon.svg" alt="Aether" class="w-7 h-7 brightness-0 invert" />
+            <div class="w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                <img :src="themeStore.logoUrl" alt="Aether" class="w-full h-full object-contain" />
             </div>
             <h1 class="text-3xl font-bold tracking-tighter text-foreground mb-2">Aether Hub</h1>
             <p class="text-sm text-muted-foreground">High-performance productivity suite.</p>

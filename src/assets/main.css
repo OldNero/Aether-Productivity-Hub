@@ -85,6 +85,29 @@
   --ring: 240 4.9% 83.9%;
 }
 
+/* Tones Theme */
+.tones {
+  --background: 29 100% 92%;
+  --foreground: 23 40% 25%;
+  --card: 29 100% 92%;
+  --card-foreground: 23 40% 25%;
+  --popover: 29 100% 92%;
+  --popover-foreground: 23 40% 25%;
+  --primary: 23 40% 66%;
+  --primary-foreground: 29 100% 96%;
+  --secondary: 27 84% 88%;
+  --secondary-foreground: 23 40% 30%;
+  --muted: 27 82% 85%;
+  --muted-foreground: 23 40% 45%;
+  --accent: 26 64% 80%;
+  --accent-foreground: 23 40% 25%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 26 64% 75%;
+  --input: 26 64% 80%;
+  --ring: 23 40% 66%;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -285,3 +308,4 @@ body.auth-required aside {
 .page-transition {
   animation: view-entrance 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
